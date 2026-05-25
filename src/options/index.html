@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YT Series - Settings</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: #141414;
+      color: #fff;
+      padding: 40px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    h1 { font-size: 24px; margin-bottom: 8px; color: #E50914; }
+    p { color: #808080; margin-bottom: 32px; font-size: 14px; }
+    .section { margin-bottom: 24px; }
+    .section h2 { font-size: 16px; margin-bottom: 8px; }
+    .section input, .section select {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid #333;
+      border-radius: 6px;
+      background: rgba(0,0,0,0.3);
+      color: #fff;
+      font-size: 14px;
+    }
+    .section input:focus, .section select:focus {
+      outline: none;
+      border-color: #E50914;
+    }
+    .section label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+    .section label input[type="checkbox"] { width: auto; }
+    .status { font-size: 13px; margin-top: 6px; }
+    .status.ok { color: #2ecc71; }
+    .status.err { color: #E50914; }
+    button {
+      padding: 10px 24px;
+      border: none;
+      border-radius: 4px;
+      background: #E50914;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:hover { background: #f40612; }
+  </style>
+</head>
+<body>
+  <h1>YT Series</h1>
+  <p>Extension settings</p>
+
+  <div class="section">
+    <h2>YouTube API Key</h2>
+    <input type="text" id="apiKeyInput" placeholder="Enter your YouTube Data API v3 key" />
+    <div id="apiKeyStatus" class="status"></div>
+  </div>
+
+  <button id="saveBtn">Save</button>
+  <div id="saveStatus" class="status" style="margin-top: 12px;"></div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

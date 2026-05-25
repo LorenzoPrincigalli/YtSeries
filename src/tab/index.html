@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <title>YT Series</title>
+  <link rel="stylesheet" href="main.css">
+</head>
+<body>
+  <div id="app">
+    <header id="header">
+      <div class="header-left">
+        <h1 class="logo">YT Series</h1>
+        <nav class="nav-links">
+          <a href="#" class="nav-link active" data-view="home" data-i18n="home">
+            <svg class="nav-home-icon" viewBox="0 0 24 24" width="18" height="18"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+            <span data-i18n="home">Home</span>
+          </a>
+        </nav>
+      </div>
+      <div class="header-right">
+        <div class="search-container">
+          <input type="text" id="searchInput" placeholder="Search series..." />
+          <button id="searchClear" class="search-clear hidden">&times;</button>
+        </div>
+        <button id="settingsBtn" class="icon-btn" title="Settings">&#9881;</button>
+        <button id="addPlaylistBtn" class="btn-primary">+ Add Series</button>
+      </div>
+    </header>
+
+    <div id="filterBar" class="filter-bar">
+      <div class="filter-chips">
+        <button class="filter-chip active" data-filter="all">All</button>
+        <button class="filter-chip" data-filter="watching">Watching</button>
+        <button class="filter-chip" data-filter="completed">Completed</button>
+        <button class="filter-chip" data-filter="new">New Episodes</button>
+      </div>
+      <div id="searchQuery" class="search-query hidden"></div>
+    </div>
+
+    <main id="mainContent">
+      <div id="loadingScreen" class="loading-screen">
+        <div class="spinner"></div>
+        <p data-i18n="loading">Loading your series...</p>
+      </div>
+    </main>
+  </div>
+
+  <div id="addPlaylistModal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="addPlaylistModalTitle">Add Series</h2>
+        <button class="modal-close" data-modal="addPlaylistModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-tabs">
+          <button class="modal-tab active" data-tab="url">URL</button>
+          <button class="modal-tab" data-tab="search">Cerca</button>
+        </div>
+
+        <div id="addPlaylistTabUrl" class="modal-tab-content">
+          <p class="modal-desc" id="addPlaylistDesc">Paste a YouTube playlist URL to add it as a series.</p>
+          <input type="text" id="playlistUrlInput" placeholder="https://www.youtube.com/playlist?list=..." />
+          <div id="playlistError" class="error-msg hidden"></div>
+        </div>
+
+        <div id="addPlaylistTabSearch" class="modal-tab-content hidden">
+          <p class="modal-desc" id="addPlaylistSearchDesc">Search YouTube for public playlists.</p>
+          <div class="search-row">
+            <input type="text" id="playlistSearchInput" placeholder="Cerca playlist..." />
+            <button id="playlistSearchBtn" class="btn-primary">Cerca</button>
+          </div>
+          <div id="playlistSearchResults" class="search-results"></div>
+          <div id="playlistSearchError" class="error-msg hidden"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="addPlaylistCancel" class="btn-secondary" data-modal="addPlaylistModal">Cancel</button>
+        <button id="addPlaylistConfirm" class="btn-primary">Add Series</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="settingsModal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="settingsModalTitle">Settings</h2>
+        <button class="modal-close" data-modal="settingsModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="settings-section">
+          <h3 data-i18n="theme">Theme</h3>
+          <div class="select-wrapper">
+            <select id="themeSelect">
+              <option value="classic-red">Classic Red</option>
+              <option value="ocean-blue">Ocean Blue</option>
+              <option value="forest">Forest Green</option>
+            </select>
+          </div>
+        </div>
+        <div class="settings-section">
+          <h3 data-i18n="language">Language</h3>
+          <div class="select-wrapper">
+            <select id="languageSelect">
+              <option value="system">System</option>
+              <option value="en">English</option>
+              <option value="it">Italiano</option>
+            </select>
+          </div>
+        </div>
+        <div class="settings-section" id="proSettings">
+          <h3 data-i18n="auto_refresh">Auto-Refresh</h3>
+          <label class="toggle-label">
+            <input type="checkbox" id="autoRefreshToggle" />
+            <span class="toggle-slider"></span>
+            <span class="toggle-text">Check for new episodes every 24h</span>
+          </label>
+        </div>
+        <div class="settings-section">
+          <h3><span data-i18n="license_key">License Key</span> <span class="pro-badge" id="licenseBadge">FREE</span></h3>
+          <p class="settings-desc">Unlock unlimited series, auto-refresh, and more themes.</p>
+          <div class="license-input-group">
+            <input type="text" id="licenseKeyInput" placeholder="Enter license key" />
+            <button id="verifyLicenseBtn" class="btn-primary">Activate</button>
+          </div>
+          <div id="licenseMessage" class="hidden"></div>
+        </div>
+        <div class="settings-section" style="border-top:1px solid var(--card-bg);padding-top:16px">
+          <button id="resetStorageBtn" class="btn-secondary" style="color:#E50914;width:100%">Reset all data</button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" data-modal="settingsModal">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

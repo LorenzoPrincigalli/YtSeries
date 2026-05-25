@@ -1,0 +1,357 @@
+import { EVENTS } from '../shared/events.js'
+import { logger } from '../shared/logger.js'
+import { AUTO_REFRESH_INTERVAL_MINUTES, API } from '../shared/constants.js'
+import { storageService } from '../services/chrome/storage.js'
+import { tabService } from '../services/chrome/tabs.js'
+import { alarmService } from '../services/chrome/alarms.js'
+import { notificationService } from '../services/chrome/notifications.js'
+import { youTubeApiService } from '../services/youtube.js'
+import { licenseService } from '../services/license.js'
+import { store } from '../state/store.js'
+
+let initialized = false
+let initPromise = null
+
+async function ensureInit() {
+  if (initialized) return
+  if (initPromise) return initPromise
+  initPromise = init().then(() => { initialized = true }).catch(err => logger.error('Init failed:', err))
+  return initPromise
+}
+
+async function init() {
+  await store.loadFromStorage(storageService)
+
+  const settings = store.getSettings()
+  if (settings.apiKey) {
+    youTubeApiService.setApiKey(settings.apiKey)
+  } else if (API.API_KEY && API.API_KEY !== 'AIzaSyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA') {
+    youTubeApiService.setApiKey(API.API_KEY)
+  }
+
+  if (store.isPro() && store.getSettings().autoRefresh) {
+    try {
+      await alarmService.create('autoRefresh', AUTO_REFRESH_INTERVAL_MINUTES)
+    } catch (err) {
+      logger.warn('Failed to create alarm:', err)
+    }
+  }
+
+  logger.info('Background initialized')
+}
+
+chrome.runtime.onInstalled.addListener(() => ensureInit())
+chrome.runtime.onStartup.addListener(() => ensureInit())
+
+chrome.action.onClicked.addListener(async () => {
+  await ensureInit()
+  openSeriesTab()
+})
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  ensureInit()
+    .then(() => handleMessage(message, sender))
+    .then(result => sendResponse(result))
+    .catch(err => {
+      logger.error('Message handler error:', message.type, err)
+      sendResponse({ success: false, error: err.code || 'UNKNOWN_ERROR', message: err.message || 'Unknown error' })
+    })
+  return true
+})
+
+alarmService.onAlarm(async (alarm) => {
+  await ensureInit()
+  if (alarm.name === 'autoRefresh') {
+    await autoRefresh()
+  }
+})
+
+notificationService.onClick(async (notificationId) => {
+  await ensureInit()
+  const playlistId = notificationId.replace('new_episodes_', '')
+  const series = store.getSeriesById(playlistId)
+  if (series) {
+    await tabService.create(chrome.runtime.getURL(`src/tab/index.html?series=${playlistId}`))
+  }
+})
+
+async function handleMessage(message) {
+  switch (message.type) {
+    case EVENTS.STATE_GET:
+      return { success: true, state: store.getState() }
+
+    case EVENTS.PLAYLIST_ADD:
+      return handlePlaylistAdd(message.payload)
+
+    case EVENTS.SERIES_DELETE:
+      return handleSeriesDelete(message.payload)
+
+    case EVENTS.SERIES_COMPLETE_TOGGLE:
+      return handleSeriesCompleteToggle(message.payload)
+
+    case EVENTS.SERIES_REFRESH:
+      return handleSeriesRefresh(message.payload)
+
+    case EVENTS.EPISODE_WATCH:
+      return handleEpisodeWatch(message.payload)
+
+    case EVENTS.EPISODE_PROGRESS:
+      return handleEpisodeProgress(message.payload)
+
+    case EVENTS.SETTINGS_UPDATE:
+      return handleSettingsUpdate(message.payload)
+
+    case EVENTS.LICENSE_VERIFY:
+      return handleLicenseVerify(message.payload)
+
+    case EVENTS.SET_API_KEY:
+      return handleSetApiKey(message.payload)
+
+    case EVENTS.STORAGE_RESET:
+      return handleStorageReset()
+
+    case EVENTS.OPEN_SERIES_TAB:
+      return handleOpenSeriesTab()
+
+    case EVENTS.PLAYLIST_SEARCH:
+      return handlePlaylistSearch(message.payload)
+
+    case EVENTS.FETCH_CHANNEL_PLAYLISTS:
+      return handleFetchChannelPlaylists(message.payload)
+
+    case 'SET_ICON_THEME':
+      return handleSetIconTheme(message.payload)
+
+    default:
+      logger.warn('Unknown message type:', message.type)
+      return { success: false, error: 'UNKNOWN_TYPE', message: `Unknown message type: ${message.type}` }
+  }
+}
+
+async function handlePlaylistAdd(payload) {
+  if (!payload || !payload.url) {
+    return { success: false, error: 'MISSING_URL', message: 'Playlist URL is required' }
+  }
+
+  if (!store.canAddSeries()) {
+    return { success: false, error: 'LIMIT_REACHED', message: 'Free limit reached. Upgrade to Pro for unlimited series.' }
+  }
+
+  const data = await youTubeApiService.fetchPlaylist(payload.url)
+  store.addSeries(data)
+  await store.saveToStorage(storageService)
+
+  return { success: true, series: store.getSeriesById(data.playlistId) }
+}
+
+async function handleSeriesDelete(payload) {
+  if (!payload || !payload.playlistId) {
+    return { success: false, error: 'MISSING_ID', message: 'Playlist ID is required' }
+  }
+
+  store.deleteSeries(payload.playlistId)
+  await store.saveToStorage(storageService)
+
+  return { success: true }
+}
+
+async function handleSeriesCompleteToggle(payload) {
+  if (!payload || !payload.playlistId) {
+    return { success: false, error: 'MISSING_ID', message: 'Playlist ID is required' }
+  }
+  store.toggleSeriesComplete(payload.playlistId)
+  await store.saveToStorage(storageService)
+  return { success: true, state: store.getState() }
+}
+
+async function handleSeriesRefresh(payload) {
+  if (!payload || !payload.playlistId) {
+    return { success: false, error: 'MISSING_ID', message: 'Playlist ID is required' }
+  }
+
+  const data = await youTubeApiService.refreshPlaylist(payload.playlistId)
+  store.addSeries(data)
+  await store.saveToStorage(storageService)
+
+  const refreshed = store.getSeriesById(data.playlistId)
+  return { success: true, series: refreshed }
+}
+
+async function handleEpisodeWatch(payload) {
+  if (!payload || !payload.playlistId || !payload.videoId) {
+    return { success: false, error: 'MISSING_PARAMS', message: 'playlistId and videoId are required' }
+  }
+
+  store.markEpisodeWatched(payload.playlistId, payload.videoId)
+  await store.saveToStorage(storageService)
+
+  return { success: true, state: store.getState() }
+}
+
+async function handleEpisodeProgress(payload) {
+  if (!payload || !payload.playlistId || !payload.videoId) {
+    return { success: false, error: 'MISSING_PARAMS', message: 'playlistId, videoId and progress are required' }
+  }
+
+  store.updateEpisodeProgress(payload.playlistId, payload.videoId, payload.progress)
+  await store.saveToStorage(storageService)
+
+  return { success: true }
+}
+
+async function handleSettingsUpdate(payload) {
+  if (!payload) {
+    return { success: false, error: 'MISSING_PARAMS', message: 'Settings payload is required' }
+  }
+
+  const oldSettings = store.getSettings()
+  store.updateSettings(payload)
+  await store.saveToStorage(storageService)
+
+  if (store.isPro() && payload.autoRefresh && !oldSettings.autoRefresh) {
+    await alarmService.create('autoRefresh', AUTO_REFRESH_INTERVAL_MINUTES)
+  } else if (payload.autoRefresh === false && oldSettings.autoRefresh) {
+    await alarmService.clear('autoRefresh')
+  }
+
+  return { success: true, settings: store.getSettings() }
+}
+
+async function handleLicenseVerify(payload) {
+  if (!payload || !payload.key) {
+    return { success: false, error: 'MISSING_KEY', message: 'License key is required' }
+  }
+
+  const result = await licenseService.verify(payload.key)
+
+  if (result.valid) {
+    store.setLicense({ key: payload.key, isPro: true, verifiedAt: Date.now() })
+    await store.saveToStorage(storageService)
+  }
+
+  return { success: true, valid: result.valid }
+}
+
+async function handleSetApiKey(payload) {
+  if (!payload || !payload.key) {
+    return { success: false, error: 'MISSING_KEY', message: 'API key is required' }
+  }
+
+  youTubeApiService.setApiKey(payload.key)
+  store.setApiKey(payload.key)
+  await store.saveToStorage(storageService)
+  return { success: true }
+}
+
+async function handleOpenSeriesTab() {
+  await openSeriesTab()
+  return { success: true }
+}
+
+async function openSeriesTab() {
+  const url = chrome.runtime.getURL('src/tab/index.html')
+  const existingTabs = await tabService.query({ url })
+
+  if (existingTabs.length > 0) {
+    await tabService.update(existingTabs[0].id, { active: true })
+  } else {
+    await tabService.create(url)
+  }
+}
+
+async function handlePlaylistSearch(payload) {
+  if (!payload || !payload.query) {
+    return { success: false, playlists: [], channels: [] }
+  }
+
+  const results = await youTubeApiService.search(payload.query)
+  return { success: true, ...results }
+}
+
+async function handleFetchChannelPlaylists(payload) {
+  if (!payload || !payload.channelId) {
+    return { success: false, playlists: [] }
+  }
+
+  const playlists = await youTubeApiService.fetchChannelPlaylists(
+    payload.channelId,
+    payload.excludePlaylistId
+  )
+
+  return { success: true, playlists }
+}
+
+async function handleSetIconTheme(payload) {
+  if (!payload || !payload.suffix === undefined) {
+    return { success: false }
+  }
+
+  const sizes = { 16: 'icon16', 48: 'icon48', 128: 'icon128' }
+  const path = {}
+  for (const [size, name] of Object.entries(sizes)) {
+    path[size] = `icons/${name}${payload.suffix}.png`
+  }
+
+  try {
+    await chrome.action.setIcon({ path })
+    return { success: true }
+  } catch (err) {
+    logger.warn('Failed to set toolbar icon:', err)
+    return { success: false }
+  }
+}
+
+async function autoRefresh() {
+  if (!store.isPro() || !store.getSettings().autoRefresh) return
+
+  const seriesList = store.getSeries()
+  let hasNewEpisodes = false
+
+  for (const [playlistId, series] of Object.entries(seriesList)) {
+    try {
+      const freshData = await youTubeApiService.refreshPlaylist(playlistId)
+      const oldCount = series.videos.length
+
+      store.addSeries(freshData)
+
+      const updated = store.getSeriesById(playlistId)
+      if (updated && updated.videos.length > oldCount) {
+        hasNewEpisodes = true
+
+        await notificationService.create(`new_episodes_${playlistId}`, {
+          type: 'basic',
+          title: series.title,
+          message: `${updated.videos.length - oldCount} new episode${updated.videos.length - oldCount > 1 ? 's' : ''} available!`,
+          iconUrl: 'icons/icon128.png'
+        })
+      }
+    } catch (err) {
+      logger.error(`Auto-refresh failed for ${playlistId}:`, err)
+    }
+  }
+
+  if (hasNewEpisodes) {
+    await store.saveToStorage(storageService)
+  }
+
+  store.updateSettings({ lastRefreshCheck: Date.now() })
+  await store.saveToStorage(storageService)
+}
+
+async function handleStorageReset() {
+  try {
+    await Promise.all([
+      storageService.remove([STORAGE_KEYS.SETTINGS, STORAGE_KEYS.LICENSE]),
+      storageService.removeLocal([STORAGE_KEYS.SERIES])
+    ])
+    store._state = {
+      series: {},
+      settings: { theme: 'classic-red', autoRefresh: false, lastRefreshCheck: 0 },
+      license: { key: null, isPro: false, verifiedAt: null }
+    }
+    return { success: true }
+  } catch (err) {
+    logger.error('handleStorageReset failed:', err)
+    return { success: false, message: 'Failed to reset storage' }
+  }
+}

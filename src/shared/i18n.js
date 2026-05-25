@@ -1,0 +1,239 @@
+let _forcedLang = null
+
+const STRINGS = {
+  en: {
+    // Home
+    'continue_watching': 'Continue Watching',
+    'new_episodes': 'New Episodes',
+    'this_week': 'New This Week',
+    'my_series': 'My Series',
+    'episodes': 'episodes',
+    'episode': 'episode',
+    'done': 'Done',
+    'new_badge': '+{n} new',
+    'welcome_title': 'Welcome to YT Series',
+    'welcome_desc': 'Add a YouTube playlist to start tracking it like a TV series. Click the "+ Add Series" button to get started.',
+
+    // Detail
+    'continue_ep': 'Continue (Ep {n})',
+    'refresh': 'Refresh',
+    'delete': 'Delete',
+    'episodes_title': 'Episodes',
+    'episode_label': 'Episode {n}',
+    'watched': 'Watched',
+    'unwatched': 'Unwatched',
+    'watched_status': '{n} / {total} watched ({pct}%)',
+    'more_from': 'More from {channel}',
+    'loading': 'Loading...',
+    'no_channel_info': 'No channel information available',
+    'no_other_playlists': 'No other public playlists found',
+    'load_failed': 'Could not load related playlists',
+    'delete_confirm': 'Delete "{title}"? This cannot be undone.',
+    'videos_count': '{n} videos',
+    'video_singular': 'video',
+    'last_video': 'Last video',
+    'sort_default': 'Default order',
+    'sort_date_desc': 'Newest first',
+    'sort_date_asc': 'Oldest first',
+    'sort_unwatched': 'Unwatched first',
+    'sort_watched': 'Watched first',
+
+    // UI
+    'search_placeholder': 'Search series...',
+    'add_series': 'Add Series',
+    'add_via_link': '+ Add via Link',
+    'home': 'Home',
+    'settings': 'Settings',
+    'all': 'All',
+    'watching': 'Watching',
+    'completed': 'Completed',
+    'adding': 'Adding...',
+
+    // Add playlist modal
+    'add_series_title': 'Add Series',
+    'add_series_desc': 'Paste a YouTube playlist URL to add it as a series.',
+    'playlist_url_placeholder': 'https://www.youtube.com/playlist?list=...',
+    'cancel': 'Cancel',
+    'enter_url': 'Please enter a playlist URL',
+    'limit_reached': 'Free limit reached (max 3 series). Upgrade to Pro for unlimited series.',
+    'add_failed': 'Failed to add playlist. Check the URL and try again.',
+    'search_tab': 'URL',
+    'search_tab_search': 'Search',
+    'search_playlists': 'Search YouTube for public playlists.',
+    'search_playlist_placeholder': 'Search playlists...',
+    'search_btn': 'Search',
+    'search_no_results': 'No playlists found. Try a different search term.',
+    'search_failed': 'Search failed. Check your connection.',
+    'search_add': 'Add',
+    'recommended': 'Recommended for You',
+
+    // Settings modal
+    'settings_title': 'Settings',
+    'theme': 'Theme',
+    'theme_classic_red': 'Classic Red',
+    'theme_ocean_blue': 'Ocean Blue',
+    'theme_forest': 'Forest Green',
+    'language': 'Language',
+    'language_system': 'System',
+    'language_en': 'English',
+    'language_it': 'Italiano',
+    'auto_refresh': 'Auto-Refresh',
+    'auto_refresh_desc': 'Check for new episodes every 24h',
+    'license_key': 'License Key',
+    'license_desc': 'Unlock unlimited series, auto-refresh, and more themes.',
+    'enter_license': 'Enter license key',
+    'activate': 'Activate',
+    'license_activated': 'License activated! You now have Pro features.',
+    'license_invalid': 'Invalid license key. Please check and try again.',
+    'license_failed': 'Failed to verify license. Check your connection.',
+    'free': 'FREE',
+    'pro': 'PRO',
+    'close': 'Close',
+    'confirm': 'Confirm',
+
+    // General
+    'something_wrong': 'Something went wrong',
+    'load_failed_msg': 'Failed to load data. Make sure the extension is properly installed.',
+    'refresh_failed': 'Failed to refresh series',
+    'refresh_network_error': 'Network error while refreshing',
+    'refreshing': 'Refreshing...',
+    'reset_confirm': 'Delete ALL your series, settings and license? This cannot be undone.',
+    'mark_complete': 'Mark as completed',
+    'mark_incomplete': 'Mark as incomplete',
+    'embed_error': 'Preview not available (embed not allowed for this video)',
+    'preview_blocked': 'Ad blocker blocks video preview. Disable for YT Series.',
+    'delete_modal_title': 'Delete Series',
+    'this_channel': 'this channel',
+    'video': 'video',
+    'videos': 'videos',
+    'no_related_found': 'No other public playlists found',
+    'related_error': 'Could not load related playlists',
+    'delete_series': 'Delete Series'
+  },
+
+  it: {
+    'continue_watching': 'Continua a guardare',
+    'new_episodes': 'Nuovi episodi',
+    'this_week': 'Novità della settimana',
+    'my_series': 'Le mie serie',
+    'episodes': 'episodi',
+    'episode': 'episodio',
+    'done': 'Completata',
+    'new_badge': '+{n} nuovi',
+    'welcome_title': 'Benvenuto su YT Series',
+    'welcome_desc': 'Aggiungi una playlist YouTube per monitorarla come una serie TV. Clicca il pulsante "+ Aggiungi serie" per iniziare.',
+
+    'continue_ep': 'Continua (Ep. {n})',
+    'refresh': 'Aggiorna',
+    'delete': 'Elimina',
+    'episodes_title': 'Episodi',
+    'episode_label': 'Episodio {n}',
+    'watched': 'Visto',
+    'unwatched': 'Non visto',
+    'watched_status': '{n} / {total} visti ({pct}%)',
+    'more_from': 'Altro da {channel}',
+    'loading': 'Caricamento...',
+    'no_channel_info': 'Nessuna informazione sul canale disponibile',
+    'no_other_playlists': 'Nessuna altra playlist pubblica trovata',
+    'load_failed': 'Impossibile caricare le playlist correlate',
+    'delete_confirm': 'Eliminare "{title}"? Questa azione non può essere annullata.',
+    'videos_count': '{n} video',
+    'video_singular': 'video',
+    'last_video': 'Ultimo video',
+    'sort_default': 'Ordine predefinito',
+    'sort_date_desc': 'Prima i nuovi',
+    'sort_date_asc': 'Prima i vecchi',
+    'sort_unwatched': 'Non visti prima',
+    'sort_watched': 'Visti prima',
+
+    'search_placeholder': 'Cerca serie...',
+    'add_series': 'Aggiungi serie',
+    'add_via_link': '+ Aggiungi via link',
+    'home': 'Home',
+    'settings': 'Impostazioni',
+    'all': 'Tutte',
+    'watching': 'In corso',
+    'completed': 'Completate',
+    'adding': 'Aggiungendo...',
+
+    'add_series_title': 'Aggiungi serie',
+    'add_series_desc': 'Incolla un URL di una playlist YouTube per aggiungerla come serie.',
+    'playlist_url_placeholder': 'https://www.youtube.com/playlist?list=...',
+    'cancel': 'Annulla',
+    'enter_url': 'Inserisci un URL di playlist',
+    'limit_reached': 'Limite gratuito raggiunto (max 3 serie). Passa a Pro per serie illimitate.',
+    'add_failed': 'Impossibile aggiungere la playlist. Controlla l\'URL e riprova.',
+    'search_tab': 'URL',
+    'search_tab_search': 'Cerca',
+    'search_playlists': 'Cerca playlist pubbliche su YouTube.',
+    'search_playlist_placeholder': 'Cerca playlist...',
+    'search_btn': 'Cerca',
+    'search_no_results': 'Nessuna playlist trovata. Prova con un termine diverso.',
+    'search_failed': 'Ricerca fallita. Controlla la connessione.',
+    'search_add': 'Aggiungi',
+    'recommended': 'Consigliati per te',
+
+    'settings_title': 'Impostazioni',
+    'language': 'Lingua',
+    'language_system': 'Sistema',
+    'language_en': 'English',
+    'language_it': 'Italiano',
+    'theme': 'Tema',
+    'theme_classic_red': 'Rosso Classico',
+    'theme_ocean_blue': 'Blu Oceano',
+    'theme_forest': 'Verde Foresta',
+    'auto_refresh': 'Aggiornamento automatico',
+    'auto_refresh_desc': 'Controlla nuovi episodi ogni 24 ore',
+    'license_key': 'Chiave licenza',
+    'license_desc': 'Sblocca serie illimitate, aggiornamento automatico e altri temi.',
+    'enter_license': 'Inserisci la chiave licenza',
+    'activate': 'Attiva',
+    'license_activated': 'Licenza attivata! Hai ora le funzionalità Pro.',
+    'license_invalid': 'Chiave licenza non valida. Controlla e riprova.',
+    'license_failed': 'Impossibile verificare la licenza. Controlla la connessione.',
+    'free': 'GRATIS',
+    'pro': 'PRO',
+    'close': 'Chiudi',
+    'confirm': 'Conferma',
+
+    'something_wrong': 'Qualcosa è andato storto',
+    'load_failed_msg': 'Impossibile caricare i dati. Assicurati che l\'estensione sia installata correttamente.',
+    'refresh_failed': 'Impossibile aggiornare la serie',
+    'refresh_network_error': 'Errore di rete durante l\'aggiornamento',
+    'refreshing': 'Aggiornamento...',
+    'reset_confirm': 'Eliminare TUTTE le serie, impostazioni e licenza? Operazione irreversibile.',
+    'mark_complete': 'Segna come completata',
+    'mark_incomplete': 'Segna come non completata',
+    'embed_error': 'Anteprima non disponibile (embed non consentito per questo video)',
+    'preview_blocked': 'Ad blocker blocca l\'anteprima video. Disattiva per YT Series.',
+    'delete_modal_title': 'Elimina serie',
+    'this_channel': 'questo canale',
+    'video': 'video',
+    'videos': 'video',
+    'no_related_found': 'Nessuna altra playlist pubblica trovata',
+    'related_error': 'Impossibile caricare le playlist correlate',
+    'delete_series': 'Elimina serie'
+  }
+}
+
+export function setLanguage(lang) {
+  _forcedLang = lang
+}
+
+function currentLang() {
+  if (_forcedLang && STRINGS[_forcedLang]) return _forcedLang
+  const nav = (navigator.language || 'en').split('-')[0]
+  return STRINGS[nav] ? nav : 'en'
+}
+
+export function t(key, params = {}) {
+  const lang = currentLang()
+  let str = STRINGS[lang][key]
+  if (str === undefined) str = STRINGS.en[key]
+  if (str === undefined) return key
+
+  for (const [k, v] of Object.entries(params)) {
+    str = str.replace(`{${k}}`, v)
+  }
+  return str
+}
