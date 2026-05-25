@@ -4,9 +4,15 @@ const STORAGE_KEYS = {
   LICENSE: 'license'
 }
 
+let _ytApiKey = 'AIzaSy...'
+try {
+  const cfg = await import('./config.js')
+  if (cfg.YT_API_KEY) _ytApiKey = cfg.YT_API_KEY
+} catch (e) {}
+
 const API = {
   YOUTUBE_BASE: 'https://www.googleapis.com/youtube/v3',
-  API_KEY: '***REMOVED***'
+  API_KEY: _ytApiKey
 }
 
 const FREE_LIMITS = {
