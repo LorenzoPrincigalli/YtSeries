@@ -132,8 +132,7 @@ class HomePage {
 
       const iframe = document.createElement('iframe')
       iframe.className = 'hero-preview-iframe'
-      const origin = chrome?.runtime?.id ? `chrome-extension://${chrome.runtime.id}` : window.location.origin
-      iframe.src = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&controls=1&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1&origin=${encodeURIComponent(origin)}`
+      iframe.src = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&controls=1&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1&origin=https%3A%2F%2Fwww.youtube-nocookie.com`
       iframe.allow = 'autoplay; encrypted-media'
       iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin')
 
@@ -556,8 +555,7 @@ class HomePage {
 
         iframe = document.createElement('iframe')
         iframe.className = 'card-preview-iframe'
-        const origin = chrome?.runtime?.id ? `chrome-extension://${chrome.runtime.id}` : window.location.origin
-        iframe.src = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${videoId}&enablejsapi=1&origin=${encodeURIComponent(origin)}&modestbranding=1&rel=0&iv_load_policy=3&fs=0&disablekb=1`
+        iframe.src = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${videoId}&enablejsapi=1&origin=https%3A%2F%2Fwww.youtube-nocookie.com&modestbranding=1&rel=0&iv_load_policy=3&fs=0&disablekb=1`
         iframe.allow = 'autoplay'
         iframe.setAttribute('loading', 'lazy')
         iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin')
