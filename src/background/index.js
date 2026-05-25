@@ -49,6 +49,11 @@ chrome.action.onClicked.addListener(async () => {
 })
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (sender.id !== chrome.runtime.id) {
+    sendResponse({ success: false, error: 'FORBIDDEN', message: 'Message from unknown sender rejected' })
+    return
+  }
+
   ensureInit()
     .then(() => handleMessage(message, sender))
     .then(result => sendResponse(result))
@@ -129,7 +134,7 @@ async function handleMessage(message) {
 }
 
 async function handlePlaylistAdd(payload) {
-  if (!payload || !payload.url) {
+  if (!payload || typeof payload.url !== 'string' || !payload.url.trim()) {
     return { success: false, error: 'MISSING_URL', message: 'Playlist URL is required' }
   }
 
@@ -137,7 +142,7 @@ async function handlePlaylistAdd(payload) {
     return { success: false, error: 'LIMIT_REACHED', message: 'Free limit reached. Upgrade to Pro for unlimited series.' }
   }
 
-  const data = await youTubeApiService.fetchPlaylist(payload.url)
+  const data = await youTubeApiService.fetchPlaylist(payload.url.trim())
   store.addSeries(data)
   await store.saveToStorage(storageService)
 
@@ -145,7 +150,7 @@ async function handlePlaylistAdd(payload) {
 }
 
 async function handleSeriesDelete(payload) {
-  if (!payload || !payload.playlistId) {
+  if (!payload || typeof payload.playlistId !== 'string' || !payload.playlistId.trim()) {
     return { success: false, error: 'MISSING_ID', message: 'Playlist ID is required' }
   }
 
@@ -156,7 +161,7 @@ async function handleSeriesDelete(payload) {
 }
 
 async function handleSeriesCompleteToggle(payload) {
-  if (!payload || !payload.playlistId) {
+  if (!payload || typeof payload.playlistId !== 'string' || !payload.playlistId.trim()) {
     return { success: false, error: 'MISSING_ID', message: 'Playlist ID is required' }
   }
   store.toggleSeriesComplete(payload.playlistId)
@@ -165,11 +170,11 @@ async function handleSeriesCompleteToggle(payload) {
 }
 
 async function handleSeriesRefresh(payload) {
-  if (!payload || !payload.playlistId) {
+  if (!payload || typeof payload.playlistId !== 'string' || !payload.playlistId.trim()) {
     return { success: false, error: 'MISSING_ID', message: 'Playlist ID is required' }
   }
 
-  const data = await youTubeApiService.refreshPlaylist(payload.playlistId)
+  const data = await youTubeApiService.refreshPlaylist(payload.playlistId.trim())
   store.addSeries(data)
   await store.saveToStorage(storageService)
 
@@ -178,7 +183,7 @@ async function handleSeriesRefresh(payload) {
 }
 
 async function handleEpisodeWatch(payload) {
-  if (!payload || !payload.playlistId || !payload.videoId) {
+  if (!payload || typeof payload.playlistId !== 'string' || !payload.playlistId.trim() || typeof payload.videoId !== 'string' || !payload.videoId.trim()) {
     return { success: false, error: 'MISSING_PARAMS', message: 'playlistId and videoId are required' }
   }
 
@@ -189,11 +194,11 @@ async function handleEpisodeWatch(payload) {
 }
 
 async function handleEpisodeProgress(payload) {
-  if (!payload || !payload.playlistId || !payload.videoId) {
-    return { success: false, error: 'MISSING_PARAMS', message: 'playlistId, videoId and progress are required' }
+  if (!payload || typeof payload.playlistId !== 'string' || !payload.playlistId.trim() || typeof payload.videoId !== 'string' || !payload.videoId.trim()) {
+    return { success: false, error: 'MISSING_PARAMS', message: 'playlistId and videoId are required' }
   }
 
-  store.updateEpisodeProgress(payload.playlistId, payload.videoId, payload.progress)
+  store.updateEpisodeProgress(payload.playlistId, payload.videoId, typeof payload.progress === 'number' ? payload.progress : 0)
   await store.saveToStorage(storageService)
 
   return { success: true }
@@ -218,11 +223,11 @@ async function handleSettingsUpdate(payload) {
 }
 
 async function handleLicenseVerify(payload) {
-  if (!payload || !payload.key) {
+  if (!payload || typeof payload.key !== 'string' || !payload.key.trim()) {
     return { success: false, error: 'MISSING_KEY', message: 'License key is required' }
   }
 
-  const result = await licenseService.verify(payload.key)
+  const result = await licenseService.verify(payload.key.trim())
 
   if (result.valid) {
     store.setLicense({ key: payload.key, isPro: true, verifiedAt: Date.now() })
@@ -233,11 +238,11 @@ async function handleLicenseVerify(payload) {
 }
 
 async function handleSetApiKey(payload) {
-  if (!payload || !payload.key) {
+  if (!payload || typeof payload.key !== 'string' || !payload.key.trim()) {
     return { success: false, error: 'MISSING_KEY', message: 'API key is required' }
   }
 
-  youTubeApiService.setApiKey(payload.key)
+  youTubeApiService.setApiKey(payload.key.trim())
   store.setApiKey(payload.key)
   await store.saveToStorage(storageService)
   return { success: true }
@@ -260,29 +265,29 @@ async function openSeriesTab() {
 }
 
 async function handlePlaylistSearch(payload) {
-  if (!payload || !payload.query) {
+  if (!payload || typeof payload.query !== 'string' || !payload.query.trim()) {
     return { success: false, playlists: [], channels: [] }
   }
 
-  const results = await youTubeApiService.search(payload.query)
+  const results = await youTubeApiService.search(payload.query.trim())
   return { success: true, ...results }
 }
 
 async function handleFetchChannelPlaylists(payload) {
-  if (!payload || !payload.channelId) {
+  if (!payload || typeof payload.channelId !== 'string' || !payload.channelId.trim()) {
     return { success: false, playlists: [] }
   }
 
   const playlists = await youTubeApiService.fetchChannelPlaylists(
-    payload.channelId,
-    payload.excludePlaylistId
+    payload.channelId.trim(),
+    typeof payload.excludePlaylistId === 'string' ? payload.excludePlaylistId : undefined
   )
 
   return { success: true, playlists }
 }
 
 async function handleSetIconTheme(payload) {
-  if (!payload || !payload.suffix === undefined) {
+  if (!payload || payload.suffix === undefined) {
     return { success: false }
   }
 

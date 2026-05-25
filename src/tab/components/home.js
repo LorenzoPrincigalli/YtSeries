@@ -527,6 +527,7 @@ class HomePage {
       if (checkTimeout) { clearTimeout(checkTimeout); checkTimeout = null }
       if (iframe) { iframe.remove(); iframe = null }
       if (notice) { notice.remove(); notice = null }
+      window.removeEventListener('message', onMessage)
       ytReady = false
       ytError = false
       thumbImg.style.opacity = '1'

@@ -84,6 +84,9 @@ class YouTubeApiService {
   }
 
   _extractPlaylistId(url) {
+    if (typeof url !== 'string') return null
+    if (!url.startsWith('https://')) return null
+
     const patterns = [
       /[?&]list=([^&]+)/,
       /youtube\.com\/playlist\?list=([^&]+)/,
@@ -143,11 +146,11 @@ class YouTubeApiService {
 
     if (!response.ok) {
       const errorBody = await response.text()
-      logger.error('YouTube API error:', response.status, errorBody)
+      logger.error('YouTube API error:', response.status, errorBody.slice(0, 200))
       throw {
         code: 'API_ERROR',
         message: `YouTube API returned ${response.status}`,
-        context: { status: response.status, body: errorBody }
+        context: { status: response.status }
       }
     }
 

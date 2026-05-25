@@ -201,7 +201,7 @@ function bindUIEvents() {
   document.getElementById('resetStorageBtn').addEventListener('click', handleResetStorage)
 
   document.getElementById('searchInput').addEventListener('input', (e) => {
-    currentSearch = e.target.value.trim().toLowerCase()
+    currentSearch = e.target.value.trim().toLowerCase().slice(0, 200)
     const clearBtn = document.getElementById('searchClear')
     clearBtn.classList.toggle('hidden', !!currentSearch)
 
@@ -308,19 +308,35 @@ function renderHome() {
       const hasResults = (currentSearchResults.playlists && currentSearchResults.playlists.length > 0) ||
         (currentSearchResults.channels && currentSearchResults.channels.length > 0)
       if (!hasResults) {
-        main.innerHTML = `<div class="empty-state"><p class="empty-state-desc">Nessun risultato trovato per "${currentSearch}"</p></div>`
+        const empty = document.createElement('div')
+        empty.className = 'empty-state'
+        const p = document.createElement('p')
+        p.className = 'empty-state-desc'
+        p.textContent = `Nessun risultato trovato per "${currentSearch}"`
+        empty.appendChild(p)
+        main.appendChild(empty)
         return
       }
     } else {
-      main.innerHTML = `
-        <div class="empty-state">
-          <div class="empty-state-icon">📺</div>
-          <h2 class="empty-state-title">${t('welcome_title')}</h2>
-          <p class="empty-state-desc">
-            ${t('welcome_desc')}
-          </p>
-        </div>
-      `
+      const empty = document.createElement('div')
+      empty.className = 'empty-state'
+
+      const icon = document.createElement('div')
+      icon.className = 'empty-state-icon'
+      icon.textContent = '\uD83D\uDCFA'
+
+      const h2 = document.createElement('h2')
+      h2.className = 'empty-state-title'
+      h2.textContent = t('welcome_title')
+
+      const p = document.createElement('p')
+      p.className = 'empty-state-desc'
+      p.textContent = t('welcome_desc')
+
+      empty.appendChild(icon)
+      empty.appendChild(h2)
+      empty.appendChild(p)
+      main.appendChild(empty)
       return
     }
   }
@@ -491,7 +507,7 @@ function closeDetail() {
 function onContinueWatching(series) {
   const nextEpisode = series.videos.find(v => !v.watched)
   if (nextEpisode) {
-    window.open(`https://www.youtube.com/watch?v=${nextEpisode.id}&list=${series.playlistId}`, '_blank')
+    window.open(`https://www.youtube.com/watch?v=${nextEpisode.id}&list=${series.playlistId}`, '_blank', 'noopener')
   }
 }
 
@@ -840,13 +856,26 @@ function showLoading(visible) {
 
 function showError(message) {
   const main = document.getElementById('mainContent')
-  main.innerHTML = `
-    <div class="empty-state">
-      <div class="empty-state-icon">⚠️</div>
-      <h2 class="empty-state-title">${t('something_wrong')}</h2>
-      <p class="empty-state-desc">${message.replace(/</g, '&lt;')}</p>
-    </div>
-  `
+  main.innerHTML = ''
+  const empty = document.createElement('div')
+  empty.className = 'empty-state'
+
+  const icon = document.createElement('div')
+  icon.className = 'empty-state-icon'
+  icon.textContent = '\u26A0\uFE0F'
+
+  const h2 = document.createElement('h2')
+  h2.className = 'empty-state-title'
+  h2.textContent = t('something_wrong')
+
+  const p = document.createElement('p')
+  p.className = 'empty-state-desc'
+  p.textContent = message
+
+  empty.appendChild(icon)
+  empty.appendChild(h2)
+  empty.appendChild(p)
+  main.appendChild(empty)
 }
 
 function showErrorToast(message) {

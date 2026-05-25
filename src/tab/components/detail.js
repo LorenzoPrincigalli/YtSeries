@@ -179,7 +179,7 @@ class DetailPage {
       resume.className = 'btn-primary'
       resume.textContent = `\u25B6 ${t('continue_ep', { n: nextIndex })}`
       resume.addEventListener('click', () => {
-        window.open(`https://www.youtube.com/watch?v=${nextEpisode.id}&list=${series.playlistId}`, '_blank')
+        window.open(`https://www.youtube.com/watch?v=${nextEpisode.id}&list=${series.playlistId}`, '_blank', 'noopener')
       })
       actions.appendChild(resume)
     }
@@ -280,7 +280,7 @@ class DetailPage {
       if (!video.watched) {
         this.callbacks.onWatch(series.playlistId, video.id)
       }
-      window.open(`https://www.youtube.com/watch?v=${video.id}&list=${series.playlistId}`, '_blank')
+      window.open(`https://www.youtube.com/watch?v=${video.id}&list=${series.playlistId}`, '_blank', 'noopener')
     })
 
     const img = document.createElement('img')
@@ -419,28 +419,52 @@ class DetailPage {
     const overlay = document.createElement('div')
     overlay.className = 'modal-overlay'
     overlay.id = 'confirmDeleteModal'
-    overlay.innerHTML = `
-      <div class="modal-backdrop"></div>
-      <div class="modal">
-        <div class="modal-header">
-          <h2>${t('delete_series')}</h2>
-        </div>
-        <div class="modal-body">
-          <p>${t('delete_confirm', { title: series.title })}</p>
-        </div>
-        <div class="modal-footer">
-          <button class="btn-secondary" id="cancelDeleteBtn">${t('cancel')}</button>
-          <button class="btn-primary" id="confirmDeleteBtn" style="background:var(--primary)">${t('delete')}</button>
-        </div>
-      </div>
-    `
+
+    const backdrop = document.createElement('div')
+    backdrop.className = 'modal-backdrop'
+    overlay.appendChild(backdrop)
+
+    const modal = document.createElement('div')
+    modal.className = 'modal'
+
+    const header = document.createElement('div')
+    header.className = 'modal-header'
+    const h2 = document.createElement('h2')
+    h2.textContent = t('delete_series')
+    header.appendChild(h2)
+    modal.appendChild(header)
+
+    const body = document.createElement('div')
+    body.className = 'modal-body'
+    const p = document.createElement('p')
+    p.textContent = t('delete_confirm', { title: series.title })
+    body.appendChild(p)
+    modal.appendChild(body)
+
+    const footer = document.createElement('div')
+    footer.className = 'modal-footer'
+    const cancelBtn = document.createElement('button')
+    cancelBtn.className = 'btn-secondary'
+    cancelBtn.id = 'cancelDeleteBtn'
+    cancelBtn.textContent = t('cancel')
+    const confirmBtn = document.createElement('button')
+    confirmBtn.className = 'btn-primary'
+    confirmBtn.id = 'confirmDeleteBtn'
+    confirmBtn.style.background = 'var(--primary)'
+    confirmBtn.textContent = t('delete')
+    footer.appendChild(cancelBtn)
+    footer.appendChild(confirmBtn)
+    modal.appendChild(footer)
+
+    overlay.appendChild(modal)
+
     overlay.addEventListener('click', (e) => {
       if (e.target === overlay) overlay.remove()
     })
     document.body.appendChild(overlay)
 
-    overlay.querySelector('#cancelDeleteBtn').onclick = () => overlay.remove()
-    overlay.querySelector('#confirmDeleteBtn').onclick = async () => {
+    cancelBtn.onclick = () => overlay.remove()
+    confirmBtn.onclick = async () => {
       overlay.remove()
       this.close()
       this.callbacks.onBack()
@@ -457,18 +481,35 @@ class DetailPage {
     const overlay = document.createElement('div')
     overlay.className = 'modal-overlay'
     overlay.id = 'channelModal'
-    overlay.innerHTML = `
-      <div class="modal-backdrop"></div>
-      <div class="modal modal-channel">
-        <div class="modal-header">
-          <button class="modal-close channel-close-btn">&times;</button>
-          <h2>${t('more_from', { channel: channelTitle })}</h2>
-        </div>
-        <div class="modal-body">
-          <div class="more-loading">${t('loading')}</div>
-        </div>
-      </div>
-    `
+
+    const backdrop = document.createElement('div')
+    backdrop.className = 'modal-backdrop'
+    overlay.appendChild(backdrop)
+
+    const modal = document.createElement('div')
+    modal.className = 'modal modal-channel'
+
+    const header = document.createElement('div')
+    header.className = 'modal-header'
+    const closeBtn = document.createElement('button')
+    closeBtn.className = 'modal-close channel-close-btn'
+    closeBtn.innerHTML = '&times;'
+    header.appendChild(closeBtn)
+    const h2 = document.createElement('h2')
+    h2.textContent = t('more_from', { channel: channelTitle })
+    header.appendChild(h2)
+    modal.appendChild(header)
+
+    const body = document.createElement('div')
+    body.className = 'modal-body'
+    const loader = document.createElement('div')
+    loader.className = 'more-loading'
+    loader.textContent = t('loading')
+    body.appendChild(loader)
+    modal.appendChild(body)
+
+    overlay.appendChild(modal)
+
     overlay.addEventListener('click', (e) => {
       if (e.target === overlay || e.target.closest('.channel-close-btn')) overlay.remove()
     })
