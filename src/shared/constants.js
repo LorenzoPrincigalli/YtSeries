@@ -6,7 +6,7 @@ const STORAGE_KEYS = {
 
 const API = {
   YOUTUBE_BASE: 'https://www.googleapis.com/youtube/v3',
-  API_KEY: 'AIzaSyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+  API_KEY: '***REMOVED***'
 }
 
 const FREE_LIMITS = {

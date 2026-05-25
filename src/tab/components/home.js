@@ -132,9 +132,9 @@ class HomePage {
 
       const iframe = document.createElement('iframe')
       iframe.className = 'hero-preview-iframe'
-      iframe.src = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&controls=1&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1&origin=https%3A%2F%2Fwww.youtube-nocookie.com`
+      iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=1&modestbranding=1&rel=0&iv_load_policy=3`
       iframe.allow = 'autoplay; encrypted-media'
-      iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin')
+      iframe.referrerPolicy = 'no-referrer'
 
       const closeBtn = document.createElement('button')
       closeBtn.className = 'hero-preview-close'
@@ -516,37 +516,11 @@ class HomePage {
   _attachHoverPreview(thumbContainer, thumbImg, card, videoId) {
     let iframe = null
     let enterTimeout = null
-    let checkTimeout = null
-    let notice = null
-    let ytReady = false
-    let ytError = false
 
     const cleanup = () => {
       if (enterTimeout) { clearTimeout(enterTimeout); enterTimeout = null }
-      if (checkTimeout) { clearTimeout(checkTimeout); checkTimeout = null }
       if (iframe) { iframe.remove(); iframe = null }
-      if (notice) { notice.remove(); notice = null }
-      window.removeEventListener('message', onMessage)
-      ytReady = false
-      ytError = false
       thumbImg.style.opacity = '1'
-    }
-
-    const showNotice = (text) => {
-      notice = document.createElement('div')
-      notice.className = 'card-block-notice'
-      notice.textContent = text
-      card.appendChild(notice)
-      setTimeout(() => { if (notice) { notice.remove(); notice = null } }, 5000)
-    }
-
-    const onMessage = (e) => {
-      if (!iframe || e.source !== iframe.contentWindow) return
-      try {
-        const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data
-        if (data.event === 'onReady') { ytReady = true }
-        if (data.event === 'onError') { ytError = true }
-      } catch (_) { /* ignore non-JSON messages */ }
     }
 
     thumbContainer.addEventListener('mouseenter', () => {
@@ -555,29 +529,13 @@ class HomePage {
 
         iframe = document.createElement('iframe')
         iframe.className = 'card-preview-iframe'
-        iframe.src = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${videoId}&enablejsapi=1&origin=https%3A%2F%2Fwww.youtube-nocookie.com&modestbranding=1&rel=0&iv_load_policy=3&fs=0&disablekb=1`
+        iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${videoId}&modestbranding=1&rel=0&iv_load_policy=3&fs=0&disablekb=1`
         iframe.allow = 'autoplay'
-        iframe.setAttribute('loading', 'lazy')
-        iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin')
+        iframe.loading = 'lazy'
+        iframe.referrerPolicy = 'no-referrer'
 
-        window.addEventListener('message', onMessage)
         thumbImg.style.opacity = '0'
         thumbContainer.appendChild(iframe)
-
-        checkTimeout = setTimeout(() => {
-          if (!iframe) return
-          window.removeEventListener('message', onMessage)
-
-          if (ytError) {
-            iframe.style.display = 'none'
-            thumbImg.style.opacity = '1'
-            showNotice(t('embed_error'))
-          } else if (!ytReady) {
-            iframe.style.display = 'none'
-            thumbImg.style.opacity = '1'
-            showNotice(t('preview_blocked'))
-          }
-        }, 3000)
       }, 600)
     })
 
