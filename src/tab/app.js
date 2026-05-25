@@ -126,10 +126,6 @@ function translateUI() {
   const closeBtn = document.querySelector('#settingsModal .modal-footer .btn-secondary')
   if (closeBtn) closeBtn.textContent = t('close')
 
-  document.querySelectorAll('.modal-tab').forEach(tab => {
-    const key = tab.dataset.tab === 'url' ? 'search_tab' : 'search_tab_search'
-    tab.textContent = t(key)
-  })
 }
 
 function initIconTheme() {
@@ -251,20 +247,6 @@ function bindUIEvents() {
     })
   })
 
-  document.querySelectorAll('.modal-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.modal-tab').forEach(t => t.classList.remove('active'))
-      tab.classList.add('active')
-      document.querySelectorAll('.modal-tab-content').forEach(c => c.classList.add('hidden'))
-      document.getElementById(`addPlaylistTab${tab.dataset.tab === 'url' ? 'Url' : 'Search'}`).classList.remove('hidden')
-    })
-  })
-
-  document.getElementById('playlistSearchBtn').addEventListener('click', handlePlaylistSearch)
-  document.getElementById('playlistSearchInput').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') handlePlaylistSearch()
-  })
-
   document.querySelectorAll('.modal-close, .btn-secondary[data-modal]').forEach(btn => {
     btn.addEventListener('click', () => {
       const modalId = btn.dataset.modal
@@ -349,7 +331,7 @@ function renderHome() {
   })
   const newSeries = filtered.filter(s => s.newEpisodesCount > 0)
 
-  if (!currentSearch && currentFilter !== 'completed') {
+  if (!currentSearch && currentFilter === 'all') {
     const heroSeries = buildHeroSeries(seriesArray)
     if (heroSeries.length > 0) {
       main.appendChild(homePage.renderHeroCarousel(heroSeries, onContinueWatching, onSeriesClick))
@@ -566,83 +548,6 @@ async function handleRefreshSeries(playlistId) {
   } catch (err) {
     logger.error('Refresh error:', err)
     showErrorToast(t('refresh_network_error'))
-  }
-}
-
-async function handlePlaylistSearch() {
-  const input = document.getElementById('playlistSearchInput')
-  const resultsEl = document.getElementById('playlistSearchResults')
-  const errorEl = document.getElementById('playlistSearchError')
-  const query = input.value.trim()
-
-  errorEl.classList.add('hidden')
-  resultsEl.innerHTML = ''
-  document.getElementById('playlistSearchBtn').disabled = true
-
-  try {
-    if (!query) return
-
-    const response = await sendMessage(EVENTS.PLAYLIST_SEARCH, { query })
-
-    if (!response.success || !response.playlists || response.playlists.length === 0) {
-      resultsEl.innerHTML = `<p class="search-empty">${t('search_no_results')}</p>`
-      return
-    }
-
-    for (const pl of response.playlists) {
-      const card = document.createElement('div')
-      card.className = 'search-result-card'
-
-      const thumb = document.createElement('img')
-      thumb.className = 'search-result-thumb'
-      thumb.src = pl.thumbnail || ''
-      thumb.alt = pl.title
-
-      const info = document.createElement('div')
-      info.className = 'search-result-info'
-
-      const title = document.createElement('div')
-      title.className = 'search-result-title'
-      title.textContent = pl.title
-
-      const channel = document.createElement('div')
-      channel.className = 'search-result-channel'
-      channel.textContent = pl.channelTitle
-
-      info.appendChild(title)
-      info.appendChild(channel)
-
-      const addBtn = document.createElement('button')
-      addBtn.className = 'btn-primary search-result-add'
-      addBtn.textContent = t('search_add')
-      addBtn.addEventListener('click', async () => {
-        addBtn.disabled = true
-        addBtn.textContent = t('adding')
-        const url = `https://www.youtube.com/playlist?list=${pl.playlistId}`
-        const response = await sendMessage(EVENTS.PLAYLIST_ADD, { url })
-        if (response.success && response.series && state) {
-          state.series[response.series.playlistId] = response.series
-          render()
-          modalManager.close('addPlaylistModal')
-        } else {
-          addBtn.disabled = false
-          addBtn.textContent = t('search_add')
-          errorEl.textContent = response?.message || t('add_failed')
-          errorEl.classList.remove('hidden')
-        }
-      })
-
-      card.appendChild(thumb)
-      card.appendChild(info)
-      card.appendChild(addBtn)
-      resultsEl.appendChild(card)
-    }
-  } catch (err) {
-    logger.error('Search error:', err)
-    errorEl.textContent = t('search_failed')
-    errorEl.classList.remove('hidden')
-  } finally {
-    document.getElementById('playlistSearchBtn').disabled = false
   }
 }
 

@@ -1468,97 +1468,12 @@ html, body {
   color: var(--primary);
 }
 
-/* MODAL TABS */
-.modal-tabs {
-  display: flex;
-  gap: 0;
-  margin-bottom: 16px;
-  border-bottom: 1px solid var(--border);
-}
-.modal-tab {
-  flex: 1;
-  padding: 10px;
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  transition: color 0.15s, border-color 0.15s;
-  border-bottom: 2px solid transparent;
-}
-.modal-tab.active {
-  color: var(--text);
-  border-bottom-color: var(--primary);
-}
-.modal-tab:hover {
-  color: var(--text);
-}
-
-/* SEARCH ROW */
-.search-row {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-.search-row input {
-  flex: 1;
-}
-
-/* SEARCH RESULTS */
-.search-results {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-height: 360px;
-  overflow-y: auto;
-}
+/* SEARCH EMPTY */
 .search-empty {
   text-align: center;
   color: var(--text-muted);
   padding: 24px;
   font-size: 14px;
-}
-.search-result-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px;
-  border-radius: var(--radius);
-  transition: background 0.15s;
-}
-.search-result-card:hover {
-  background: var(--card-hover);
-}
-.search-result-thumb {
-  width: 60px;
-  height: 34px;
-  object-fit: cover;
-  border-radius: 4px;
-  flex-shrink: 0;
-  background: var(--surface);
-}
-.search-result-info {
-  flex: 1;
-  min-width: 0;
-}
-.search-result-title {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.search-result-channel {
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-top: 2px;
-}
-.search-result-add {
-  flex-shrink: 0;
-  padding: 6px 14px;
-  font-size: 12px;
 }
 
 @media (max-width: 768px) {

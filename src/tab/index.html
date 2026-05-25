@@ -54,26 +54,9 @@
         <button class="modal-close" data-modal="addPlaylistModal">&times;</button>
       </div>
       <div class="modal-body">
-        <div class="modal-tabs">
-          <button class="modal-tab active" data-tab="url">URL</button>
-          <button class="modal-tab" data-tab="search">Cerca</button>
-        </div>
-
-        <div id="addPlaylistTabUrl" class="modal-tab-content">
-          <p class="modal-desc" id="addPlaylistDesc">Paste a YouTube playlist URL to add it as a series.</p>
-          <input type="text" id="playlistUrlInput" placeholder="https://www.youtube.com/playlist?list=..." />
-          <div id="playlistError" class="error-msg hidden"></div>
-        </div>
-
-        <div id="addPlaylistTabSearch" class="modal-tab-content hidden">
-          <p class="modal-desc" id="addPlaylistSearchDesc">Search YouTube for public playlists.</p>
-          <div class="search-row">
-            <input type="text" id="playlistSearchInput" placeholder="Cerca playlist..." />
-            <button id="playlistSearchBtn" class="btn-primary">Cerca</button>
-          </div>
-          <div id="playlistSearchResults" class="search-results"></div>
-          <div id="playlistSearchError" class="error-msg hidden"></div>
-        </div>
+        <p class="modal-desc" id="addPlaylistDesc">Paste a YouTube playlist URL to add it as a series.</p>
+        <input type="text" id="playlistUrlInput" placeholder="https://www.youtube.com/playlist?list=..." />
+        <div id="playlistError" class="error-msg hidden"></div>
       </div>
       <div class="modal-footer">
         <button id="addPlaylistCancel" class="btn-secondary" data-modal="addPlaylistModal">Cancel</button>
