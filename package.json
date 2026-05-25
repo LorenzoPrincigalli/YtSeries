@@ -1,0 +1,20 @@
+{
+  "name": "yt-series",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Transform YouTube playlists into a TV-series tracker with Netflix-style UI",
+  "license": "MIT",
+  "author": "LorenzoPrincigalli",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LorenzoPrincigalli/YtSeries.git"
+  },
+  "bugs": {
+    "url": "https://github.com/LorenzoPrincigalli/YtSeries/issues"
+  },
+  "homepage": "https://github.com/LorenzoPrincigalli/YtSeries",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  }
+}
