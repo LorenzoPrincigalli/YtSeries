@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Activate Pro - YT Series</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f0f0f;
+      color: #f1f1f1;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .card {
+      background: #1a1a1a;
+      border-radius: 12px;
+      padding: 40px;
+      max-width: 480px;
+      width: 90%;
+      text-align: center;
+    }
+    h1 {
+      font-size: 22px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      color: #aaa;
+      font-size: 14px;
+      margin-bottom: 28px;
+    }
+    .status {
+      padding: 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      line-height: 1.5;
+      margin-bottom: 20px;
+    }
+    .status.loading {
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .status.success {
+      background: rgba(46, 204, 113, 0.15);
+      color: #2ecc71;
+    }
+    .status.error {
+      background: rgba(255, 0, 0, 0.1);
+      color: #ff4444;
+    }
+    .status.info {
+      background: rgba(255, 255, 255, 0.05);
+      color: #f1f1f1;
+      border: 1px solid #333;
+    }
+    .status code {
+      display: block;
+      background: #0f0f0f;
+      padding: 10px;
+      border-radius: 6px;
+      margin-top: 12px;
+      font-size: 13px;
+      word-break: break-all;
+      color: #2ecc71;
+    }
+    .btn {
+      display: inline-block;
+      padding: 10px 24px;
+      background: #ff0000;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity 0.15s;
+    }
+    .btn:hover { opacity: 0.85; }
+    .hidden { display: none; }
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid #333;
+      border-top-color: #ff0000;
+      border-radius: 50%;
+      margin: 0 auto 16px;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    footer {
+      margin-top: 24px;
+      font-size: 12px;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1 id="title">YT Series</h1>
+    <p class="subtitle" id="subtitle">Activating your Pro license</p>
+
+    <div id="loadingStatus" class="status loading">
+      <div class="spinner"></div>
+      <span id="loadingMsg">Verifying license...</span>
+    </div>
+
+    <div id="successStatus" class="status success hidden">
+      <span id="successMsg">License activated successfully.</span>
+    </div>
+
+    <div id="errorStatus" class="status error hidden">
+      <span id="errorMsg">Could not verify the license.</span>
+    </div>
+
+    <div id="fallbackStatus" class="status info hidden">
+      <span id="fallbackMsg">Extension not detected. Your license key has been copied.</span>
+      <code id="fallbackKey"></code>
+    </div>
+
+    <a id="dashboardBtn" class="btn hidden" href="#">Open Dashboard</a>
+
+    <footer>
+      <p>YT Series &copy; 2026</p>
+    </footer>
+  </div>
+
+  <script>
+    (function() {
+      var EXTENSION_ID = ''; // Set after publishing to Chrome Web Store
+
+      var lang = (navigator.language || 'en').split('-')[0];
+      if (lang !== 'it') lang = 'en';
+
+      var STRINGS = {
+        en: {
+          title: 'YT Series',
+          subtitle: 'Activating your Pro license',
+          loading: 'Verifying license...',
+          success: 'License activated successfully. You can close this page and open the extension.',
+          error: 'Invalid license key. Please check your purchase email and try again.',
+          fallback: 'Extension not detected. Your license key has been copied to the clipboard. Install the extension, go to Settings, and paste it.',
+          networkError: 'Could not verify the license. Check your connection or paste the key in Settings.',
+          openDashboard: 'Open Dashboard'
+        },
+        it: {
+          title: 'YT Series',
+          subtitle: 'Attivazione della licenza Pro',
+          loading: 'Verifica in corso...',
+          success: 'Licenza attivata con successo. Puoi chiudere questa pagina e aprire l\'estensione.',
+          error: 'Chiave non valida. Controlla la tua email di acquisto e riprova.',
+          fallback: 'Estensione non rilevata. La chiave e stata copiata negli appunti. Installa l\'estensione, vai su Impostazioni e incollala.',
+          networkError: 'Impossibile verificare la licenza. Controlla la connessione oppure incolla la chiave in Impostazioni.',
+          openDashboard: 'Apri Dashboard'
+        }
+      };
+
+      var t = STRINGS[lang];
+
+      function $(id) { return document.getElementById(id); }
+
+      function show(id) { $(id).classList.remove('hidden'); }
+      function hide(id) { $(id).classList.add('hidden'); }
+
+      $('title').textContent = t.title;
+      $('subtitle').textContent = t.subtitle;
+      $('loadingMsg').textContent = t.loading;
+      $('successMsg').textContent = t.success;
+      $('errorMsg').textContent = t.error;
+      $('fallbackMsg').textContent = t.fallback;
+
+      var params = new URLSearchParams(window.location.search);
+      var key = params.get('key');
+
+      if (!key) {
+        hide('loadingStatus');
+        $('errorMsg').textContent = lang === 'it' ? 'Nessuna chiave ricevuta.' : 'No license key received.';
+        show('errorStatus');
+        return;
+      }
+
+      if (EXTENSION_ID) {
+        show('loadingStatus');
+
+        try {
+          chrome.runtime.sendMessage(EXTENSION_ID, { type: 'ACTIVATE_LICENSE', key: key }, function(response) {
+            hide('loadingStatus');
+
+            if (response && response.success && response.valid) {
+              show('successStatus');
+              $('dashboardBtn').href = 'https://lorenzoprincigalli.github.io/YtSeries';
+              show('dashboardBtn');
+            } else if (response && response.success && !response.valid) {
+              show('errorStatus');
+            } else {
+              $('errorMsg').textContent = t.networkError;
+              showFallback();
+            }
+          });
+        } catch(e) {
+          hide('loadingStatus');
+          showFallback();
+        }
+      } else {
+        hide('loadingStatus');
+        showFallback();
+      }
+
+      function showFallback() {
+        copyToClipboard(key);
+        $('fallbackKey').textContent = key;
+        show('fallbackStatus');
+      }
+
+      function copyToClipboard(text) {
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(text).catch(function() {});
+        } else {
+          var ta = document.createElement('textarea');
+          ta.value = text;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select();
+          try { document.execCommand('copy'); } catch(e) {}
+          document.body.removeChild(ta);
+        }
+      }
+    })();
+  </script>
+</body>
+</html>

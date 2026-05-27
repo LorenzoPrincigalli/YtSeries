@@ -22,6 +22,9 @@
     "service_worker": "src/background/index.js",
     "type": "module"
   },
+  "externally_connectable": {
+    "matches": ["https://lorenzoprincigalli.github.io/*"]
+  },
   "content_scripts": [
     {
       "matches": ["https://www.youtube.com/*"],

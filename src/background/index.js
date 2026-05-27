@@ -89,6 +89,32 @@ chrome.runtime.onSuspend.addListener(() => {
   logger.info('Background script suspending')
 })
 
+chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => {
+  if (message.type !== EVENTS.ACTIVATE_LICENSE) {
+    sendResponse({ success: false, error: 'UNKNOWN_TYPE' })
+    return
+  }
+
+  if (!message.key || typeof message.key !== 'string' || !message.key.trim()) {
+    sendResponse({ success: false, error: 'MISSING_KEY' })
+    return
+  }
+
+  ensureInit().then(async () => {
+    const result = await licenseService.verify(message.key.trim())
+    if (result.valid) {
+      store.setLicense({ key: message.key, isPro: true, verifiedAt: Date.now() })
+      await store.saveToStorage(storageService)
+      broadcastStateUpdate()
+      return { success: true, valid: true }
+    }
+    return { success: true, valid: false }
+  }).then(r => sendResponse(r)).catch(err => {
+    sendResponse({ success: false, error: 'VERIFY_FAILED', message: err.message })
+  })
+  return true
+})
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (sender.id !== chrome.runtime.id) {
     if (message._broadcast) return
