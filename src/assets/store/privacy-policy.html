@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy – YT Series</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      max-width: 720px;
+      margin: 40px auto;
+      padding: 0 20px;
+      line-height: 1.6;
+      color: #333;
+    }
+    h1 { color: #111; border-bottom: 2px solid #ff0000; padding-bottom: 12px; }
+    h2 { color: #222; margin-top: 32px; }
+    p, li { color: #444; }
+    code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+    footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid #ddd; font-size: 0.85em; color: #888; }
+  </style>
+</head>
+<body>
+  <h1>Privacy Policy</h1>
+  <p><strong>Last updated:</strong> May 26, 2026</p>
+
+  <h2>Overview</h2>
+  <p>YT Series ("the Extension") lets you manage YouTube playlists as TV series with progress tracking. This policy explains what data the Extension collects, how it is used, and your rights.</p>
+
+  <h2>Data Collected</h2>
+  <h3>Stored Locally (chrome.storage)</h3>
+  <p>All data is stored locally in your browser using Chrome's <code>storage.local</code> and <code>storage.sync</code> APIs:</p>
+  <ul>
+    <li><strong>Series data:</strong> playlist IDs, titles, thumbnails, channel info, video metadata, and your watched/progress state for each episode</li>
+    <li><strong>Settings:</strong> theme preference, language, auto-refresh toggle, last refresh timestamp</li>
+    <li><strong>License info:</strong> if you purchase a Pro license, the license key and verification status</li>
+  </ul>
+  <p><strong>No personal data</strong> (name, email, IP address, browsing history outside YouTube) is collected or transmitted.</p>
+
+  <h3>YouTube Data API</h3>
+  <p>When you add a playlist or search YouTube, the Extension sends requests to the <strong>YouTube Data API v3</strong> using your API key. These requests fetch public playlist metadata, video lists, and search results. No authentication is used—only public data is accessed.</p>
+
+  <h3>Lemon Squeezy</h3>
+  <p>If you purchase a Pro license, the license key is verified via <strong>Lemon Squeezy's API</strong>. The key itself is stored locally. No payment data is handled by the Extension—purchases are processed entirely by Lemon Squeezy.</p>
+
+  <h2>Data Transmission</h2>
+  <p>The Extension communicates externally only with:</p>
+  <ul>
+    <li><code>www.googleapis.com</code> – YouTube Data API requests</li>
+    <li><code>api.lemonsqueezy.com</code> – License key verification (Pro users only)</li>
+  </ul>
+  <p>No data is sent to any other server. No analytics, no tracking, no third-party scripts.</p>
+
+  <h2>Data Retention & Deletion</h2>
+  <p>All data persists in <code>chrome.storage</code> until you either:</p>
+  <ul>
+    <li>Delete individual series via the Extension UI</li>
+    <li>Use the "Reset All Data" option in Settings</li>
+    <li>Uninstall the Extension (Chrome automatically removes all stored data)</li>
+  </ul>
+
+  <h2>Permissions Justification</h2>
+  <ul>
+    <li><strong>storage</strong> – needed to save series, settings, and license data locally</li>
+    <li><strong>alarms</strong> – needed for Pro auto-refresh (periodic background checks for new episodes)</li>
+    <li><strong>notifications</strong> – needed to alert you when new episodes are found</li>
+    <li><strong>tabs</strong> – needed to open the Extension's tab interface</li>
+    <li><strong>youtube.com</strong> – needed to inject the sidebar shortcut on YouTube pages</li>
+    <li><strong>googleapis.com</strong> – needed for YouTube Data API requests</li>
+    <li><strong>lemonsqueezy.com</strong> – needed for Pro license verification</li>
+  </ul>
+
+  <h2>Third-Party Services</h2>
+  <ul>
+    <li><strong>YouTube Data API v3</strong> – subject to <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy</a></li>
+    <li><strong>Lemon Squeezy</strong> – subject to <a href="https://www.lemonsqueezy.com/privacy" target="_blank" rel="noopener">Lemon Squeezy Privacy Policy</a></li>
+  </ul>
+
+  <h2>Your Rights</h2>
+  <p>Since all data is stored locally on your device, you have full control. You can view, export, or delete your data at any time through the Extension's interface or by clearing Chrome storage.</p>
+
+  <h2>Changes to This Policy</h2>
+  <p>If this policy changes, the "Last updated" date at the top will be revised. Continued use of the Extension after changes constitutes acceptance of the updated policy.</p>
+
+  <h2>Contact</h2>
+  <p>For questions about this privacy policy, open an issue at the <a href="https://github.com/lollopaxd/YTSeries" target="_blank" rel="noopener">GitHub repository</a>.</p>
+
+  <footer>
+    <p>YT Series &copy; 2026. This extension is not affiliated with YouTube or Google.</p>
+  </footer>
+</body>
+</html>

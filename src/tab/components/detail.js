@@ -47,14 +47,19 @@ class DetailPage {
     document.body.appendChild(modal)
   }
 
-  async render(series, { onWatch, onBack, onRefresh, onCompleteToggle }) {
-    this.series = series
-    this.callbacks = { onWatch, onBack, onRefresh, onCompleteToggle }
+  async render(series, { onWatch, onBack, onRefresh, onCompleteToggle, onAddSeries }) {
+
+    this.callbacks = { onWatch, onBack, onRefresh, onCompleteToggle, onAddSeries }
 
     const body = document.getElementById('detailModalBody')
     body.innerHTML = ''
 
     body.appendChild(this._renderInfo(series))
+    // Sezione "Nuovo episodio" in evidenza
+    const newEp = this._findNewEpisode(series)
+    if (newEp) {
+      body.appendChild(this._renderNewEpisodeHighlight(series, newEp))
+    }
     body.appendChild(this._renderEpisodes(series))
     body.appendChild(this._renderMoreSection(series))
 
@@ -64,9 +69,90 @@ class DetailPage {
     this._loadRelatedPlaylists(series)
   }
 
+  // Trova il primo episodio "nuovo" (pubblicato negli ultimi 7 giorni e non visto)
+  _findNewEpisode(series) {
+    const now = new Date()
+    return series.videos.find(v => {
+      if (!v.publishedAt || v.watched) return false
+      const pubDate = new Date(v.publishedAt)
+      const diffDays = (now - pubDate) / (1000 * 60 * 60 * 24)
+      return diffDays <= 7
+    })
+  }
+
+  // Rende la sezione in evidenza per il nuovo episodio
+  _renderNewEpisodeHighlight(series, video) {
+    const section = document.createElement('div')
+    section.style.background = 'var(--card-bg)'
+    section.style.borderRadius = '8px'
+    section.style.marginBottom = '18px'
+    section.style.display = 'flex'
+    section.style.flexDirection = 'column'
+
+    const accent = document.createElement('div')
+    accent.className = 'new-accent-bar'
+    section.appendChild(accent)
+
+    const body = document.createElement('div')
+    body.style.display = 'flex'
+    body.style.alignItems = 'center'
+    body.style.gap = '18px'
+    body.style.padding = '18px 18px 12px 18px'
+    section.appendChild(body)
+
+    const img = document.createElement('img')
+    img.src = video.thumbnail || ''
+    img.alt = video.title
+    img.style.width = '160px'
+    img.style.borderRadius = '6px'
+    img.style.objectFit = 'cover'
+    body.appendChild(img)
+
+    const info = document.createElement('div')
+    info.style.flex = '1'
+
+    const title = document.createElement('div')
+    const badge = document.createElement('span')
+    badge.className = 'new-badge'
+    badge.textContent = t('new_episode')
+    title.appendChild(badge)
+    title.style.fontSize = '17px'
+    title.style.fontWeight = 'bold'
+    title.style.marginBottom = '6px'
+    info.appendChild(title)
+
+    const epTitle = document.createElement('div')
+    epTitle.textContent = video.title
+    epTitle.style.fontSize = '15px'
+    epTitle.style.marginBottom = '6px'
+    info.appendChild(epTitle)
+
+    if (video.publishedAt) {
+      const dateEl = document.createElement('div')
+      const d = new Date(video.publishedAt)
+      dateEl.textContent = d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+      dateEl.style.fontSize = '13px'
+      dateEl.style.color = 'var(--text-muted)'
+      info.appendChild(dateEl)
+    }
+
+    const btn = document.createElement('button')
+    btn.className = 'btn-primary'
+    btn.textContent = t('watch_now')
+    btn.onclick = () => {
+      window.open(`https://www.youtube.com/watch?v=${video.id}&list=${series.playlistId}`, '_blank', 'noopener')
+    }
+    btn.style.marginTop = '10px'
+    info.appendChild(btn)
+
+    body.appendChild(info)
+    return section
+  }
+
   close() {
     document.getElementById('detailModal').classList.add('hidden')
     document.body.style.overflow = ''
+    this.series = null
   }
 
   _renderInfo(series) {
@@ -192,7 +278,8 @@ class DetailPage {
 
     const refresh = document.createElement('button')
     refresh.className = 'btn-secondary'
-    refresh.textContent = `\u21BB ${t('refresh')}`
+    refresh.textContent = '\u21BB'
+    refresh.title = t('refresh')
     refresh.addEventListener('click', () => this.callbacks.onRefresh(series.playlistId))
     actions.appendChild(refresh)
 
@@ -212,6 +299,7 @@ class DetailPage {
     const section = document.createElement('div')
     section.className = 'detail-episodes'
 
+    // Header con titolo, selezione multipla e bottone
     const header = document.createElement('div')
     header.className = 'episodes-header'
 
@@ -219,6 +307,14 @@ class DetailPage {
     h3.textContent = t('episodes_title')
     header.appendChild(h3)
 
+    // Bottone segna come visto
+    const markBtn = document.createElement('button')
+    markBtn.className = 'btn-primary'
+    markBtn.textContent = t('mark_as_watched')
+    markBtn.disabled = true
+    header.appendChild(markBtn)
+
+    // Select ordinamento
     const sortSelect = document.createElement('select')
     sortSelect.className = 'episode-sort'
     const sorts = ['default', 'date_desc', 'date_asc', 'unwatched_first', 'watched_first']
@@ -237,6 +333,9 @@ class DetailPage {
     }
     header.appendChild(sortSelect)
     section.appendChild(header)
+
+    // Stato selezione
+    let selectedIds = new Set()
 
     const grid = document.createElement('div')
     grid.className = 'episode-grid'
@@ -260,8 +359,28 @@ class DetailPage {
       }
       videos.forEach((v, i) => {
         const originalIndex = series.videos.indexOf(v)
-        grid.appendChild(this._createEpisodeCard(series, v, originalIndex >= 0 ? originalIndex : i))
+        grid.appendChild(this._createEpisodeCard(series, v, originalIndex >= 0 ? originalIndex : i, selectedIds, onSelect))
       })
+      // Aggiorna stato bottone
+      markBtn.disabled = selectedIds.size === 0
+    }
+
+    // Gestore selezione
+    const onSelect = (id, checked) => {
+      if (checked) selectedIds.add(id)
+      else selectedIds.delete(id)
+      markBtn.disabled = selectedIds.size === 0
+    }
+
+    // Azione segna come visto
+    markBtn.onclick = async () => {
+      if (!selectedIds.size) return
+      for (const v of series.videos) {
+        if (selectedIds.has(v.id) && !v.watched) {
+          this.callbacks.onWatch(series.playlistId, v.id)
+        }
+      }
+      selectedIds.clear()
     }
 
     renderEpisodes(sortSelect.value)
@@ -271,10 +390,22 @@ class DetailPage {
     return section
   }
 
-  _createEpisodeCard(series, video, index) {
+  _createEpisodeCard(series, video, index, selectedIds = new Set(), onSelect = null) {
+
     const card = document.createElement('div')
     card.className = 'episode-card'
     card.dataset.videoId = video.id
+
+    // Checkbox selezione multipla
+    const checkbox = document.createElement('input')
+    checkbox.type = 'checkbox'
+    checkbox.style.marginRight = '10px'
+    checkbox.checked = selectedIds && selectedIds.has(video.id)
+    checkbox.addEventListener('click', (e) => {
+      e.stopPropagation()
+      if (typeof onSelect === 'function') onSelect(video.id, checkbox.checked)
+    })
+    card.appendChild(checkbox)
 
     card.addEventListener('click', () => {
       if (!video.watched) {
@@ -302,7 +433,25 @@ class DetailPage {
 
     const title = document.createElement('div')
     title.className = 'episode-title'
-    title.textContent = video.title
+    // Evidenzia "nuovo" se pubblicato negli ultimi 7 giorni e non visto
+    let isNew = false
+    if (video.publishedAt && !video.watched) {
+      const pubDate = new Date(video.publishedAt)
+      const now = new Date()
+      const diffDays = (now - pubDate) / (1000 * 60 * 60 * 24)
+      if (diffDays <= 7) isNew = true
+    }
+    if (isNew) {
+      const badge = document.createElement('span')
+      badge.className = 'new-dot'
+      badge.textContent = 'new'
+      const wrapper = document.createElement('span')
+      wrapper.appendChild(badge)
+      wrapper.appendChild(document.createTextNode(' ' + video.title))
+      title.appendChild(wrapper)
+    } else {
+      title.textContent = video.title
+    }
     info.appendChild(title)
 
     if (video.publishedAt) {
@@ -387,7 +536,7 @@ class DetailPage {
     const card = document.createElement('div')
     card.className = 'related-card'
     card.addEventListener('click', () => {
-      this.callbacks.onRefresh(playlist.playlistId)
+      if (this.callbacks.onAddSeries) this.callbacks.onAddSeries(playlist.playlistId)
     })
 
     const img = document.createElement('img')

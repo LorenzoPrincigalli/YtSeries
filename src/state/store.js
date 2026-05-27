@@ -60,25 +60,27 @@ class Store {
 
   async loadFromStorage(storageService) {
     try {
-      const [syncData, localData] = await Promise.all([
-        storageService.get([STORAGE_KEYS.SETTINGS, STORAGE_KEYS.LICENSE]),
-        storageService.getLocal([STORAGE_KEYS.SERIES])
-      ])
-
-      if (localData[STORAGE_KEYS.SERIES]) {
-        this._state.series = localData[STORAGE_KEYS.SERIES]
-      }
+      const syncData = await storageService.get([STORAGE_KEYS.SETTINGS, STORAGE_KEYS.LICENSE])
       if (syncData[STORAGE_KEYS.SETTINGS]) {
         this._state.settings = { ...this._state.settings, ...syncData[STORAGE_KEYS.SETTINGS] }
       }
       if (syncData[STORAGE_KEYS.LICENSE]) {
         this._state.license = { ...this._state.license, ...syncData[STORAGE_KEYS.LICENSE] }
       }
-
-      logger.info('Store loaded from storage')
     } catch (err) {
-      logger.error('Store.loadFromStorage failed:', err)
+      logger.error('Store.loadFromStorage: sync read failed:', err)
     }
+
+    try {
+      const localData = await storageService.getLocal([STORAGE_KEYS.SERIES])
+      if (localData[STORAGE_KEYS.SERIES]) {
+        this._state.series = localData[STORAGE_KEYS.SERIES]
+      }
+    } catch (err) {
+      logger.error('Store.loadFromStorage: local read failed:', err)
+    }
+
+    logger.info('Store loaded from storage')
   }
 
   async saveToStorage(storageService) {
@@ -88,16 +90,8 @@ class Store {
       const val = this._state[key]
       const size = new TextEncoder().encode(JSON.stringify(val)).length
       if (size > 4096) {
-        logger.warn(`Store.saveToStorage: ${key} is ${size} bytes, resetting to defaults`)
-        this._state[key] = key === STORAGE_KEYS.SETTINGS
-          ? { theme: 'classic-red', autoRefresh: false, apiKey: '', lastRefreshCheck: 0 }
-          : { key: null, isPro: false, verifiedAt: null }
-        try {
-          await storageService.set({ [key]: this._state[key] })
-        } catch (setErr) {
-          logger.error(`Store.saveToStorage: failed to save reset ${key}:`, setErr)
-          syncOk = false
-        }
+        logger.warn(`Store.saveToStorage: ${key} is ${size} bytes, cannot sync. Skipping save for this key.`)
+        syncOk = false
       } else {
         try {
           await storageService.set({ [key]: val })
@@ -108,14 +102,8 @@ class Store {
             logger.error(`Store.saveToStorage: sync write failed for ${key}:`, setErr)
             syncOk = false
           }
-          logger.warn(`Store.saveToStorage: sync quota for ${key}, trying delete+reset`)
-          try {
-            await storageService.set({ [key]: null })
-            await storageService.set({ [key]: val })
-          } catch (retryErr) {
-            logger.error(`Store.saveToStorage: still fails after delete for ${key}, data lost:`, retryErr)
-            syncOk = false
-          }
+            logger.warn(`Store.saveToStorage: sync quota exceeded for ${key}, data not saved for this key`)
+          syncOk = false
         }
       }
     }
@@ -167,6 +155,15 @@ class Store {
     if (!series) return
     series.completed = !series.completed
     this._emitChange()
+  }
+
+  findPlaylistByVideoId(videoId) {
+    for (const [playlistId, series] of Object.entries(this._state.series)) {
+      if (series.videos.some(v => v.id === videoId)) {
+        return playlistId
+      }
+    }
+    return null
   }
 
   deleteSeries(playlistId) {

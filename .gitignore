@@ -26,3 +26,6 @@ src/shared/config.js
 dist/
 build/
 *.zip
+
+# Playwright browser profile (contains logins, history, site data)
+pw-profile/

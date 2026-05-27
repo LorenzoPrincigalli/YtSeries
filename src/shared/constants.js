@@ -4,29 +4,17 @@ const STORAGE_KEYS = {
   LICENSE: 'license'
 }
 
-let _ytApiKey = 'AIzaSy...'
-try {
-  const cfg = await import('./config.js')
-  if (cfg.YT_API_KEY) _ytApiKey = cfg.YT_API_KEY
-} catch (e) {}
-
 const API = {
   YOUTUBE_BASE: 'https://www.googleapis.com/youtube/v3',
-  API_KEY: _ytApiKey
+  WORKER_BASE: 'https://shy-snowflake-0680.lollo-princigalli.workers.dev'
 }
 
 const FREE_LIMITS = {
-  MAX_SERIES: 999
-}
-
-const THEMES = {
-  CLASSIC_RED: 'classic-red',
-  OCEAN_BLUE: 'ocean-blue',
-  FOREST: 'forest'
+  MAX_SERIES: 3
 }
 
 const THEME_COLORS = {
-  [THEMES.CLASSIC_RED]: {
+  'classic-red': {
     bg: '#0f0f0f',
     surface: '#212121',
     primary: '#ff0000',
@@ -35,7 +23,7 @@ const THEME_COLORS = {
     cardBg: '#1a1a1a',
     hover: '#2a2a2a'
   },
-  [THEMES.OCEAN_BLUE]: {
+  'ocean-blue': {
     bg: '#0a1628',
     surface: '#0f1f3d',
     primary: '#1e90ff',
@@ -44,7 +32,7 @@ const THEME_COLORS = {
     cardBg: '#152540',
     hover: '#1a2f50'
   },
-  [THEMES.FOREST]: {
+  'forest': {
     bg: '#0f1a0f',
     surface: '#1a2a1a',
     primary: '#2ecc71',
@@ -55,7 +43,7 @@ const THEME_COLORS = {
   }
 }
 
-const LICENSE_CACHE_DAYS = 30
+const LICENSE_CACHE_DAYS = 1
 const AUTO_REFRESH_INTERVAL_MINUTES = 1440
 const YOUTUBE_API_MAX_RESULTS = 50
 
@@ -63,7 +51,6 @@ export {
   STORAGE_KEYS,
   API,
   FREE_LIMITS,
-  THEMES,
   THEME_COLORS,
   LICENSE_CACHE_DAYS,
   AUTO_REFRESH_INTERVAL_MINUTES,

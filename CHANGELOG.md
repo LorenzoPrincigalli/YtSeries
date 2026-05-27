@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.1.0] - 2026-05-26
+
+### Added
+- Professional SVG source icons (TV+play+series list design) with dark/light variants
+- PNG icon generation via `sharp` at 16/48/128 (`npm run icons`)
+- Chrome Web Store assets: screenshots guide, privacy policy HTML
+- `src/assets/` directory for all store materials
+- README setup/publishing section
+
+### Changed
+- Card width increased to 500px with proportional font/space scaling
+- Carousel gap reduced to 12px for tighter layout
+- Scroll buttons moved to `.series-row` level for vertical centering in row
+- Updated README with asset workflow and store publishing steps
+
+### Fixed
+- Remaining XSS vector in detail.js (episode title injected via innerHTML → safe DOM methods)
+
 ## [1.0.0] - 2026-05-25
 
 ### Added

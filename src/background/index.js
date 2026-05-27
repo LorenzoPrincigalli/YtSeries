@@ -1,6 +1,6 @@
 import { EVENTS } from '../shared/events.js'
 import { logger } from '../shared/logger.js'
-import { AUTO_REFRESH_INTERVAL_MINUTES, API } from '../shared/constants.js'
+import { AUTO_REFRESH_INTERVAL_MINUTES, API, STORAGE_KEYS } from '../shared/constants.js'
 import { storageService } from '../services/chrome/storage.js'
 import { tabService } from '../services/chrome/tabs.js'
 import { alarmService } from '../services/chrome/alarms.js'
@@ -15,18 +15,55 @@ let initPromise = null
 async function ensureInit() {
   if (initialized) return
   if (initPromise) return initPromise
-  initPromise = init().then(() => { initialized = true }).catch(err => logger.error('Init failed:', err))
+  let attempt = 0
+  const maxAttempts = 3
+  initPromise = (async () => {
+    while (attempt < maxAttempts) {
+      attempt++
+      try {
+        await init()
+        initialized = true
+        return
+      } catch (err) {
+        logger.error(`Init failed (attempt ${attempt}/${maxAttempts}):`, err)
+        if (attempt < maxAttempts) {
+          await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 1000))
+        }
+      }
+    }
+    initPromise = null
+  })()
   return initPromise
 }
 
 async function init() {
   await store.loadFromStorage(storageService)
 
-  const settings = store.getSettings()
-  if (settings.apiKey) {
-    youTubeApiService.setApiKey(settings.apiKey)
-  } else if (API.API_KEY && API.API_KEY !== 'AIzaSyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA') {
-    youTubeApiService.setApiKey(API.API_KEY)
+  if (!API.WORKER_BASE) {
+    let keyLoaded = false
+    try {
+      const url = chrome.runtime.getURL('src/shared/config.js')
+      const resp = await fetch(url)
+      const text = await resp.text()
+      const match = text.match(/YT_API_KEY\s*=\s*['"]([^'"]+)['"]/)
+      if (match && match[1]) {
+        youTubeApiService.setApiKey(match[1])
+        keyLoaded = true
+        logger.info('API key loaded from config.js')
+      }
+    } catch (e) {
+      logger.warn('Config fetch failed:', e.message)
+    }
+
+    if (!keyLoaded) {
+      const settings = store.getSettings()
+      if (settings.apiKey) {
+        youTubeApiService.setApiKey(settings.apiKey)
+        logger.info('API key loaded from settings')
+      }
+    }
+  } else {
+    logger.info('Using Cloudflare Worker proxy, API key not needed in extension')
   }
 
   if (store.isPro() && store.getSettings().autoRefresh) {
@@ -48,11 +85,18 @@ chrome.action.onClicked.addListener(async () => {
   openSeriesTab()
 })
 
+chrome.runtime.onSuspend.addListener(() => {
+  logger.info('Background script suspending')
+})
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (sender.id !== chrome.runtime.id) {
+    if (message._broadcast) return
     sendResponse({ success: false, error: 'FORBIDDEN', message: 'Message from unknown sender rejected' })
     return
   }
+
+  if (message._broadcast) return
 
   ensureInit()
     .then(() => handleMessage(message, sender))
@@ -124,7 +168,7 @@ async function handleMessage(message) {
     case EVENTS.FETCH_CHANNEL_PLAYLISTS:
       return handleFetchChannelPlaylists(message.payload)
 
-    case 'SET_ICON_THEME':
+    case EVENTS.SET_ICON_THEME:
       return handleSetIconTheme(message.payload)
 
     default:
@@ -145,6 +189,7 @@ async function handlePlaylistAdd(payload) {
   const data = await youTubeApiService.fetchPlaylist(payload.url.trim())
   store.addSeries(data)
   await store.saveToStorage(storageService)
+  broadcastStateUpdate()
 
   return { success: true, series: store.getSeriesById(data.playlistId) }
 }
@@ -156,6 +201,7 @@ async function handleSeriesDelete(payload) {
 
   store.deleteSeries(payload.playlistId)
   await store.saveToStorage(storageService)
+  broadcastStateUpdate()
 
   return { success: true }
 }
@@ -166,6 +212,7 @@ async function handleSeriesCompleteToggle(payload) {
   }
   store.toggleSeriesComplete(payload.playlistId)
   await store.saveToStorage(storageService)
+  broadcastStateUpdate()
   return { success: true, state: store.getState() }
 }
 
@@ -177,18 +224,29 @@ async function handleSeriesRefresh(payload) {
   const data = await youTubeApiService.refreshPlaylist(payload.playlistId.trim())
   store.addSeries(data)
   await store.saveToStorage(storageService)
+  broadcastStateUpdate()
 
   const refreshed = store.getSeriesById(data.playlistId)
   return { success: true, series: refreshed }
 }
 
 async function handleEpisodeWatch(payload) {
-  if (!payload || typeof payload.playlistId !== 'string' || !payload.playlistId.trim() || typeof payload.videoId !== 'string' || !payload.videoId.trim()) {
-    return { success: false, error: 'MISSING_PARAMS', message: 'playlistId and videoId are required' }
+  if (!payload || typeof payload.videoId !== 'string' || !payload.videoId.trim()) {
+    return { success: false, error: 'MISSING_PARAMS', message: 'videoId is required' }
   }
 
-  store.markEpisodeWatched(payload.playlistId, payload.videoId)
+  let { playlistId, videoId } = payload
+
+  if (!playlistId || typeof playlistId !== 'string' || !playlistId.trim()) {
+    playlistId = store.findPlaylistByVideoId(videoId)
+    if (!playlistId) {
+      return { success: false, error: 'VIDEO_NOT_FOUND', message: 'No series contains this video' }
+    }
+  }
+
+  store.markEpisodeWatched(playlistId, videoId)
   await store.saveToStorage(storageService)
+  broadcastStateUpdate()
 
   return { success: true, state: store.getState() }
 }
@@ -200,6 +258,7 @@ async function handleEpisodeProgress(payload) {
 
   store.updateEpisodeProgress(payload.playlistId, payload.videoId, typeof payload.progress === 'number' ? payload.progress : 0)
   await store.saveToStorage(storageService)
+  broadcastStateUpdate()
 
   return { success: true }
 }
@@ -219,6 +278,7 @@ async function handleSettingsUpdate(payload) {
     await alarmService.clear('autoRefresh')
   }
 
+  broadcastStateUpdate()
   return { success: true, settings: store.getSettings() }
 }
 
@@ -232,14 +292,25 @@ async function handleLicenseVerify(payload) {
   if (result.valid) {
     store.setLicense({ key: payload.key, isPro: true, verifiedAt: Date.now() })
     await store.saveToStorage(storageService)
+    broadcastStateUpdate()
+  } else {
+    store.setLicense({ key: null, isPro: false, verifiedAt: null })
+    await store.saveToStorage(storageService)
+    try { await alarmService.clear('autoRefresh') } catch (_) {}
+    broadcastStateUpdate()
   }
 
-  return { success: true, valid: result.valid }
+  return { success: true, valid: result.valid, reason: result.reason }
 }
 
 async function handleSetApiKey(payload) {
   if (!payload || typeof payload.key !== 'string' || !payload.key.trim()) {
     return { success: false, error: 'MISSING_KEY', message: 'API key is required' }
+  }
+
+  if (API.WORKER_BASE) {
+    logger.info('API key ignored — using Cloudflare Worker proxy')
+    return { success: true, message: 'Ignored: using Cloudflare Worker proxy' }
   }
 
   youTubeApiService.setApiKey(payload.key.trim())
@@ -341,6 +412,15 @@ async function autoRefresh() {
 
   store.updateSettings({ lastRefreshCheck: Date.now() })
   await store.saveToStorage(storageService)
+}
+
+async function broadcastStateUpdate() {
+  const state = store.getState()
+  try {
+    chrome.runtime.sendMessage({ type: EVENTS.STATE_UPDATED, state, _broadcast: true })
+  } catch (e) {
+    // no tabs open — ignore
+  }
 }
 
 async function handleStorageReset() {

@@ -14,7 +14,14 @@
   },
   "homepage": "https://github.com/LorenzoPrincigalli/YtSeries",
   "type": "module",
+  "scripts": {
+    "icons": "node src/assets/scripts/generate-icons.cjs",
+    "lint": "echo 'No linter configured yet'"
+  },
   "engines": {
     "node": ">=18"
+  },
+  "devDependencies": {
+    "sharp": "^0.34.5"
   }
 }

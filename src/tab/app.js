@@ -20,9 +20,12 @@ const modalManager = new ModalManager()
 document.addEventListener('DOMContentLoaded', async () => {
   translateUI()
   bindUIEvents()
+  listenBroadcasts()
   await loadState()
   applyTheme()
   initIconTheme()
+  document.documentElement.lang = (state?.settings?.language && state.settings.language !== 'system')
+    ? state.settings.language : navigator.language.split('-')[0] || 'en'
 })
 
 window.addEventListener('yt-series-add', async (e) => {
@@ -136,7 +139,7 @@ function initIconTheme() {
 
 function setToolbarIcon(isDark) {
   const suffix = isDark ? '' : '_light'
-  sendMessage('SET_ICON_THEME', { suffix })
+  sendMessage(EVENTS.SET_ICON_THEME, { suffix })
 }
 
 function sendMessage(type, payload = {}) {
@@ -203,16 +206,10 @@ function bindUIEvents() {
 
     if (searchTimeout) clearTimeout(searchTimeout)
 
-    const chips = document.querySelector('.filter-chips')
-    const searchQ = document.getElementById('searchQuery')
     if (currentSearch) {
-      chips.classList.add('hidden')
-      searchQ.classList.remove('hidden')
-      searchQ.textContent = `"${e.target.value}"`
+      document.querySelector('.filter-chips').classList.add('hidden')
     } else {
-      chips.classList.remove('hidden')
-      searchQ.classList.add('hidden')
-      searchQ.textContent = ''
+      document.querySelector('.filter-chips').classList.remove('hidden')
     }
 
     if (currentSearch) {
@@ -233,8 +230,6 @@ function bindUIEvents() {
     currentSearchResults = null
     document.getElementById('searchClear').classList.add('hidden')
     document.querySelector('.filter-chips').classList.remove('hidden')
-    document.getElementById('searchQuery').classList.add('hidden')
-    document.getElementById('searchQuery').textContent = ''
     renderHome()
   })
 
@@ -262,16 +257,43 @@ function bindUIEvents() {
     document.getElementById('searchInput').value = ''
     document.getElementById('searchClear').classList.add('hidden')
     document.querySelector('.filter-chips').classList.remove('hidden')
-    document.getElementById('searchQuery').classList.add('hidden')
-    document.getElementById('searchQuery').textContent = ''
     document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'))
     document.querySelector('.filter-chip[data-filter="all"]').classList.add('active')
     renderHome()
   })
 
+  let ticking = false
   window.addEventListener('scroll', () => {
-    const header = document.getElementById('header')
-    header.classList.toggle('scrolled', window.scrollY > 0)
+    if (!ticking) {
+      window.requestAnimationFrame(() => {
+        const header = document.getElementById('header')
+        header.classList.toggle('scrolled', window.scrollY > 0)
+        ticking = false
+      })
+      ticking = true
+    }
+  }, { passive: true })
+}
+
+function listenBroadcasts() {
+  chrome.runtime.onMessage.addListener((message, sender) => {
+    if (!sender || sender.id !== chrome.runtime.id) return
+    if (message.type === EVENTS.STATE_UPDATED && message.state) {
+      state = message.state
+      render()
+      if (detailPage.series) {
+        const updated = state.series[detailPage.series.playlistId]
+        if (updated) {
+          detailPage.render(updated, {
+            onWatch: handleWatchEpisode,
+            onBack: () => {},
+            onRefresh: handleRefreshSeries,
+            onCompleteToggle: handleSeriesCompleteToggle,
+            onAddSeries
+          })
+        }
+      }
+    }
   })
 }
 
@@ -282,6 +304,16 @@ function render() {
 function renderHome() {
   const main = document.getElementById('mainContent')
   main.innerHTML = ''
+
+  if (currentSearch) {
+    const searchHeader = document.createElement('div')
+    searchHeader.className = 'search-header'
+    const h2 = document.createElement('h2')
+    h2.className = 'search-header-title'
+    h2.textContent = `"${currentSearch}"`
+    searchHeader.appendChild(h2)
+    main.appendChild(searchHeader)
+  }
 
   const seriesArray = Object.values(state?.series || {})
 
@@ -294,7 +326,7 @@ function renderHome() {
         empty.className = 'empty-state'
         const p = document.createElement('p')
         p.className = 'empty-state-desc'
-        p.textContent = `Nessun risultato trovato per "${currentSearch}"`
+        p.textContent = t('no_results_for', { query: currentSearch })
         empty.appendChild(p)
         main.appendChild(empty)
         return
@@ -302,10 +334,6 @@ function renderHome() {
     } else {
       const empty = document.createElement('div')
       empty.className = 'empty-state'
-
-      const icon = document.createElement('div')
-      icon.className = 'empty-state-icon'
-      icon.textContent = '\uD83D\uDCFA'
 
       const h2 = document.createElement('h2')
       h2.className = 'empty-state-title'
@@ -315,7 +343,6 @@ function renderHome() {
       p.className = 'empty-state-desc'
       p.textContent = t('welcome_desc')
 
-      empty.appendChild(icon)
       empty.appendChild(h2)
       empty.appendChild(p)
       main.appendChild(empty)
@@ -478,7 +505,8 @@ function onSeriesClick(series) {
     onWatch: handleWatchEpisode,
     onBack: () => {},
     onRefresh: handleRefreshSeries,
-    onCompleteToggle: handleSeriesCompleteToggle
+    onCompleteToggle: handleSeriesCompleteToggle,
+    onAddSeries
   })
 }
 
@@ -499,6 +527,18 @@ async function handleWatchEpisode(playlistId, videoId) {
     if (response.success && response.state) {
       state = response.state
       render()
+      if (detailPage.series && detailPage.series.playlistId === playlistId) {
+        const updated = state.series[playlistId]
+        if (updated) {
+          detailPage.render(updated, {
+            onWatch: handleWatchEpisode,
+            onBack: () => {},
+            onRefresh: handleRefreshSeries,
+            onCompleteToggle: handleSeriesCompleteToggle,
+            onAddSeries
+          })
+        }
+      }
     }
   } catch (err) {
     logger.error('Failed to mark episode watched:', err)
@@ -515,7 +555,8 @@ async function handleSeriesCompleteToggle(playlistId) {
         onWatch: handleWatchEpisode,
         onBack: () => {},
         onRefresh: handleRefreshSeries,
-        onCompleteToggle: handleSeriesCompleteToggle
+        onCompleteToggle: handleSeriesCompleteToggle,
+        onAddSeries
       })
     }
     render()
@@ -539,7 +580,8 @@ async function handleRefreshSeries(playlistId) {
         onWatch: handleWatchEpisode,
         onBack: () => {},
         onRefresh: handleRefreshSeries,
-        onCompleteToggle: handleSeriesCompleteToggle
+        onCompleteToggle: handleSeriesCompleteToggle,
+        onAddSeries
       })
     } else {
       logger.error('Refresh failed:', response)
@@ -605,6 +647,17 @@ async function onFetchChannelPlaylists(channelId) {
   const response = await sendMessage(EVENTS.FETCH_CHANNEL_PLAYLISTS, { channelId })
   if (response.success) return response.playlists
   return []
+}
+
+async function onAddSeries(playlistId) {
+  const url = `https://www.youtube.com/playlist?list=${playlistId}`
+  const response = await sendMessage(EVENTS.PLAYLIST_ADD, { url })
+  if (response.success && response.series && state) {
+    state.series[response.series.playlistId] = response.series
+    render()
+  } else {
+    showErrorToast(response?.message || t('add_failed'))
+  }
 }
 
 async function onSearchAddPlaylist(playlist) {
@@ -681,7 +734,7 @@ async function handleVerifyLicense() {
       populateSettingsForm()
       render()
     } else {
-      msgEl.textContent = t('license_invalid')
+      msgEl.textContent = response.reason === 'NETWORK_ERROR' ? t('license_failed') : t('license_invalid')
       msgEl.style.color = 'var(--primary)'
       msgEl.classList.remove('hidden')
     }
@@ -750,8 +803,13 @@ function applyTheme() {
   root.style.setProperty('--card-bg', colors.cardBg)
   root.style.setProperty('--card-hover', colors.hover)
 
-  const metaTheme = document.querySelector('meta[name="theme-color"]')
-  if (metaTheme) metaTheme.content = colors.bg
+  let metaTheme = document.querySelector('meta[name="theme-color"]')
+  if (!metaTheme) {
+    metaTheme = document.createElement('meta')
+    metaTheme.name = 'theme-color'
+    document.head.appendChild(metaTheme)
+  }
+  metaTheme.content = colors.bg
 }
 
 function showLoading(visible) {

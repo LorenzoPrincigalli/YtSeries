@@ -65,7 +65,7 @@ const STRINGS = {
     'search_no_results': 'No playlists found. Try a different search term.',
     'search_failed': 'Search failed. Check your connection.',
     'search_add': 'Add',
-    'recommended': 'Recommended for You',
+    'recommended': 'More from Your Channels',
 
     // Settings modal
     'settings_title': 'Settings',
@@ -80,7 +80,7 @@ const STRINGS = {
     'auto_refresh': 'Auto-Refresh',
     'auto_refresh_desc': 'Check for new episodes every 24h',
     'license_key': 'License Key',
-    'license_desc': 'Unlock unlimited series, auto-refresh, and more themes.',
+    'license_desc': 'Unlock unlimited series and auto-refresh.',
     'enter_license': 'Enter license key',
     'activate': 'Activate',
     'license_activated': 'License activated! You now have Pro features.',
@@ -108,7 +108,17 @@ const STRINGS = {
     'videos': 'videos',
     'no_related_found': 'No other public playlists found',
     'related_error': 'Could not load related playlists',
-    'delete_series': 'Delete Series'
+    'delete_series': 'Delete Series',
+    'new_episode': 'New episode',
+    'watch_now': 'Watch now',
+    'start': 'Start',
+    'no_results_for': 'No results found for "{query}"',
+    'see_playlists': 'See playlists',
+    'hide': 'Hide',
+    'loading_dots': 'Loading...',
+    'no_playlists_found': 'No playlists found',
+    'load_error': 'Load error',
+    'mark_as_watched': 'Mark as watched'
   },
 
   it: {
@@ -171,7 +181,7 @@ const STRINGS = {
     'search_no_results': 'Nessuna playlist trovata. Prova con un termine diverso.',
     'search_failed': 'Ricerca fallita. Controlla la connessione.',
     'search_add': 'Aggiungi',
-    'recommended': 'Consigliati per te',
+    'recommended': 'Altro dal tuo canale',
 
     'settings_title': 'Impostazioni',
     'language': 'Lingua',
@@ -185,7 +195,7 @@ const STRINGS = {
     'auto_refresh': 'Aggiornamento automatico',
     'auto_refresh_desc': 'Controlla nuovi episodi ogni 24 ore',
     'license_key': 'Chiave licenza',
-    'license_desc': 'Sblocca serie illimitate, aggiornamento automatico e altri temi.',
+    'license_desc': 'Sblocca serie illimitate e aggiornamento automatico.',
     'enter_license': 'Inserisci la chiave licenza',
     'activate': 'Attiva',
     'license_activated': 'Licenza attivata! Hai ora le funzionalità Pro.',
@@ -212,7 +222,17 @@ const STRINGS = {
     'videos': 'video',
     'no_related_found': 'Nessuna altra playlist pubblica trovata',
     'related_error': 'Impossibile caricare le playlist correlate',
-    'delete_series': 'Elimina serie'
+    'delete_series': 'Elimina serie',
+    'new_episode': 'Nuovo episodio',
+    'watch_now': 'Guarda ora',
+    'start': 'Inizia',
+    'no_results_for': 'Nessun risultato trovato per "{query}"',
+    'see_playlists': 'Vedi playlist',
+    'hide': 'Nascondi',
+    'loading_dots': 'Caricamento...',
+    'no_playlists_found': 'Nessuna playlist trovata',
+    'load_error': 'Errore caricamento',
+    'mark_as_watched': 'Segna come visto'
   }
 }
 

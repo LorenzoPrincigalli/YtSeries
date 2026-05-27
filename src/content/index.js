@@ -1,5 +1,87 @@
 const EVENTS = {
-  OPEN_SERIES_TAB: 'OPEN_SERIES_TAB'
+  OPEN_SERIES_TAB: 'OPEN_SERIES_TAB',
+  EPISODE_WATCH: 'EPISODE_WATCH'
+}
+
+let currentVideoId = null
+let videoEndListener = null
+let videoDetectionInterval = null
+
+function cleanupVideoListener() {
+  if (videoDetectionInterval) {
+    clearInterval(videoDetectionInterval)
+    videoDetectionInterval = null
+  }
+  if (videoEndListener) {
+    videoEndListener.video.removeEventListener('ended', videoEndListener.handler)
+    videoEndListener = null
+  }
+}
+
+function setupVideoEndDetection(videoId, playlistId) {
+  cleanupVideoListener()
+
+  let attempts = 0
+  let paused = false
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      paused = true
+      if (videoDetectionInterval) {
+        clearInterval(videoDetectionInterval)
+        videoDetectionInterval = null
+      }
+    } else {
+      paused = false
+      if (!videoDetectionInterval) startPolling()
+    }
+  })
+
+  function startPolling() {
+    videoDetectionInterval = setInterval(() => {
+      attempts++
+      const video = document.querySelector('.video-stream, .html5-main-video')
+      if (video) {
+        clearInterval(videoDetectionInterval)
+        videoDetectionInterval = null
+
+        const onEnded = () => {
+          chrome.runtime.sendMessage({
+            type: EVENTS.EPISODE_WATCH,
+            payload: { videoId, playlistId: playlistId || '' }
+          })
+        }
+
+        video.addEventListener('ended', onEnded)
+        videoEndListener = { video, handler: onEnded }
+      } else if (attempts > 40) {
+        clearInterval(videoDetectionInterval)
+        videoDetectionInterval = null
+      }
+    }, 500)
+  }
+
+  startPolling()
+}
+
+function handlePageNavigation() {
+  const url = new URL(window.location.href)
+  const videoId = url.searchParams.get('v')
+
+  if (videoId && videoId !== currentVideoId) {
+    currentVideoId = videoId
+    const listId = url.searchParams.get('list')
+    setupVideoEndDetection(videoId, listId)
+  } else if (!videoId) {
+    currentVideoId = null
+    cleanupVideoListener()
+  }
+
+  tryInject()
+}
+
+function isOverlayActive() {
+  return !!document.querySelector('[aria-modal="true"], ytd-consent-bump-v2-renderer')
 }
 
 function getYouTubeTextColor() {
@@ -81,14 +163,14 @@ function injectSidebarLink() {
   const sections = document.querySelectorAll('ytd-guide-section-renderer')
   if (sections.length < 2) return
 
-  const section = document.createElement('ytd-guide-section-renderer')
+  const section = document.createElement('div')
   section.id = 'yt-series-sidebar-section'
 
   const title = document.createElement('div')
   title.id = 'yt-series-section-title'
   title.textContent = 'YT Series'
 
-  const entry = document.createElement('ytd-guide-entry-renderer')
+  const entry = document.createElement('div')
   entry.id = 'yt-series-sidebar-link'
 
   const link = document.createElement('a')
@@ -124,14 +206,16 @@ function injectSidebarLink() {
   console.log('[YT Series] injected custom section before', lastSection)
 }
 
-const observer = new MutationObserver(() => {
-  if (!document.querySelector('#yt-series-sidebar-section')) {
-    injectSidebarLink()
-  }
-})
+let observer = null
 
 function tryInject() {
   if (document.querySelector('#yt-series-sidebar-section')) return
+
+  if (isOverlayActive()) {
+    setTimeout(tryInject, 1000)
+    return
+  }
+
   const sections = document.querySelectorAll('ytd-guide-section-renderer')
   if (sections.length >= 2) {
     injectSidebarLink()
@@ -143,7 +227,15 @@ function tryInject() {
 function startObserver() {
   ensureStyles()
   tryInject()
+  observer = new MutationObserver(() => {
+    if (!document.querySelector('#yt-series-sidebar-section')) {
+      tryInject()
+    }
+  })
   observer.observe(document.body, { childList: true, subtree: true })
+
+  document.addEventListener('yt-navigate-finish', handlePageNavigation)
+  handlePageNavigation()
 }
 
 if (document.readyState === 'loading') {

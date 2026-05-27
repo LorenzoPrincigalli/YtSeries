@@ -218,19 +218,24 @@ html, body {
 }
 
 .filter-chip {
-  padding: 6px 16px;
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
   cursor: pointer;
-  transition: all var(--transition);
+  transition: color var(--transition), background var(--transition);
 }
 
-.filter-chip:hover {
+.filter-chip:hover,
+.filter-chip.active {
   color: var(--text);
-  border-color: var(--text-muted);
+  background: rgba(255,255,255,0.06);
 }
 
 .filter-chip.active {
@@ -238,11 +243,15 @@ html, body {
   color: var(--text);
 }
 
-.search-query {
-  font-size: 22px;
+.search-header {
+  margin-bottom: 24px;
+  padding: 0 4px;
+}
+
+.search-header-title {
+  font-size: 28px;
   font-weight: 700;
   color: var(--text);
-  padding: 4px 0;
 }
 
 /* MAIN CONTENT */
@@ -255,17 +264,23 @@ html, body {
 /* HERO BANNER */
 .hero-section {
   position: relative;
-  height: 420px;
-  margin: -16px -60px 40px;
+  width: 100vw;
+  margin-left: calc(-50vw + 50%);
+  aspect-ratio: 16 / 9;
+  max-height: 80vh;
   border-radius: 0;
   overflow: hidden;
+  flex-shrink: 0;
+  margin-top: -16px;
+  margin-bottom: -100px;
 }
 
 .hero-backdrop {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  filter: brightness(0.4);
+  object-position: top;
+  filter: brightness(0.5) saturate(0.85);
 }
 
 .hero-gradient {
@@ -273,7 +288,7 @@ html, body {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 60%;
+  height: 70%;
   background: linear-gradient(transparent, var(--bg));
 }
 
@@ -293,9 +308,10 @@ html, body {
 
 .hero-subtitle {
   font-size: 16px;
-  color: var(--text-muted);
+  color: rgba(255,255,255,0.7);
   margin-bottom: 20px;
   max-width: 500px;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
 }
 
 .hero-progress {
@@ -412,7 +428,15 @@ html, body {
   z-index: 1;
 }
 .hero-carousel-slide .hero-backdrop {
-  filter: brightness(0.35);
+  filter: brightness(0.5) saturate(0.85);
+}
+.hero-carousel-slide::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.06) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 2;
 }
 .hero-dots {
   position: absolute;
@@ -441,40 +465,36 @@ html, body {
 
 /* SERIES GRID */
 .section-title {
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 600;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
 
 .series-row {
-  margin-bottom: 48px;
+  position: relative;
+  margin-bottom: 56px;
 }
 
-.carousel-wrapper {
-  position: relative;
-}
+
 
 .carousel-grid {
   display: flex;
-  gap: 16px;
+  gap: 2px;
   overflow-x: auto;
   scroll-behavior: smooth;
   scroll-snap-type: x mandatory;
-  padding: 12px 0;
+  padding: 12px 10px;
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
 
 .carousel-grid::-webkit-scrollbar {
   display: none;
 }
 
-.carousel-grid {
-  scrollbar-width: none;
-}
-
 .carousel-grid .series-card {
   flex: 0 0 auto;
-  width: 280px;
+  width: 310px;
   scroll-snap-align: start;
 }
 
@@ -498,7 +518,7 @@ html, body {
   box-shadow: 0 2px 8px rgba(0,0,0,0.4);
 }
 
-.carousel-wrapper:hover .carousel-btn {
+.series-row:hover .carousel-btn {
   opacity: 1;
 }
 
@@ -613,13 +633,17 @@ html, body {
 
 .series-card {
   cursor: pointer;
-  transition: background var(--transition);
+  transition: transform 0.3s ease, background var(--transition);
   border-radius: var(--radius-lg);
-  padding: 12px;
-  margin: -12px;
+  padding: 8px;
+  margin: 0;
+  position: relative;
+  z-index: 1;
 }
 
 .series-card:hover {
+  transform: scale(1.06);
+  z-index: 10;
   background: rgba(255,255,255,0.04);
 }
 
@@ -634,7 +658,52 @@ html, body {
 }
 
 .series-card:hover .card-thumbnail {
-  box-shadow: 0 0 0 2px var(--primary), 0 8px 30px rgba(0,0,0,0.4);
+  box-shadow: 0 0 0 2px var(--primary), 0 8px 30px rgba(0,0,0,0.5);
+}
+
+.card-play-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 4;
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+
+.card-play-overlay .card-play-btn {
+  pointer-events: auto;
+}
+
+.series-card:hover .card-play-overlay {
+  opacity: 1;
+}
+
+.card-play-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: var(--primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s, filter 0.2s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+
+.card-play-btn:hover {
+  transform: scale(1.1);
+  filter: brightness(1.15);
+}
+
+.card-play-btn svg {
+  width: 20px;
+  height: 20px;
+  fill: #fff;
 }
 
 .card-thumbnail img {
@@ -648,14 +717,37 @@ html, body {
   filter: brightness(1.08);
 }
 
-.card-preview-iframe {
+.card-next-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  opacity: 0;
+  transition: opacity 0.25s;
+  z-index: 3;
+  pointer-events: none;
+}
+.series-card:hover .card-next-overlay {
+  opacity: 1;
+}
+.card-next-img {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  border: 0;
-  pointer-events: none;
+  object-fit: cover;
+}
+.card-next-label {
+  position: relative;
   z-index: 1;
+  width: 100%;
+  padding: 30px 12px 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #fff;
+  background: linear-gradient(transparent, rgba(0,0,0,0.85));
+  line-height: 1.3;
+  text-align: left;
 }
 
 .card-block-notice {
@@ -677,6 +769,7 @@ html, body {
   right: 0;
   height: 4px;
   background: rgba(255,255,255,0.15);
+  z-index: 3;
 }
 
 .card-progress-bar {
@@ -690,16 +783,77 @@ html, body {
   top: 10px;
   right: 10px;
   padding: 3px 10px;
-  border-radius: 4px;
-  font-size: 12px;
+  border-radius: 20px;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  z-index: 4;
 }
 
 .card-badge-new {
-  background: var(--primary);
+  background: linear-gradient(135deg, #f97316, #ef4444);
   color: #fff;
+}
+
+.new-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  background: linear-gradient(135deg, #f97316, #ef4444);
+  color: #fff;
+}
+
+.new-badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fff;
+  animation: new-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes new-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.new-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: linear-gradient(135deg, #f97316, #ef4444);
+  color: #fff;
+  vertical-align: middle;
+  line-height: 1.4;
+}
+
+.new-dot::before {
+  content: '';
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.new-accent-bar {
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, #f97316, #ef4444);
+  border-radius: 8px 8px 0 0;
+  flex-shrink: 0;
 }
 
 .card-badge-complete {
@@ -711,7 +865,7 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  margin-top: 12px;
+  margin-top: 10px;
   padding: 0 4px;
 }
 
@@ -725,19 +879,10 @@ html, body {
   overflow: hidden;
 }
 
-.series-card:hover .card-title {
-  color: var(--primary);
-}
-
 .card-subtitle {
   font-size: 13px;
   color: var(--text-muted);
-}
-
-.card-subtitle {
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 /* LOADING SCREEN */
@@ -1285,7 +1430,7 @@ html, body {
 }
 
 .detail-episodes .episode-thumb {
-  width: 120px;
+  width: 200px;
 }
 
 /* MORE FROM CHANNEL */
@@ -1412,7 +1557,7 @@ html, body {
 }
 
 .episode-thumb {
-  width: 140px;
+  width: 200px;
   flex-shrink: 0;
   aspect-ratio: 16/9;
   border-radius: 4px;
@@ -1484,7 +1629,10 @@ html, body {
     padding: 0 20px 40px;
   }
   .hero-section {
-    margin: 0 -20px 40px;
+    width: 100vw;
+    margin-left: calc(-50vw + 50%);
+    margin-top: 0;
+    margin-bottom: -60px;
   }
   .hero-content {
     left: 20px;
@@ -1496,8 +1644,8 @@ html, body {
   .filter-bar {
     padding: 12px 20px;
   }
-  .search-query {
-    font-size: 18px;
+  .search-header-title {
+    font-size: 22px;
   }
   .hero-btn-group {
     flex-direction: column;

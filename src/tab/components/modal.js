@@ -76,6 +76,12 @@ class ModalManager {
       modal.appendChild(body)
       modal.appendChild(footer)
       overlay.appendChild(modal)
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+          overlay.remove()
+          resolve(false)
+        }
+      })
       document.body.appendChild(overlay)
     })
   }

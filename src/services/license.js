@@ -18,7 +18,8 @@ class LicenseService {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           license_key: key.trim()
-        })
+        }),
+        signal: AbortSignal.timeout(15000)
       })
 
       if (!response.ok) {

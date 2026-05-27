@@ -17,7 +17,8 @@ class HomePage {
     for (let i = 0; i < seriesList.length; i++) {
       const s = seriesList[i]
       const watchedCount = s.videos.filter(v => v.watched).length
-      const progress = s.videos.length > 0 ? (watchedCount / s.videos.length) * 100 : 0
+      const nextIndex = s.lastEpisodeIndex ?? s.videos.findIndex(v => !v.watched)
+      const progress = s.videos.length > 0 ? ((nextIndex >= 0 ? nextIndex : s.videos.length) / s.videos.length) * 100 : 0
 
       const slide = document.createElement('div')
       slide.className = `hero-carousel-slide${i === 0 ? ' active' : ''}`
@@ -50,20 +51,11 @@ class HomePage {
       progressBar.style.width = `${progress}%`
       progressContainer.appendChild(progressBar)
 
-      const previewVideo = s.videos[0]
-      const btnPreview = document.createElement('button')
-      btnPreview.className = 'hero-btn hero-btn-preview'
-      btnPreview.textContent = `\u25B6 Anteprima`
-      btnPreview.addEventListener('click', (e) => {
-        e.stopPropagation()
-        if (previewVideo) {
-          showPreview(s, previewVideo.id)
-        }
-      })
+
 
       const btn = document.createElement('button')
       btn.className = 'hero-btn hero-btn-play'
-      const btnLabel = watchedCount > 0 ? t('continue_watching') : 'Inizia'
+      const btnLabel = watchedCount > 0 ? t('continue_watching') : t('start')
       btn.textContent = `\u25B6 ${btnLabel}`
       btn.addEventListener('click', (e) => {
         e.stopPropagation()
@@ -72,7 +64,6 @@ class HomePage {
 
       const btnGroup = document.createElement('div')
       btnGroup.className = 'hero-btn-group'
-      btnGroup.appendChild(btnPreview)
       btnGroup.appendChild(btn)
 
       content.appendChild(h1)
@@ -126,39 +117,6 @@ class HomePage {
 
     if (slides.length > 1) resetAuto()
 
-    function showPreview(series, videoId) {
-      const overlay = document.createElement('div')
-      overlay.className = 'hero-preview-overlay'
-
-      const iframe = document.createElement('iframe')
-      iframe.className = 'hero-preview-iframe'
-      iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=1&modestbranding=1&rel=0&iv_load_policy=3`
-      iframe.allow = 'autoplay; encrypted-media'
-      iframe.referrerPolicy = 'no-referrer'
-
-      const closeBtn = document.createElement('button')
-      closeBtn.className = 'hero-preview-close'
-      closeBtn.textContent = '\u2715'
-      closeBtn.addEventListener('click', () => {
-        overlay.remove()
-        if (autoTimer) clearInterval(autoTimer)
-        if (slides.length > 1) resetAuto()
-      })
-
-      overlay.appendChild(iframe)
-      overlay.appendChild(closeBtn)
-
-      if (autoTimer) clearInterval(autoTimer)
-      section.appendChild(overlay)
-
-      setTimeout(() => {
-        if (overlay.parentNode) {
-          overlay.remove()
-          if (slides.length > 1) resetAuto()
-        }
-      }, 20000)
-    }
-
     section.addEventListener('mouseenter', () => {
       if (autoTimer) clearInterval(autoTimer)
     })
@@ -178,9 +136,6 @@ class HomePage {
     h2.textContent = title
     section.appendChild(h2)
 
-    const carouselWrapper = document.createElement('div')
-    carouselWrapper.className = 'carousel-wrapper'
-
     const btnLeft = document.createElement('button')
     btnLeft.className = 'carousel-btn carousel-btn-left'
     btnLeft.innerHTML = '<svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>'
@@ -188,6 +143,9 @@ class HomePage {
     const btnRight = document.createElement('button')
     btnRight.className = 'carousel-btn carousel-btn-right'
     btnRight.innerHTML = '<svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>'
+
+    const carouselWrapper = document.createElement('div')
+    carouselWrapper.className = 'carousel-wrapper'
 
     const grid = document.createElement('div')
     grid.className = 'carousel-grid'
@@ -197,11 +155,9 @@ class HomePage {
       grid.appendChild(card)
     }
 
-    carouselWrapper.appendChild(btnLeft)
     carouselWrapper.appendChild(grid)
-    carouselWrapper.appendChild(btnRight)
 
-    const scrollAmount = 320
+    const scrollAmount = 312
 
     btnLeft.addEventListener('click', () => {
       grid.scrollBy({ left: -scrollAmount, behavior: 'smooth' })
@@ -242,7 +198,9 @@ class HomePage {
       grid.scrollLeft = scrollLeftStart - walk
     })
 
+    section.appendChild(btnLeft)
     section.appendChild(carouselWrapper)
+    section.appendChild(btnRight)
     return section
   }
 
@@ -257,9 +215,6 @@ class HomePage {
     h2.textContent = title || 'YouTube Playlists'
     section.appendChild(h2)
 
-    const carouselWrapper = document.createElement('div')
-    carouselWrapper.className = 'carousel-wrapper'
-
     const btnLeft = document.createElement('button')
     btnLeft.className = 'carousel-btn carousel-btn-left'
     btnLeft.innerHTML = '<svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>'
@@ -267,6 +222,9 @@ class HomePage {
     const btnRight = document.createElement('button')
     btnRight.className = 'carousel-btn carousel-btn-right'
     btnRight.innerHTML = '<svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>'
+
+    const carouselWrapper = document.createElement('div')
+    carouselWrapper.className = 'carousel-wrapper'
 
     const grid = document.createElement('div')
     grid.className = 'carousel-grid'
@@ -318,14 +276,14 @@ class HomePage {
       grid.appendChild(card)
     }
 
-    const scrollAmount = 320
+    const scrollAmount = 312
     btnLeft.addEventListener('click', () => grid.scrollBy({ left: -scrollAmount, behavior: 'smooth' }))
     btnRight.addEventListener('click', () => grid.scrollBy({ left: scrollAmount, behavior: 'smooth' }))
 
-    carouselWrapper.appendChild(btnLeft)
+    section.appendChild(btnLeft)
     carouselWrapper.appendChild(grid)
-    carouselWrapper.appendChild(btnRight)
     section.appendChild(carouselWrapper)
+    section.appendChild(btnRight)
 
     return section
   }
@@ -365,7 +323,7 @@ class HomePage {
 
     expandBtn.addEventListener('click', async () => {
       if (playlistContainer.classList.contains('hidden')) {
-        expandBtn.textContent = 'Caricamento...'
+        expandBtn.textContent = t('loading_dots')
         expandBtn.disabled = true
         playlistContainer.classList.remove('hidden')
         try {
@@ -415,16 +373,16 @@ class HomePage {
             }
             playlistContainer.appendChild(grid)
           } else {
-            playlistContainer.innerHTML = '<p class="search-empty">Nessuna playlist trovata</p>'
+            playlistContainer.innerHTML = `<p class="search-empty">${t('no_playlists_found')}</p>`
           }
         } catch (err) {
-          playlistContainer.innerHTML = '<p class="search-empty">Errore caricamento</p>'
+          playlistContainer.innerHTML = `<p class="search-empty">${t('load_error')}</p>`
         }
-        expandBtn.textContent = 'Nascondi'
+        expandBtn.textContent = t('hide')
         expandBtn.disabled = false
       } else {
         playlistContainer.classList.add('hidden')
-        expandBtn.textContent = 'Vedi playlist'
+    expandBtn.textContent = t('see_playlists')
       }
     })
 
@@ -444,7 +402,8 @@ class HomePage {
 
   _createCard(series, onClick) {
     const watchedCount = series.videos.filter(v => v.watched).length
-    const progress = series.videos.length > 0 ? (watchedCount / series.videos.length) * 100 : 0
+    const nextIndex = series.lastEpisodeIndex ?? series.videos.findIndex(v => !v.watched)
+    const progress = series.videos.length > 0 ? ((nextIndex >= 0 ? nextIndex : series.videos.length) / series.videos.length) * 100 : 0
     const isComplete = series.completed || (series.videos.length > 0 && watchedCount === series.videos.length)
     const hasNew = series.newEpisodesCount > 0
     const previewVideo = this._getPreviewVideo(series)
@@ -464,6 +423,20 @@ class HomePage {
     img.loading = 'lazy'
     img.onerror = function () { this.src = '' }
     thumb.appendChild(img)
+
+    const playOverlay = document.createElement('div')
+    playOverlay.className = 'card-play-overlay'
+    const playBtn = document.createElement('button')
+    playBtn.className = 'card-play-btn'
+    playBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>'
+    playBtn.addEventListener('click', (e) => {
+      e.stopPropagation()
+      if (previewVideo) {
+        window.open(`https://www.youtube.com/watch?v=${previewVideo.id}&list=${series.playlistId}`, '_blank', 'noopener')
+      }
+    })
+    playOverlay.appendChild(playBtn)
+    thumb.appendChild(playOverlay)
 
     if (hasNew && !isComplete) {
       const badge = document.createElement('span')
@@ -493,7 +466,7 @@ class HomePage {
 
     const titleEl = document.createElement('div')
     titleEl.className = 'card-title'
-    titleEl.textContent = series.title
+    titleEl.textContent = series.title || 'Untitled'
     info.appendChild(titleEl)
 
     const subtitleEl = document.createElement('div')
@@ -504,42 +477,35 @@ class HomePage {
       : `${series.videos.length} ${epLabel}`
     info.appendChild(subtitleEl)
 
+    // Netflix-style hover: show next episode thumbnail + title
+    const nextEp = (() => {
+      if (series.completed || series.videos.length === 0) return null
+      const unwatched = series.videos.find(v => !v.watched)
+      if (unwatched) return unwatched
+      return null
+    })()
+    if (nextEp) {
+      const nextOverlay = document.createElement('div')
+      nextOverlay.className = 'card-next-overlay'
+
+      const nextImg = document.createElement('img')
+      nextImg.className = 'card-next-img'
+      nextImg.src = nextEp.thumbnail || ''
+      nextImg.alt = nextEp.title
+      nextImg.loading = 'lazy'
+      nextOverlay.appendChild(nextImg)
+
+      const nextLabel = document.createElement('div')
+      nextLabel.className = 'card-next-label'
+      nextLabel.textContent = nextEp.title
+      nextOverlay.appendChild(nextLabel)
+
+      thumb.appendChild(nextOverlay)
+    }
+
     card.appendChild(info)
 
-    if (previewVideo) {
-      this._attachHoverPreview(thumb, img, card, previewVideo.id)
-    }
-
     return card
-  }
-
-  _attachHoverPreview(thumbContainer, thumbImg, card, videoId) {
-    let iframe = null
-    let enterTimeout = null
-
-    const cleanup = () => {
-      if (enterTimeout) { clearTimeout(enterTimeout); enterTimeout = null }
-      if (iframe) { iframe.remove(); iframe = null }
-      thumbImg.style.opacity = '1'
-    }
-
-    thumbContainer.addEventListener('mouseenter', () => {
-      enterTimeout = setTimeout(() => {
-        if (iframe) return
-
-        iframe = document.createElement('iframe')
-        iframe.className = 'card-preview-iframe'
-        iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${videoId}&modestbranding=1&rel=0&iv_load_policy=3&fs=0&disablekb=1`
-        iframe.allow = 'autoplay'
-        iframe.loading = 'lazy'
-        iframe.referrerPolicy = 'no-referrer'
-
-        thumbImg.style.opacity = '0'
-        thumbContainer.appendChild(iframe)
-      }, 600)
-    })
-
-    thumbContainer.addEventListener('mouseleave', cleanup)
   }
 }
 
