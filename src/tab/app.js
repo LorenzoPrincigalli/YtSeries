@@ -1,6 +1,6 @@
 import { EVENTS } from '../shared/events.js'
 import { logger } from '../shared/logger.js'
-import { THEME_COLORS } from '../shared/constants.js'
+import { THEME_COLORS, PRO_CHECKOUT } from '../shared/constants.js'
 import { t, setLanguage } from '../shared/i18n.js'
 import { HomePage } from './components/home.js'
 import { DetailPage } from './components/detail.js'
@@ -193,6 +193,7 @@ function bindUIEvents() {
   document.getElementById('licenseKeyInput').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') handleVerifyLicense()
   })
+  document.getElementById('buyProBtn').addEventListener('click', handleBuyPro)
 
   document.getElementById('themeSelect').addEventListener('change', handleThemeChange)
   document.getElementById('languageSelect').addEventListener('change', handleLanguageChange)
@@ -714,6 +715,17 @@ async function handleAddPlaylist() {
   }
 }
 
+function handleBuyPro() {
+  if (PRO_CHECKOUT.URL) {
+    window.open(PRO_CHECKOUT.URL, '_blank')
+  } else {
+    const msgEl = document.getElementById('licenseMessage')
+    msgEl.textContent = 'Checkout URL not configured yet. Set PRO_CHECKOUT.URL in constants.js'
+    msgEl.style.color = 'var(--primary)'
+    msgEl.classList.remove('hidden')
+  }
+}
+
 async function handleVerifyLicense() {
   const input = document.getElementById('licenseKeyInput')
   const msgEl = document.getElementById('licenseMessage')
@@ -764,6 +776,11 @@ function populateSettingsForm() {
 
   const proSettings = document.getElementById('proSettings')
   proSettings.style.display = isPro ? 'block' : 'none'
+  const buySection = document.getElementById('buyProSection')
+  if (buySection) {
+    buySection.style.display = isPro ? 'none' : 'block'
+    document.getElementById('buyProBtn').textContent = t('buy_pro')
+  }
   document.getElementById('licenseKeyInput').disabled = false
   document.getElementById('verifyLicenseBtn').disabled = false
 }

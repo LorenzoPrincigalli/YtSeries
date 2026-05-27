@@ -1,3 +1,5 @@
+const CHECKOUT_URL = '' // Set your Lemon Squeezy checkout URL
+
 document.getElementById('openDashboard').addEventListener('click', () => {
   chrome.runtime.sendMessage({ type: 'OPEN_SERIES_TAB' })
   window.close()
@@ -6,6 +8,13 @@ document.getElementById('openDashboard').addEventListener('click', () => {
 document.getElementById('openSettings').addEventListener('click', () => {
   chrome.tabs.create({ url: chrome.runtime.getURL('src/tab/index.html') + '?settings=1' })
   window.close()
+})
+
+document.getElementById('buyProBtn').addEventListener('click', () => {
+  if (CHECKOUT_URL) {
+    chrome.tabs.create({ url: CHECKOUT_URL })
+    window.close()
+  }
 })
 
 chrome.runtime.sendMessage({ type: 'STATE_GET' }, (response) => {
@@ -30,5 +39,7 @@ chrome.runtime.sendMessage({ type: 'STATE_GET' }, (response) => {
 
   if (state.license?.isPro) {
     document.getElementById('proBadge').textContent = 'Pro'
+  } else if (CHECKOUT_URL) {
+    document.getElementById('buyProBtn').style.display = 'block'
   }
 })

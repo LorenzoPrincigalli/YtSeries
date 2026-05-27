@@ -29,6 +29,21 @@
     }
     .stat-num { font-size: 22px; font-weight: 700; color: #ff0000; }
     .stat-label { font-size: 11px; color: #aaaaaa; margin-top: 2px; }
+    .btn-pro {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #2ecc71, #27ae60);
+      color: #fff;
+    }
+    .btn-pro:hover { opacity: 0.9; }
     .btn {
       display: block;
       width: 100%;
@@ -68,6 +83,7 @@
   </div>
   <button class="btn btn-primary" id="openDashboard">Open Dashboard</button>
   <button class="btn btn-secondary" id="openSettings">Settings</button>
+  <button class="btn-pro" id="buyProBtn" style="display:none">Get Pro — €4.99</button>
   <div class="footer" id="proBadge"></div>
   <script src="popup.js"></script>
 </body>
