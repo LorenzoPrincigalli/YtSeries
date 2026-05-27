@@ -1,6 +1,14 @@
 import { t } from '../../shared/i18n.js'
 
 class HomePage {
+  constructor() {
+    this.isPro = false
+  }
+
+  setPro(isPro) {
+    this.isPro = isPro
+  }
+
   renderHeroCarousel(seriesList, onContinue, onClick) {
     const section = document.createElement('section')
     section.className = 'hero-section hero-carousel'
@@ -438,7 +446,7 @@ class HomePage {
     playOverlay.appendChild(playBtn)
     thumb.appendChild(playOverlay)
 
-    if (hasNew && !isComplete) {
+    if (hasNew && this.isPro && !isComplete) {
       const badge = document.createElement('span')
       badge.className = 'card-badge card-badge-new'
       badge.textContent = t('new_badge', { n: series.newEpisodesCount })

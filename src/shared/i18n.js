@@ -121,7 +121,39 @@ const STRINGS = {
     'loading_dots': 'Loading...',
     'no_playlists_found': 'No playlists found',
     'load_error': 'Load error',
-    'mark_as_watched': 'Mark as watched'
+    'mark_as_watched': 'Mark as watched',
+
+    // FAQ
+    'faq': 'FAQ',
+    'faq_title': 'Frequently Asked Questions',
+    'faq_what_is': 'What is YT Series?',
+    'faq_what_is_a': 'YT Series transforms YouTube playlists into trackable TV series. Add a playlist and track which episodes you\'ve watched.',
+    'faq_limits': 'Are there any limits?',
+    'faq_limits_a': 'The free version supports up to 3 series. Upgrade to Pro (€4.99 one-time) for unlimited series and auto-refresh.',
+    'faq_data': 'Where is my data stored?',
+    'faq_data_a': 'All your data is stored locally in your browser using Chrome Storage API. Nothing is sent to our servers.',
+    'faq_auto': 'How does auto-refresh work?',
+    'faq_auto_a': 'Pro users can enable auto-refresh to check for new episodes every 24 hours. Changes are notified via the extension badge.',
+    'faq_license': 'How do I activate my license?',
+    'faq_license_a': 'After purchase, you\'ll receive a license key via email. Enter it in Settings → License Key to unlock Pro.',
+
+    // Footer
+    'footer_copyright': 'YT Series — Free browser extension',
+    'footer_bug': 'Report a bug',
+    'footer_faq': 'FAQ',
+    'footer_changelog': "What's New",
+
+    // Changelog
+    'changelog_title': "What's New",
+    'changelog_empty': 'No changelog entries yet. Check back after the next update!',
+
+    // Bug report modal
+    'bug_title': 'Report a Bug',
+    'bug_desc': 'Describe the issue you encountered.',
+    'bug_placeholder': 'What went wrong? What were you doing?',
+    'bug_send': 'Send Report',
+    'bug_also_github': 'Or report on GitHub',
+    'bug_empty': 'Please describe the issue.'
   },
 
   it: {
@@ -238,7 +270,39 @@ const STRINGS = {
     'loading_dots': 'Caricamento...',
     'no_playlists_found': 'Nessuna playlist trovata',
     'load_error': 'Errore caricamento',
-    'mark_as_watched': 'Segna come visto'
+    'mark_as_watched': 'Segna come visto',
+
+    // FAQ
+    'faq': 'FAQ',
+    'faq_title': 'Domande frequenti',
+    'faq_what_is': 'Cos\'è YT Series?',
+    'faq_what_is_a': 'YT Series trasforma le playlist YouTube in serie TV tracciabili. Aggiungi una playlist e tieni traccia degli episodi visti.',
+    'faq_limits': 'Ci sono limiti?',
+    'faq_limits_a': 'La versione gratuita supporta fino a 3 serie. Passa a Pro (€4.99 una tantum) per serie illimitate e aggiornamento automatico.',
+    'faq_data': 'Dove vengono salvati i miei dati?',
+    'faq_data_a': 'Tutti i dati sono salvati localmente nel tuo browser usando Chrome Storage API. Nessun dato viene inviato ai nostri server.',
+    'faq_auto': 'Come funziona l\'aggiornamento automatico?',
+    'faq_auto_a': 'Gli utenti Pro possono attivare l\'aggiornamento automatico per controllare nuovi episodi ogni 24 ore. Le novità sono notificate tramite il badge dell\'estensione.',
+    'faq_license': 'Come attivo la licenza?',
+    'faq_license_a': 'Dopo l\'acquisto riceverai una chiave licenza via email. Inseriscila in Impostazioni → Chiave licenza per sbloccare Pro.',
+
+    // Footer
+    'footer_copyright': 'YT Series — Estensione browser gratuita',
+    'footer_bug': 'Segnala un bug',
+    'footer_faq': 'FAQ',
+    'footer_changelog': 'Novità',
+
+    // Changelog
+    'changelog_title': 'Novità',
+    'changelog_empty': 'Ancora nessuna novità. Ripassa dopo il prossimo aggiornamento!',
+
+    // Bug report modal
+    'bug_title': 'Segnala un bug',
+    'bug_desc': 'Descrivi il problema che hai riscontrato.',
+    'bug_placeholder': 'Cosa è andato storto? Cosa stavi facendo?',
+    'bug_send': 'Invia segnalazione',
+    'bug_also_github': 'Oppure segnala su GitHub',
+    'bug_empty': 'Descrivi il problema.'
   }
 }
 

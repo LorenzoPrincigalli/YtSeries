@@ -1,6 +1,7 @@
 import { EVENTS } from '../shared/events.js'
 import { logger } from '../shared/logger.js'
-import { THEME_COLORS, PRO_CHECKOUT } from '../shared/constants.js'
+import { THEME_COLORS, PRO_CHECKOUT, GITHUB_URL } from '../shared/constants.js'
+import { CHANGELOG } from '../shared/changelog.js'
 import { t, setLanguage } from '../shared/i18n.js'
 import { HomePage } from './components/home.js'
 import { DetailPage } from './components/detail.js'
@@ -26,6 +27,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   initIconTheme()
   document.documentElement.lang = (state?.settings?.language && state.settings.language !== 'system')
     ? state.settings.language : navigator.language.split('-')[0] || 'en'
+  if (new URLSearchParams(window.location.search).has('dev')) {
+    document.getElementById('devSection').style.display = 'block'
+  }
 })
 
 window.addEventListener('yt-series-add', async (e) => {
@@ -84,6 +88,7 @@ function translateUI() {
     ['settingsModalTitle', 'textContent', 'settings_title'],
     ['autoRefreshToggle', 'nextText', 'auto_refresh_desc'],
     ['licenseBadge', 'textContent', 'free'],
+    ['bugReportText', 'placeholder', 'bug_placeholder'],
     ['playlistSearchInput', 'placeholder', 'search_playlist_placeholder'],
     ['playlistSearchBtn', 'textContent', 'search_btn'],
     ['addPlaylistSearchDesc', 'textContent', 'search_playlists'],
@@ -115,10 +120,9 @@ function translateUI() {
     opt.textContent = t(key)
   })
 
-  document.querySelectorAll('.filter-chip').forEach(chip => {
+  document.querySelectorAll('.nav-link[data-filter]').forEach(chip => {
     const key = chip.dataset.filter
-    if (key === 'all') chip.textContent = t('all')
-    else if (key === 'watching') chip.textContent = t('watching')
+    if (key === 'watching') chip.textContent = t('watching')
     else if (key === 'completed') chip.textContent = t('completed')
     else if (key === 'new') chip.textContent = t('new_episodes')
   })
@@ -171,6 +175,66 @@ async function handleResetStorage() {
   translateUI()
 }
 
+function handleBugReport() {
+  const text = document.getElementById('bugReportText').value.trim()
+  const errorEl = document.getElementById('bugReportError')
+
+  if (!text) {
+    errorEl.textContent = t('bug_empty')
+    errorEl.classList.remove('hidden')
+    return
+  }
+
+  errorEl.classList.add('hidden')
+  const subject = encodeURIComponent('Bug Report - YT Series')
+  const body = encodeURIComponent(text + '\n\n---\nYT Series Bug Report')
+  window.open(`mailto:lollo.princigalli@gmail.com?subject=${subject}&body=${body}`, '_blank')
+  modalManager.close('bugReportModal')
+}
+
+function renderChangelog() {
+  const body = document.getElementById('changelogBody')
+  body.innerHTML = ''
+
+  if (CHANGELOG.length === 0) {
+    const empty = document.createElement('div')
+    empty.className = 'changelog-empty'
+    empty.textContent = t('changelog_empty')
+    body.appendChild(empty)
+    return
+  }
+
+  for (const entry of CHANGELOG) {
+    const div = document.createElement('div')
+    div.className = 'changelog-entry'
+
+    const version = document.createElement('div')
+    version.className = 'changelog-version'
+    version.textContent = 'v' + entry.version
+    div.appendChild(version)
+
+    if (entry.date) {
+      const date = document.createElement('div')
+      date.className = 'changelog-date'
+      date.textContent = entry.date
+      div.appendChild(date)
+    }
+
+    if (entry.items && entry.items.length > 0) {
+      const list = document.createElement('ul')
+      list.className = 'changelog-items'
+      for (const item of entry.items) {
+        const li = document.createElement('li')
+        li.textContent = item
+        list.appendChild(li)
+      }
+      div.appendChild(list)
+    }
+
+    body.appendChild(div)
+  }
+}
+
 function bindUIEvents() {
   document.getElementById('addPlaylistBtn').addEventListener('click', () => {
     modalManager.open('addPlaylistModal')
@@ -199,18 +263,50 @@ function bindUIEvents() {
   document.getElementById('languageSelect').addEventListener('change', handleLanguageChange)
   document.getElementById('autoRefreshToggle').addEventListener('change', handleAutoRefreshChange)
   document.getElementById('resetStorageBtn').addEventListener('click', handleResetStorage)
+  document.getElementById('devProToggle').addEventListener('change', handleDevProToggle)
+
+  document.querySelectorAll('.faq-question').forEach(btn => {
+    btn.addEventListener('click', () => {
+      btn.parentElement.classList.toggle('open')
+    })
+  })
+
+  document.getElementById('footerFaqLink').addEventListener('click', (e) => {
+    e.preventDefault()
+    modalManager.open('settingsModal')
+    populateSettingsForm()
+  })
+
+  document.getElementById('footerBugLink').addEventListener('click', (e) => {
+    e.preventDefault()
+    modalManager.open('bugReportModal')
+    document.getElementById('bugReportText').value = ''
+    document.getElementById('bugReportError').classList.add('hidden')
+  })
+
+  document.getElementById('footerChangelogLink').addEventListener('click', (e) => {
+    e.preventDefault()
+    renderChangelog()
+    modalManager.open('changelogModal')
+  })
+
+  document.getElementById('bugReportSend').addEventListener('click', handleBugReport)
+  document.getElementById('bugReportText').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && e.ctrlKey) handleBugReport()
+  })
+
+  document.getElementById('bugReportGithubLink').addEventListener('click', (e) => {
+    e.preventDefault()
+    window.open(`${GITHUB_URL}/issues/new`, '_blank', 'noopener')
+  })
 
   document.getElementById('searchInput').addEventListener('input', (e) => {
     currentSearch = e.target.value.trim().toLowerCase().slice(0, 200)
     const clearBtn = document.getElementById('searchClear')
-    clearBtn.classList.toggle('hidden', !!currentSearch)
-
-    if (searchTimeout) clearTimeout(searchTimeout)
-
     if (currentSearch) {
-      document.querySelector('.filter-chips').classList.add('hidden')
+      clearBtn.classList.remove('hidden')
     } else {
-      document.querySelector('.filter-chips').classList.remove('hidden')
+      clearBtn.classList.add('hidden')
     }
 
     if (currentSearch) {
@@ -230,14 +326,15 @@ function bindUIEvents() {
     currentSearch = ''
     currentSearchResults = null
     document.getElementById('searchClear').classList.add('hidden')
-    document.querySelector('.filter-chips').classList.remove('hidden')
     renderHome()
   })
 
-  document.querySelectorAll('.filter-chip').forEach(chip => {
-    chip.addEventListener('click', () => {
-      document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'))
+  document.querySelectorAll('.nav-link[data-filter]').forEach(chip => {
+    chip.addEventListener('click', (e) => {
+      e.preventDefault()
+      document.querySelectorAll('.nav-link[data-filter]').forEach(c => c.classList.remove('active'))
       chip.classList.add('active')
+      document.querySelector('.nav-link[data-view="home"]').classList.remove('active')
       currentFilter = chip.dataset.filter
       renderHome()
     })
@@ -257,9 +354,8 @@ function bindUIEvents() {
     currentSearchResults = null
     document.getElementById('searchInput').value = ''
     document.getElementById('searchClear').classList.add('hidden')
-    document.querySelector('.filter-chips').classList.remove('hidden')
-    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'))
-    document.querySelector('.filter-chip[data-filter="all"]').classList.add('active')
+    document.querySelectorAll('.nav-link[data-filter]').forEach(c => c.classList.remove('active'))
+    document.querySelector('.nav-link[data-view="home"]').classList.add('active')
     renderHome()
   })
 
@@ -290,7 +386,8 @@ function listenBroadcasts() {
             onBack: () => {},
             onRefresh: handleRefreshSeries,
             onCompleteToggle: handleSeriesCompleteToggle,
-            onAddSeries
+            onAddSeries,
+            isPro: state.license.isPro
           })
         }
       }
@@ -303,6 +400,7 @@ function render() {
 }
 
 function renderHome() {
+  homePage.setPro(state.license.isPro)
   const main = document.getElementById('mainContent')
   main.innerHTML = ''
 
@@ -357,7 +455,7 @@ function renderHome() {
     const watched = s.videos.filter(v => v.watched).length
     return watched > 0 && watched < s.videos.length
   })
-  const newSeries = filtered.filter(s => s.newEpisodesCount > 0)
+  const newSeries = state.license.isPro ? filtered.filter(s => s.newEpisodesCount > 0) : []
 
   if (!currentSearch && currentFilter === 'all') {
     const heroSeries = buildHeroSeries(seriesArray)
@@ -507,8 +605,9 @@ function onSeriesClick(series) {
     onBack: () => {},
     onRefresh: handleRefreshSeries,
     onCompleteToggle: handleSeriesCompleteToggle,
-    onAddSeries
-  })
+            onAddSeries,
+            isPro: state.license.isPro
+          })
 }
 
 function closeDetail() {
@@ -536,7 +635,8 @@ async function handleWatchEpisode(playlistId, videoId) {
             onBack: () => {},
             onRefresh: handleRefreshSeries,
             onCompleteToggle: handleSeriesCompleteToggle,
-            onAddSeries
+            onAddSeries,
+            isPro: state.license.isPro
           })
         }
       }
@@ -557,7 +657,8 @@ async function handleSeriesCompleteToggle(playlistId) {
         onBack: () => {},
         onRefresh: handleRefreshSeries,
         onCompleteToggle: handleSeriesCompleteToggle,
-        onAddSeries
+        onAddSeries,
+        isPro: state.license.isPro
       })
     }
     render()
@@ -582,7 +683,8 @@ async function handleRefreshSeries(playlistId) {
         onBack: () => {},
         onRefresh: handleRefreshSeries,
         onCompleteToggle: handleSeriesCompleteToggle,
-        onAddSeries
+        onAddSeries,
+        isPro: state.license.isPro
       })
     } else {
       logger.error('Refresh failed:', response)
@@ -648,6 +750,14 @@ async function onFetchChannelPlaylists(channelId) {
   const response = await sendMessage(EVENTS.FETCH_CHANNEL_PLAYLISTS, { channelId })
   if (response.success) return response.playlists
   return []
+}
+
+function handleDevProToggle(e) {
+  if (!state) return
+  state.license.isPro = e.target.checked
+  state.license.key = e.target.checked ? 'DEV_MODE' : ''
+  populateSettingsForm()
+  render()
 }
 
 async function onAddSeries(playlistId) {

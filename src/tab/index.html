@@ -17,6 +17,9 @@
             <svg class="nav-home-icon" viewBox="0 0 24 24" width="18" height="18"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
             <span data-i18n="home">Home</span>
           </a>
+          <a href="#" class="nav-link" data-filter="watching" data-i18n="watching">Watching</a>
+          <a href="#" class="nav-link" data-filter="completed" data-i18n="completed">Completed</a>
+          <a href="#" class="nav-link" data-filter="new" data-i18n="new_episodes">New Episodes</a>
         </nav>
       </div>
       <div class="header-right">
@@ -28,15 +31,6 @@
         <button id="addPlaylistBtn" class="btn-primary">+ Add Series</button>
       </div>
     </header>
-
-      <div id="filterBar" class="filter-bar">
-      <div class="filter-chips">
-        <button class="filter-chip active" data-filter="all">All</button>
-        <button class="filter-chip" data-filter="watching">Watching</button>
-        <button class="filter-chip" data-filter="completed">Completed</button>
-        <button class="filter-chip" data-filter="new">New Episodes</button>
-      </div>
-    </div>
 
     <main id="mainContent">
       <div id="loadingScreen" class="loading-screen">
@@ -116,12 +110,89 @@
         <div class="settings-section" style="border-top:1px solid var(--card-bg);padding-top:16px">
           <button id="resetStorageBtn" class="btn-secondary" style="color:#E50914;width:100%">Reset all data</button>
         </div>
+        <div class="settings-section dev-section" id="devSection" style="display:none">
+          <h3>Dev Mode</h3>
+          <label class="toggle-label">
+            <input type="checkbox" id="devProToggle" />
+            <span class="toggle-slider"></span>
+            <span class="toggle-text">Force Pro (no license check)</span>
+          </label>
+        </div>
+      </div>
+        <div class="settings-section faq-section">
+          <h3 data-i18n="faq_title">Frequently Asked Questions</h3>
+          <div class="faq-list">
+            <div class="faq-item">
+              <button class="faq-question" data-i18n="faq_what_is">What is YT Series?</button>
+              <div class="faq-answer" data-i18n="faq_what_is_a">YT Series transforms YouTube playlists into trackable TV series. Add a playlist and track which episodes you've watched.</div>
+            </div>
+            <div class="faq-item">
+              <button class="faq-question" data-i18n="faq_limits">Are there any limits?</button>
+              <div class="faq-answer" data-i18n="faq_limits_a">The free version supports up to 3 series. Upgrade to Pro (€4.99 one-time) for unlimited series and auto-refresh.</div>
+            </div>
+            <div class="faq-item">
+              <button class="faq-question" data-i18n="faq_data">Where is my data stored?</button>
+              <div class="faq-answer" data-i18n="faq_data_a">All your data is stored locally in your browser using Chrome Storage API. Nothing is sent to our servers.</div>
+            </div>
+            <div class="faq-item">
+              <button class="faq-question" data-i18n="faq_auto">How does auto-refresh work?</button>
+              <div class="faq-answer" data-i18n="faq_auto_a">Pro users can enable auto-refresh to check for new episodes every 24 hours. Changes are notified via the extension badge.</div>
+            </div>
+            <div class="faq-item">
+              <button class="faq-question" data-i18n="faq_license">How do I activate my license?</button>
+              <div class="faq-answer" data-i18n="faq_license_a">After purchase, you'll receive a license key via email. Enter it in Settings → License Key to unlock Pro.</div>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="modal-footer">
         <button class="btn-secondary" data-modal="settingsModal">Close</button>
       </div>
     </div>
   </div>
+
+  <div id="bugReportModal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="bugReportTitle" data-i18n="bug_title">Report a Bug</h2>
+        <button class="modal-close" data-modal="bugReportModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc" id="bugReportDesc" data-i18n="bug_desc">Describe the issue you encountered.</p>
+        <textarea id="bugReportText" rows="6" placeholder="What went wrong? What were you doing?"></textarea>
+        <div id="bugReportError" class="error-msg hidden"></div>
+        <a href="#" id="bugReportGithubLink" data-i18n="bug_also_github">Or report on GitHub</a>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" data-modal="bugReportModal" data-i18n="cancel">Cancel</button>
+        <button id="bugReportSend" class="btn-primary" data-i18n="bug_send">Send Report</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="changelogModal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 data-i18n="changelog_title">What's New</h2>
+        <button class="modal-close" data-modal="changelogModal">&times;</button>
+      </div>
+      <div class="modal-body" id="changelogBody"></div>
+      <div class="modal-footer">
+        <button class="btn-secondary" data-modal="changelogModal" data-i18n="close">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <footer id="footer">
+    <div class="footer-inner">
+      <span class="footer-copyright" data-i18n="footer_copyright">YT Series — Free browser extension</span>
+      <nav class="footer-links">
+        <a href="#" id="footerChangelogLink" data-i18n="footer_changelog">What's New</a>
+        <a href="#" id="footerFaqLink" data-i18n="footer_faq">FAQ</a>
+        <a href="#" id="footerBugLink" data-i18n="footer_bug">Report a bug</a>
+      </nav>
+    </div>
+  </footer>
 
   <script type="module" src="app.js"></script>
 </body>

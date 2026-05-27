@@ -47,18 +47,21 @@ class DetailPage {
     document.body.appendChild(modal)
   }
 
-  async render(series, { onWatch, onBack, onRefresh, onCompleteToggle, onAddSeries }) {
+  async render(series, { onWatch, onBack, onRefresh, onCompleteToggle, onAddSeries, isPro }) {
 
     this.callbacks = { onWatch, onBack, onRefresh, onCompleteToggle, onAddSeries }
+    this.series = series
 
     const body = document.getElementById('detailModalBody')
     body.innerHTML = ''
 
     body.appendChild(this._renderInfo(series))
-    // Sezione "Nuovo episodio" in evidenza
-    const newEp = this._findNewEpisode(series)
-    if (newEp) {
-      body.appendChild(this._renderNewEpisodeHighlight(series, newEp))
+    // Sezione "Nuovo episodio" in evidenza (solo Pro)
+    if (isPro) {
+      const newEp = this._findNewEpisode(series)
+      if (newEp) {
+        body.appendChild(this._renderNewEpisodeHighlight(series, newEp))
+      }
     }
     body.appendChild(this._renderEpisodes(series))
     body.appendChild(this._renderMoreSection(series))
@@ -307,12 +310,8 @@ class DetailPage {
     h3.textContent = t('episodes_title')
     header.appendChild(h3)
 
-    // Bottone segna come visto
-    const markBtn = document.createElement('button')
-    markBtn.className = 'btn-primary'
-    markBtn.textContent = t('mark_as_watched')
-    markBtn.disabled = true
-    header.appendChild(markBtn)
+    const rightGroup = document.createElement('div')
+    rightGroup.className = 'episodes-header-right'
 
     // Select ordinamento
     const sortSelect = document.createElement('select')
@@ -331,7 +330,16 @@ class DetailPage {
       opt.textContent = sortLabels[key]
       sortSelect.appendChild(opt)
     }
-    header.appendChild(sortSelect)
+    rightGroup.appendChild(sortSelect)
+
+    // Bottone segna come visto
+    const markBtn = document.createElement('button')
+    markBtn.className = 'btn-primary'
+    markBtn.textContent = t('mark_as_watched')
+    markBtn.disabled = true
+    rightGroup.appendChild(markBtn)
+
+    header.appendChild(rightGroup)
     section.appendChild(header)
 
     // Stato selezione

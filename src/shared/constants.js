@@ -51,6 +51,8 @@ const PRO_CHECKOUT = {
   URL: 'https://ytseries.lemonsqueezy.com/checkout/buy/e9fee22a-1883-4076-b0db-22e34323b961'
 }
 
+const GITHUB_URL = 'https://github.com/LorenzoPrincigalli/YtSeries'
+
 const EXTENSION_ID = '' // Set after publishing to Chrome Web Store
 
 export {
@@ -62,5 +64,6 @@ export {
   AUTO_REFRESH_INTERVAL_MINUTES,
   YOUTUBE_API_MAX_RESULTS,
   PRO_CHECKOUT,
-  EXTENSION_ID
+  EXTENSION_ID,
+  GITHUB_URL
 }

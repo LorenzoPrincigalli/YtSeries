@@ -30,7 +30,7 @@ chrome.runtime.sendMessage({ type: 'STATE_GET' }, (response) => {
     for (const v of videos) {
       if (!v.watched) unwatched++
     }
-    if (s.newEpisodesCount) newEpisodes += s.newEpisodesCount
+    if (state.license?.isPro && s.newEpisodesCount) newEpisodes += s.newEpisodesCount
   }
 
   document.getElementById('seriesCount').textContent = seriesList.length
