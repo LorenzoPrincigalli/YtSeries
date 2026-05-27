@@ -48,7 +48,7 @@ const AUTO_REFRESH_INTERVAL_MINUTES = 1440
 const YOUTUBE_API_MAX_RESULTS = 50
 
 const PRO_CHECKOUT = {
-  URL: '' // Set your Lemon Squeezy checkout URL here
+  URL: 'https://ytseries.lemonsqueezy.com/checkout/buy/e9fee22a-1883-4076-b0db-22e34323b961'
 }
 
 export {

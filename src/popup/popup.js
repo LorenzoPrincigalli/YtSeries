@@ -1,4 +1,4 @@
-const CHECKOUT_URL = '' // Set your Lemon Squeezy checkout URL
+const CHECKOUT_URL = 'https://ytseries.lemonsqueezy.com/checkout/buy/e9fee22a-1883-4076-b0db-22e34323b961'
 
 document.getElementById('openDashboard').addEventListener('click', () => {
   chrome.runtime.sendMessage({ type: 'OPEN_SERIES_TAB' })
