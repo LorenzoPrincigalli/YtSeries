@@ -59,94 +59,99 @@
   </div>
 
   <div id="settingsModal" class="modal-overlay hidden">
-    <div class="modal">
+    <div class="modal settings-modal">
       <div class="modal-header">
         <h2 id="settingsModalTitle">Settings</h2>
         <button class="modal-close" data-modal="settingsModal">&times;</button>
       </div>
-      <div class="modal-body">
-        <div class="settings-section">
-          <h3 data-i18n="theme">Theme</h3>
-          <div class="select-wrapper">
-            <select id="themeSelect">
-              <option value="classic-red">Classic Red</option>
-              <option value="ocean-blue">Ocean Blue</option>
-              <option value="forest">Forest Green</option>
-            </select>
-          </div>
+      <div class="modal-body settings-layout">
+        <div class="settings-sidebar">
+          <button class="settings-tab active" data-section="theme" data-i18n="theme">Theme</button>
+          <button class="settings-tab" data-section="language" data-i18n="language">Language</button>
+          <button class="settings-tab" data-section="overlay">Next Episode Overlay</button>
+          <button class="settings-tab" data-section="license" data-i18n="license_key">License Key</button>
+          <button class="settings-tab" data-section="sync" data-i18n="sync_title">Cloud Sync</button>
+          <button class="settings-tab" data-section="reset">Reset Data</button>
+          <button class="settings-tab" data-section="dev">Dev Tools</button>
         </div>
-        <div class="settings-section">
-          <h3 data-i18n="language">Language</h3>
-          <div class="select-wrapper">
-            <select id="languageSelect">
-              <option value="system">System</option>
-              <option value="en">English</option>
-              <option value="it">Italiano</option>
-            </select>
-          </div>
-        </div>
-        <div class="settings-section" id="proSettings">
-          <h3 data-i18n="auto_refresh">Auto-Refresh</h3>
-          <label class="toggle-label">
-            <input type="checkbox" id="autoRefreshToggle" />
-            <span class="toggle-slider"></span>
-            <span class="toggle-text">Check for new episodes every 24h</span>
-          </label>
-        </div>
-        <div class="settings-section">
-          <h3><span data-i18n="license_key">License Key</span> <span class="pro-badge" id="licenseBadge">FREE</span></h3>
-          <p class="settings-desc">Unlock unlimited series and auto-refresh.</p>
-          <div class="license-input-group">
-            <input type="text" id="licenseKeyInput" placeholder="Enter license key" />
-            <button id="verifyLicenseBtn" class="btn-primary">Activate</button>
-          </div>
-          <div id="licenseMessage" class="hidden"></div>
-          <div id="buyProSection" class="buy-pro-section">
-            <div class="divider"><span data-i18n="or">or</span></div>
-            <button id="buyProBtn" class="btn-primary buy-pro-btn">Get Pro — €4.99</button>
-            <p class="buy-pro-desc" data-i18n="buy_pro_desc">Unlimited series, auto-refresh, and new episode notifications.</p>
-          </div>
-        </div>
-        <div class="settings-section" style="border-top:1px solid var(--card-bg);padding-top:16px">
-          <button id="resetStorageBtn" class="btn-secondary" style="color:#E50914;width:100%">Reset all data</button>
-        </div>
-        <div class="settings-section dev-section" id="devSection" style="display:none">
-          <h3>Dev Mode</h3>
-          <label class="toggle-label">
-            <input type="checkbox" id="devProToggle" />
-            <span class="toggle-slider"></span>
-            <span class="toggle-text">Force Pro (no license check)</span>
-          </label>
-        </div>
-      </div>
-        <div class="settings-section faq-section">
-          <h3 data-i18n="faq_title">Frequently Asked Questions</h3>
-          <div class="faq-list">
-            <div class="faq-item">
-              <button class="faq-question" data-i18n="faq_what_is">What is YT Series?</button>
-              <div class="faq-answer" data-i18n="faq_what_is_a">YT Series transforms YouTube playlists into trackable TV series. Add a playlist and track which episodes you've watched.</div>
-            </div>
-            <div class="faq-item">
-              <button class="faq-question" data-i18n="faq_limits">Are there any limits?</button>
-              <div class="faq-answer" data-i18n="faq_limits_a">The free version supports up to 3 series. Upgrade to Pro (€4.99 one-time) for unlimited series and auto-refresh.</div>
-            </div>
-            <div class="faq-item">
-              <button class="faq-question" data-i18n="faq_data">Where is my data stored?</button>
-              <div class="faq-answer" data-i18n="faq_data_a">All your data is stored locally in your browser using Chrome Storage API. Nothing is sent to our servers.</div>
-            </div>
-            <div class="faq-item">
-              <button class="faq-question" data-i18n="faq_auto">How does auto-refresh work?</button>
-              <div class="faq-answer" data-i18n="faq_auto_a">Pro users can enable auto-refresh to check for new episodes every 24 hours. Changes are notified via the extension badge.</div>
-            </div>
-            <div class="faq-item">
-              <button class="faq-question" data-i18n="faq_license">How do I activate my license?</button>
-              <div class="faq-answer" data-i18n="faq_license_a">After purchase, you'll receive a license key via email. Enter it in Settings → License Key to unlock Pro.</div>
+        <div class="settings-content">
+          <div class="settings-section-content active" data-section="theme">
+            <h3 data-i18n="theme">Theme</h3>
+            <div class="select-wrapper">
+              <select id="themeSelect">
+                <option value="classic-red">Classic Red</option>
+                <option value="ocean-blue">Ocean Blue</option>
+                <option value="forest">Forest Green</option>
+              </select>
             </div>
           </div>
+          <div class="settings-section-content" data-section="language">
+            <h3 data-i18n="language">Language</h3>
+            <div class="select-wrapper">
+              <select id="languageSelect">
+                <option value="system">System</option>
+                <option value="en">English</option>
+                <option value="it">Italiano</option>
+              </select>
+            </div>
+          </div>
+          <div class="settings-section-content" data-section="overlay">
+            <h3>Next Episode Overlay</h3>
+            <p class="settings-desc">Show "Watch Next" button on YouTube when episode is ending</p>
+            <label class="toggle-label">
+              <input type="checkbox" id="nextEpisodeOverlayToggle" />
+              <span class="toggle-slider"></span>
+              <span class="toggle-text">Enable overlay</span>
+            </label>
+          </div>
+          <div class="settings-section-content" data-section="license">
+            <h3><span data-i18n="license_key">License Key</span> <span class="pro-badge" id="licenseBadge">FREE</span></h3>
+            <div class="license-input-group">
+              <input type="text" id="licenseKeyInput" placeholder="Enter license key" />
+              <button id="verifyLicenseBtn" class="btn-primary">Activate</button>
+            </div>
+            <div id="licenseMessage" class="hidden"></div>
+            <div id="buyProSection" class="buy-pro-section">
+              <div class="divider"><span data-i18n="or">or</span></div>
+              <button id="buyProBtn" class="btn-primary buy-pro-btn">Get Pro — €4.99</button>
+              <p class="buy-pro-desc" data-i18n="buy_pro_desc">Unlimited series, auto-refresh, and new episode notifications.</p>
+            </div>
+            <div id="proSettings" style="margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border);">
+              <h3 data-i18n="auto_refresh">Auto-Refresh</h3>
+              <p class="settings-desc">Check for new episodes every 24h (Pro feature)</p>
+              <label class="toggle-label">
+                <input type="checkbox" id="autoRefreshToggle" />
+                <span class="toggle-slider"></span>
+                <span class="toggle-text">Enable auto-refresh</span>
+              </label>
+            </div>
+          </div>
+          <div class="settings-section-content" data-section="sync" id="cloudSyncSection">
+            <h3 data-i18n="sync_title">Cloud Sync</h3>
+            <p class="settings-desc" id="syncDesc" data-i18n="sync_desc">Sync your series progress across devices with your Google account.</p>
+            <p class="sync-status-text" id="syncStatusText"></p>
+            <div class="sync-actions">
+              <button type="button" id="syncLoginBtn" class="btn-primary" data-i18n="sync_login">Sign in with Google</button>
+              <button type="button" id="syncLogoutBtn" class="btn-secondary hidden" data-i18n="sync_logout">Sign out</button>
+              <button type="button" id="syncNowBtn" class="btn-secondary hidden" data-i18n="sync_now">Sync now</button>
+            </div>
+            <p id="syncMessage" class="hidden"></p>
+          </div>
+          <div class="settings-section-content" data-section="reset">
+            <h3>Reset Data</h3>
+            <p class="settings-desc">Clear all your series and settings data.</p>
+            <button id="resetStorageBtn" class="btn-secondary" style="color:#E50914;width:100%">Reset all data</button>
+          </div>
+          <div class="settings-section-content" data-section="dev">
+            <h3>Dev Tools</h3>
+            <p class="settings-desc">Toggle Pro mode for testing without a license</p>
+            <label class="toggle-label">
+              <input type="checkbox" id="devProToggle" />
+              <span class="toggle-slider"></span>
+              <span class="toggle-text">Test Pro Mode</span>
+            </label>
+          </div>
         </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-secondary" data-modal="settingsModal">Close</button>
       </div>
     </div>
   </div>
@@ -179,6 +184,42 @@
       <div class="modal-body" id="changelogBody"></div>
       <div class="modal-footer">
         <button class="btn-secondary" data-modal="changelogModal" data-i18n="close">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="faqModal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 data-i18n="faq_title">Frequently Asked Questions</h2>
+        <button class="modal-close" data-modal="faqModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="faq-list">
+          <div class="faq-item">
+            <button class="faq-question" data-i18n="faq_what_is">What is YT Series?</button>
+            <div class="faq-answer" data-i18n="faq_what_is_a">YT Series transforms YouTube playlists into trackable TV series. Add a playlist and track which episodes you've watched.</div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-question" data-i18n="faq_limits">Are there any limits?</button>
+            <div class="faq-answer" data-i18n="faq_limits_a">The free version supports up to 3 series. Upgrade to Pro (€4.99 one-time) for unlimited series and auto-refresh.</div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-question" data-i18n="faq_data">Where is my data stored?</button>
+            <div class="faq-answer" data-i18n="faq_data_a">All your data is stored locally in your browser using Chrome Storage API. Nothing is sent to our servers.</div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-question" data-i18n="faq_auto">How does auto-refresh work?</button>
+            <div class="faq-answer" data-i18n="faq_auto_a">Pro users can enable auto-refresh to check for new episodes every 24 hours. Changes are notified via the extension badge.</div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-question" data-i18n="faq_license">How do I activate my license?</button>
+            <div class="faq-answer" data-i18n="faq_license_a">After purchase, you'll receive a license key via email. Enter it in Settings → License Key to unlock Pro.</div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" data-modal="faqModal" data-i18n="close">Close</button>
       </div>
     </div>
   </div>

@@ -177,7 +177,7 @@ function setupVideoEndDetection(videoId, playlistId) {
                 }
               }, 3000) // 3 secondi di debouncing
             }
-          } catch (_) {}
+          } catch (err) { console.error('[YT Series] progress error:', err) }
         }, 5000) // check ogni 5 secondi
 
         const onEnded = () => {
@@ -542,10 +542,10 @@ function injectSidebarLink() {
 
 function injectAddToSeriesButton() {
   if (addSeriesButtonInjected) return
-  if (document.querySelector('#yt-series-add-btn')) {
-    addSeriesButtonInjected = true
-    return
-  }
+
+  // Remove any existing buttons first
+  const existingButtons = document.querySelectorAll('#yt-series-add-btn')
+  existingButtons.forEach(btn => btn.remove())
 
   const url = new URL(window.location.href)
   const playlistId = url.searchParams.get('list')
@@ -567,59 +567,73 @@ function injectAddToSeriesButton() {
   const lang = (navigator.language || 'en').split('-')[0]
   const t = TRANSLATIONS[lang] || TRANSLATIONS.en
 
-  const button = document.createElement('button')
-  button.id = 'yt-series-add-btn'
-  button.style.cssText = `
-    background: #f1f1f1;
-    color: #0f0f0f;
-    border: none;
-    border-radius: 18px;
-    padding: 0 16px;
-    height: 36px;
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin: 8px 0;
-    white-space: nowrap;
-    flex-shrink: 0;
-  `
-  button.setAttribute('aria-label', 'Aggiungi a TvSeries')
-  button.innerHTML = `
-    <span>Aggiungi a TvSeries</span>
-  `
+  // Check if playlist is already added
+  safeSendMessage({
+    type: EVENTS.PLAYLIST_EXISTS,
+    payload: { playlistId }
+  }, (existsResponse) => {
+    const isAdded = existsResponse && existsResponse.success && existsResponse.exists
+    console.log('[YT Series] Playlist exists check:', playlistId, isAdded, existsResponse)
 
-  button.addEventListener('click', () => {
-    const playlistUrl = window.location.href
-    safeSendMessage({
-      type: EVENTS.PLAYLIST_ADD,
-      payload: { url: playlistUrl }
-    }, (addResponse) => {
-      if (addResponse && addResponse.success) {
-        button.innerHTML = `
-          <span>Vedi su YT Series</span>
-        `
-        button.disabled = true
-        button.style.background = '#e8e8e8'
-        setTimeout(() => {
-          button.innerHTML = `
-            <span>Aggiungi a TvSeries</span>
-          `
-          button.disabled = false
-          button.style.background = '#f1f1f1'
-        }, 3000)
-      } else if (addResponse && addResponse.error === 'LIMIT_REACHED') {
-        alert('Hai raggiunto il limite di serie gratuite. Passa a Pro per serie illimitate.')
-      } else if (addResponse && addResponse.error) {
-        console.error('[YT Series] Error adding playlist:', addResponse.error)
+    const button = document.createElement('button')
+    button.id = 'yt-series-add-btn'
+    button.style.cssText = `
+      background: #f1f1f1;
+      color: #0f0f0f;
+      border: none;
+      border-radius: 18px;
+      padding: 0 16px;
+      height: 36px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 8px 0;
+      white-space: nowrap;
+      flex-shrink: 0;
+    `
+    button.setAttribute('aria-label', isAdded ? 'Vedi su YT Series' : 'Aggiungi a TvSeries')
+    button.innerHTML = `
+      <span>${isAdded ? 'Vedi su YT Series' : 'Aggiungi a TvSeries'}</span>
+    `
+
+    button.addEventListener('click', () => {
+      if (isAdded) {
+        // Open the series tab
+        safeSendMessage({ type: EVENTS.OPEN_SERIES_TAB })
+      } else {
+        const playlistUrl = window.location.href
+        safeSendMessage({
+          type: EVENTS.PLAYLIST_ADD,
+          payload: { url: playlistUrl }
+        }, (addResponse) => {
+          if (addResponse && addResponse.success) {
+            button.innerHTML = `
+              <span>Vedi su YT Series</span>
+            `
+            button.disabled = true
+            button.style.background = '#e8e8e8'
+            setTimeout(() => {
+              button.innerHTML = `
+                <span>Aggiungi a TvSeries</span>
+              `
+              button.disabled = false
+              button.style.background = '#f1f1f1'
+            }, 3000)
+          } else if (addResponse && addResponse.error === 'LIMIT_REACHED') {
+            alert('Hai raggiunto il limite di serie gratuite. Passa a Pro per serie illimitate.')
+          } else if (addResponse && addResponse.error) {
+            console.error('[YT Series] Error adding playlist:', addResponse.error)
+          }
+        })
       }
     })
-  })
 
-  targetContainer.appendChild(button)
-  addSeriesButtonInjected = true
+    targetContainer.appendChild(button)
+    addSeriesButtonInjected = true
+  })
 }
 
 let observer = null

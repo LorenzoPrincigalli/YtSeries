@@ -8,6 +8,7 @@ import { DetailPage } from './components/detail.js'
 import { ModalManager } from './components/modal.js'
 
 let state = null
+let syncStatus = null
 let currentFilter = 'all'
 let currentSearch = ''
 let currentSearchResults = null
@@ -19,19 +20,18 @@ const detailPage = new DetailPage()
 const modalManager = new ModalManager()
 
 document.addEventListener('DOMContentLoaded', async () => {
-  translateUI()
   bindUIEvents()
   listenBroadcasts()
   await loadState()
   applyTheme()
   initIconTheme()
-  document.documentElement.lang = (state?.settings?.language && state.settings.language !== 'system')
-    ? state.settings.language : navigator.language.split('-')[0] || 'en'
-  if (new URLSearchParams(window.location.search).has('dev')) {
-    document.getElementById('devSection').style.display = 'block'
-  }
-})
-
+    // Aggiorna stato/UI quando la scheda torna in focus
+    document.addEventListener('visibilitychange', async () => {
+      if (!document.hidden) {
+        await loadState()
+      }
+    })
+  })
 window.addEventListener('yt-series-add', async (e) => {
   const { playlistId } = e.detail
   if (!playlistId) return
@@ -41,6 +41,8 @@ window.addEventListener('yt-series-add', async (e) => {
   if (response.success && response.series && state) {
     state.series[response.series.playlistId] = response.series
     render()
+  } else if (response?.error === 'LIMIT_REACHED') {
+    showErrorToast(t('limit_reached'))
   }
 })
 
@@ -60,9 +62,10 @@ async function loadState() {
     const response = await sendMessage(EVENTS.STATE_GET)
     if (response.success) {
       state = response.state
-      if (state.settings.language && state.settings.language !== 'system') {
-        setLanguage(state.settings.language)
-      }
+      syncStatus = response.syncStatus || null
+      applyLanguageFromSettings()
+      translateUI()
+      populateSyncUI()
       render()
     }
   } catch (err) {
@@ -71,6 +74,19 @@ async function loadState() {
   }
 
   showLoading(false)
+}
+
+function applyLanguageFromSettings() {
+  if (!state?.settings) return
+  const lang = state.settings.language || 'system'
+  if (lang !== 'system') {
+    setLanguage(lang)
+  } else {
+    setLanguage(null)
+  }
+  document.documentElement.lang = lang !== 'system'
+    ? lang
+    : (navigator.language.split('-')[0] || 'en')
 }
 
 function translateUI() {
@@ -107,8 +123,17 @@ function translateUI() {
 
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.dataset.i18n
-    if (key) el.textContent = t(key)
+    if (!key) return
+    const attr = el.dataset.i18nAttr
+    if (attr) {
+      el.setAttribute(attr, t(key))
+    } else {
+      el.textContent = t(key)
+    }
   })
+
+  const settingsBtn = document.getElementById('settingsBtn')
+  if (settingsBtn) settingsBtn.title = t('settings')
 
   document.querySelectorAll('#themeSelect option').forEach(opt => {
     const key = `theme_${opt.value.replace(/-/g, '_')}`
@@ -143,11 +168,12 @@ function initIconTheme() {
 
 function setToolbarIcon(isDark) {
   const suffix = isDark ? '' : '_light'
-  sendMessage(EVENTS.SET_ICON_THEME, { suffix })
+  sendMessage(EVENTS.SET_ICON_THEME, { suffix }).catch(() => {})
 }
 
 function sendMessage(type, payload = {}) {
   return new Promise((resolve) => {
+    if (!chrome.runtime?.sendMessage) return resolve({ success: false, error: 'NO_RUNTIME' })
     chrome.runtime.sendMessage({ type, payload }, (response) => {
       if (chrome.runtime.lastError) {
         resolve({ success: false, error: 'RUNTIME_ERROR', message: chrome.runtime.lastError.message })
@@ -163,6 +189,21 @@ async function handleAutoRefreshChange(e) {
   const autoRefresh = e.target.checked
   state.settings.autoRefresh = autoRefresh
   await sendMessage(EVENTS.SETTINGS_UPDATE, { autoRefresh })
+}
+
+async function handleNextEpisodeOverlayChange(e) {
+  if (!state) return
+  const nextEpisodeOverlay = e.target.checked
+  state.settings.nextEpisodeOverlay = nextEpisodeOverlay
+  await sendMessage(EVENTS.SETTINGS_UPDATE, { nextEpisodeOverlay })
+}
+
+async function handleDevProToggle(e) {
+  if (!state) return
+  const isPro = e.target.checked
+  state.license.isPro = isPro
+  await sendMessage(EVENTS.SETTINGS_UPDATE, { isPro })
+  populateSettingsForm()
 }
 
 async function handleResetStorage() {
@@ -243,6 +284,34 @@ function bindUIEvents() {
   document.getElementById('settingsBtn').addEventListener('click', () => {
     modalManager.open('settingsModal')
     populateSettingsForm()
+
+    // Initialize tabs - ensure only theme section is active
+    document.querySelectorAll('.settings-section-content').forEach(s => s.classList.remove('active'))
+    document.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'))
+    const themeTab = document.querySelector('.settings-tab[data-section="theme"]')
+    const themeSection = document.querySelector('.settings-section-content[data-section="theme"]')
+    if (themeTab) themeTab.classList.add('active')
+    if (themeSection) themeSection.classList.add('active')
+  })
+
+  // Settings tabs handling
+  document.querySelectorAll('.settings-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const section = tab.dataset.section
+
+      // Remove active class from all tabs
+      document.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'))
+      // Add active class to clicked tab
+      tab.classList.add('active')
+
+      // Hide all sections
+      document.querySelectorAll('.settings-section-content').forEach(s => s.classList.remove('active'))
+      // Show selected section
+      const targetSection = document.querySelector(`.settings-section-content[data-section="${section}"]`)
+      if (targetSection) {
+        targetSection.classList.add('active')
+      }
+    })
   })
 
   document.getElementById('addPlaylistConfirm').addEventListener('click', handleAddPlaylist)
@@ -261,9 +330,13 @@ function bindUIEvents() {
 
   document.getElementById('themeSelect').addEventListener('change', handleThemeChange)
   document.getElementById('languageSelect').addEventListener('change', handleLanguageChange)
+  document.getElementById('nextEpisodeOverlayToggle').addEventListener('change', handleNextEpisodeOverlayChange)
   document.getElementById('autoRefreshToggle').addEventListener('change', handleAutoRefreshChange)
-  document.getElementById('resetStorageBtn').addEventListener('click', handleResetStorage)
   document.getElementById('devProToggle').addEventListener('change', handleDevProToggle)
+  document.getElementById('resetStorageBtn').addEventListener('click', handleResetStorage)
+  document.getElementById('syncLoginBtn')?.addEventListener('click', handleSyncLogin)
+  document.getElementById('syncLogoutBtn')?.addEventListener('click', handleSyncLogout)
+  document.getElementById('syncNowBtn')?.addEventListener('click', handleSyncNow)
 
   document.querySelectorAll('.faq-question').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -273,8 +346,7 @@ function bindUIEvents() {
 
   document.getElementById('footerFaqLink').addEventListener('click', (e) => {
     e.preventDefault()
-    modalManager.open('settingsModal')
-    populateSettingsForm()
+    modalManager.open('faqModal')
   })
 
   document.getElementById('footerBugLink').addEventListener('click', (e) => {
@@ -377,22 +449,30 @@ function listenBroadcasts() {
     if (!sender || sender.id !== chrome.runtime.id) return
     if (message.type === EVENTS.STATE_UPDATED && message.state) {
       state = message.state
+      if (message.syncStatus) syncStatus = message.syncStatus
+      applyLanguageFromSettings()
+      translateUI()
+      populateSyncUI()
       render()
       if (detailPage.series) {
         const updated = state.series[detailPage.series.playlistId]
         if (updated) {
-          detailPage.render(updated, {
-            onWatch: handleWatchEpisode,
-            onBack: () => {},
-            onRefresh: handleRefreshSeries,
-            onCompleteToggle: handleSeriesCompleteToggle,
-            onAddSeries,
-            isPro: state.license.isPro
-          })
+          detailPage.render(updated, _detailCallbacks())
         }
       }
     }
   })
+}
+
+function _detailCallbacks() {
+  return {
+    onWatch: handleWatchEpisode,
+    onBack: () => {},
+    onRefresh: handleRefreshSeries,
+    onCompleteToggle: handleSeriesCompleteToggle,
+    onAddSeries,
+    isPro: state.license.isPro
+  }
 }
 
 function render() {
@@ -600,18 +680,7 @@ function buildHeroSeries(allSeries) {
 }
 
 function onSeriesClick(series) {
-  detailPage.render(series, {
-    onWatch: handleWatchEpisode,
-    onBack: () => {},
-    onRefresh: handleRefreshSeries,
-    onCompleteToggle: handleSeriesCompleteToggle,
-            onAddSeries,
-            isPro: state.license.isPro
-          })
-}
-
-function closeDetail() {
-  detailPage.close()
+  detailPage.render(series, _detailCallbacks())
 }
 
 function onContinueWatching(series) {
@@ -630,16 +699,11 @@ async function handleWatchEpisode(playlistId, videoId) {
       if (detailPage.series && detailPage.series.playlistId === playlistId) {
         const updated = state.series[playlistId]
         if (updated) {
-          detailPage.render(updated, {
-            onWatch: handleWatchEpisode,
-            onBack: () => {},
-            onRefresh: handleRefreshSeries,
-            onCompleteToggle: handleSeriesCompleteToggle,
-            onAddSeries,
-            isPro: state.license.isPro
-          })
+          detailPage.render(updated, _detailCallbacks())
         }
       }
+    } else if (!response.success && response.message) {
+      showErrorToast(response.message)
     }
   } catch (err) {
     logger.error('Failed to mark episode watched:', err)
@@ -652,14 +716,7 @@ async function handleSeriesCompleteToggle(playlistId) {
     state = response.state
     const series = state.series[playlistId]
     if (series) {
-      detailPage.render(series, {
-        onWatch: handleWatchEpisode,
-        onBack: () => {},
-        onRefresh: handleRefreshSeries,
-        onCompleteToggle: handleSeriesCompleteToggle,
-        onAddSeries,
-        isPro: state.license.isPro
-      })
+      detailPage.render(series, _detailCallbacks())
     }
     render()
   }
@@ -678,14 +735,7 @@ async function handleRefreshSeries(playlistId) {
     if (response.success && state && response.series) {
       state.series[playlistId] = response.series
       const series = state.series[playlistId]
-      detailPage.render(series, {
-        onWatch: handleWatchEpisode,
-        onBack: () => {},
-        onRefresh: handleRefreshSeries,
-        onCompleteToggle: handleSeriesCompleteToggle,
-        onAddSeries,
-        isPro: state.license.isPro
-      })
+      detailPage.render(series, _detailCallbacks())
     } else {
       logger.error('Refresh failed:', response)
       showErrorToast(response?.message || t('refresh_failed'))
@@ -752,38 +802,29 @@ async function onFetchChannelPlaylists(channelId) {
   return []
 }
 
-function handleDevProToggle(e) {
-  if (!state) return
-  state.license.isPro = e.target.checked
-  state.license.key = e.target.checked ? 'DEV_MODE' : ''
-  populateSettingsForm()
-  render()
-}
-
-async function onAddSeries(playlistId) {
+async function _addPlaylistById(playlistId, { clearSearch = false } = {}) {
   const url = `https://www.youtube.com/playlist?list=${playlistId}`
   const response = await sendMessage(EVENTS.PLAYLIST_ADD, { url })
   if (response.success && response.series && state) {
     state.series[response.series.playlistId] = response.series
+    if (clearSearch) {
+      currentSearchResults = null
+      document.getElementById('searchInput').value = ''
+      currentSearch = ''
+      document.getElementById('searchClear').classList.add('hidden')
+    }
     render()
   } else {
     showErrorToast(response?.message || t('add_failed'))
   }
 }
 
+async function onAddSeries(playlistId) {
+  return _addPlaylistById(playlistId)
+}
+
 async function onSearchAddPlaylist(playlist) {
-  const url = `https://www.youtube.com/playlist?list=${playlist.playlistId}`
-  const response = await sendMessage(EVENTS.PLAYLIST_ADD, { url })
-  if (response.success && response.series && state) {
-    state.series[response.series.playlistId] = response.series
-    currentSearchResults = null
-    document.getElementById('searchInput').value = ''
-    currentSearch = ''
-    document.getElementById('searchClear').classList.add('hidden')
-    render()
-  } else {
-    showErrorToast(response?.message || t('add_failed'))
-  }
+  return _addPlaylistById(playlist.playlistId, { clearSearch: true })
 }
 
 async function handleAddPlaylist() {
@@ -881,7 +922,9 @@ function populateSettingsForm() {
   if (state.settings) {
     document.getElementById('themeSelect').value = state.settings.theme || 'classic-red'
     document.getElementById('languageSelect').value = state.settings.language || 'system'
+    document.getElementById('nextEpisodeOverlayToggle').checked = state.settings.nextEpisodeOverlay !== false
     document.getElementById('autoRefreshToggle').checked = state.settings.autoRefresh || false
+    document.getElementById('devProToggle').checked = state.license.isPro || false
   }
 
   const proSettings = document.getElementById('proSettings')
@@ -893,6 +936,127 @@ function populateSettingsForm() {
   }
   document.getElementById('licenseKeyInput').disabled = false
   document.getElementById('verifyLicenseBtn').disabled = false
+
+  populateSyncUI()
+}
+
+function formatSyncTime(ts) {
+  if (!ts) return '—'
+  try {
+    return new Date(ts).toLocaleString()
+  } catch (_) {
+    return '—'
+  }
+}
+
+function populateSyncUI() {
+  const section = document.getElementById('cloudSyncSection')
+  const statusEl = document.getElementById('syncStatusText')
+  const loginBtn = document.getElementById('syncLoginBtn')
+  const logoutBtn = document.getElementById('syncLogoutBtn')
+  const nowBtn = document.getElementById('syncNowBtn')
+  const msgEl = document.getElementById('syncMessage')
+  if (!section || !statusEl) return
+
+  const s = syncStatus || {}
+  if (!s.configured) {
+    section.style.display = 'none'
+    return
+  }
+  section.style.display = 'block'
+
+  if (msgEl) msgEl.classList.add('hidden')
+
+  if (s.loggedIn) {
+    if (loginBtn) {
+      loginBtn.classList.add('hidden')
+      loginBtn.hidden = true
+    }
+    if (logoutBtn) {
+      logoutBtn.classList.remove('hidden')
+      logoutBtn.hidden = false
+    }
+    if (nowBtn) {
+      nowBtn.classList.remove('hidden')
+      nowBtn.hidden = false
+    }
+    let statusLine = s.email ? t('sync_signed_in_as', { email: s.email }) : t('sync_status_ok')
+    if (s.syncing) statusLine = t('sync_status_syncing')
+    else if (s.lastError) statusLine = `${t('sync_status_error')}: ${s.lastError}`
+    else if (!navigator.onLine) statusLine = t('sync_status_offline')
+    if (s.lastSyncAt) {
+      statusLine += ` · ${t('sync_last_sync', { time: formatSyncTime(s.lastSyncAt) })}`
+    }
+    statusEl.textContent = statusLine
+  } else {
+    if (loginBtn) {
+      loginBtn.classList.remove('hidden')
+      loginBtn.hidden = false
+    }
+    if (logoutBtn) {
+      logoutBtn.classList.add('hidden')
+      logoutBtn.hidden = true
+    }
+    if (nowBtn) {
+      nowBtn.classList.add('hidden')
+      nowBtn.hidden = true
+    }
+    statusEl.textContent = t('sync_status_logged_out')
+  }
+
+  const busy = !!s.syncing
+  if (loginBtn) loginBtn.disabled = busy
+  if (logoutBtn) logoutBtn.disabled = busy
+  if (nowBtn) nowBtn.disabled = busy
+}
+
+async function handleSyncLogin() {
+  const loginBtn = document.getElementById('syncLoginBtn')
+  if (loginBtn) loginBtn.disabled = true
+  try {
+    const response = await sendMessage(EVENTS.SYNC_LOGIN)
+    if (response.syncStatus) syncStatus = response.syncStatus
+    if (response.success) {
+      await loadState()
+      populateSyncUI()
+    } else {
+      const msgEl = document.getElementById('syncMessage')
+      if (msgEl) {
+        msgEl.textContent = response.message || t('sync_login_failed')
+        msgEl.style.color = 'var(--primary)'
+        msgEl.classList.remove('hidden')
+      }
+    }
+  } finally {
+    populateSyncUI()
+  }
+}
+
+async function handleSyncLogout() {
+  const response = await sendMessage(EVENTS.SYNC_LOGOUT)
+  if (response.syncStatus) syncStatus = response.syncStatus
+  populateSyncUI()
+}
+
+async function handleSyncNow() {
+  const nowBtn = document.getElementById('syncNowBtn')
+  if (nowBtn) nowBtn.disabled = true
+  try {
+    const response = await sendMessage(EVENTS.SYNC_NOW)
+    if (response.syncStatus) syncStatus = response.syncStatus
+    if (response.success) {
+      await loadState()
+    } else {
+      const msgEl = document.getElementById('syncMessage')
+      if (msgEl) {
+        msgEl.textContent = response.message || t('sync_status_error')
+        msgEl.style.color = 'var(--primary)'
+        msgEl.classList.remove('hidden')
+      }
+    }
+  } finally {
+    populateSyncUI()
+  }
 }
 
 async function handleThemeChange(e) {
@@ -907,14 +1071,11 @@ async function handleLanguageChange(e) {
   if (!state) return
   const lang = e.target.value
   state.settings.language = lang
-  if (lang && lang !== 'system') {
-    setLanguage(lang)
-  } else {
-    setLanguage(null)
-  }
+  applyLanguageFromSettings()
   await sendMessage(EVENTS.SETTINGS_UPDATE, { language: lang })
-  render()
   translateUI()
+  populateSyncUI()
+  render()
 }
 
 function applyTheme() {

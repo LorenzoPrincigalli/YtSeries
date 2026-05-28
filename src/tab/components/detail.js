@@ -416,9 +416,6 @@ class DetailPage {
     card.appendChild(checkbox)
 
     card.addEventListener('click', () => {
-      if (!video.watched) {
-        this.callbacks.onWatch(series.playlistId, video.id)
-      }
       window.open(`https://www.youtube.com/watch?v=${video.id}&list=${series.playlistId}`, '_blank', 'noopener')
     })
 
@@ -429,6 +426,17 @@ class DetailPage {
     img.loading = 'lazy'
     img.onerror = function () { this.src = '' }
     card.appendChild(img)
+
+    // Progress bar overlay (Netflix-style)
+    if (video.progress > 0 && !video.watched) {
+      const progressOverlay = document.createElement('div')
+      progressOverlay.className = 'episode-progress-overlay'
+      const progressBar = document.createElement('div')
+      progressBar.className = 'episode-progress-bar'
+      progressBar.style.width = `${video.progress}%`
+      progressOverlay.appendChild(progressBar)
+      card.appendChild(progressOverlay)
+    }
 
     const info = document.createElement('div')
     info.className = 'episode-info'
@@ -472,7 +480,8 @@ class DetailPage {
 
     const status = document.createElement('span')
     status.className = `episode-status ${video.watched ? 'episode-status-watched' : 'episode-status-unwatched'}`
-    status.textContent = video.watched ? `\u2713 ${t('watched')}` : `\u25CF ${t('unwatched')}`
+    status.textContent = video.watched ? '\u2713' : '\u25CF'
+    status.title = video.watched ? t('watched') : t('unwatched')
     info.appendChild(status)
 
     card.appendChild(info)

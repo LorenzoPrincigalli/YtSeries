@@ -273,16 +273,16 @@ class Store {
     const video = series.videos.find(v => v.id === videoId)
     if (!video) return
 
-    video.progress = progress
+    const previousResumeTime = video.resumeTime || 0
     video.resumeTime = currentTime
+    video.progress = progress
     video.lastWatchedAt = Date.now()
 
     // Calculate total watched time using delta from previous resumeTime
     if (currentTime > 0 && duration > 0) {
-      const previousResumeTime = video.resumeTime || 0
       const delta = Math.max(0, currentTime - previousResumeTime)
       // Only add delta if it's reasonable (user actually watched, not skipped)
-      if (delta > 0 && delta < 30) { // Max 30 seconds per update to prevent skipping issues
+      if (delta > 0 && delta < 30) {
         video.totalWatchedTime = (video.totalWatchedTime || 0) + delta
       }
     }

@@ -309,17 +309,27 @@ notificationService.onClick(async (notificationId) => {
 async function handleMessage(message) {
   switch (message.type) {
     case EVENTS.EPISODE_PROGRESS:
-      if (!message.payload || typeof message.payload.playlistId !== 'string' || !message.payload.playlistId.trim() || typeof message.payload.videoId !== 'string' || !message.payload.videoId.trim()) {
-        return { success: false, error: 'MISSING_PARAMS', message: 'playlistId and videoId are required' }
+      if (!message.payload || typeof message.payload.videoId !== 'string' || !message.payload.videoId.trim()) {
+        return { success: false, error: 'MISSING_PARAMS', message: 'videoId is required' }
       }
+
+      let playlistId = message.payload.playlistId
+      if (!playlistId || typeof playlistId !== 'string' || !playlistId.trim()) {
+        playlistId = store.findPlaylistByVideoId(message.payload.videoId)
+        if (!playlistId) {
+          return { success: false, error: 'VIDEO_NOT_FOUND', message: 'No series contains this video' }
+        }
+      }
+
       store.updateEpisodeProgress(
-        message.payload.playlistId,
+        playlistId,
         message.payload.videoId,
         typeof message.payload.progress === 'number' ? message.payload.progress : 0,
         typeof message.payload.currentTime === 'number' ? message.payload.currentTime : 0,
         typeof message.payload.duration === 'number' ? message.payload.duration : 0
       )
       await store.saveToStorage(storageService)
+      await notifySeriesSync(playlistId)
       broadcastStateUpdate()
       return { success: true }
 
