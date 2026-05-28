@@ -56,6 +56,14 @@ Icons are designed as SVGs in `src/assets/icons/` and rendered to PNG via `npm r
 4. Submit via [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole) ($5 registration fee)
 5. (Optional) Set up Lemon Squeezy product for Pro license keys
 
+## Agent / contributor docs
+
+Structured knowledge for Cursor agents and maintainers:
+
+- **[docs/knowledge/README.md](docs/knowledge/README.md)** — index, reading order, task → file map
+
+Covers architecture, message protocol, data model, Pro licensing, and common pitfalls.
+
 ## License
 
 MIT
