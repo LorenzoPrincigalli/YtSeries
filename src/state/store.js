@@ -2,13 +2,39 @@ import { STORAGE_KEYS, FREE_LIMITS } from '../shared/constants.js'
 import { logger } from '../shared/logger.js'
 
 class Store {
+  static _buildSecret() {
+    const a = [121, 116, 115, 101, 114, 105, 101, 115]
+    const b = [95, 108, 105, 99, 95]
+    const c = [50, 48, 50, 52]
+    const d = [95, 120, 75, 57, 109, 80, 50, 118, 76]
+    return [...a, ...b, ...c, ...d].map(c => String.fromCharCode(c)).join('')
+  }
+
+  static _djb2(str) {
+    let hash = 5381
+    for (let i = 0; i < str.length; i++) {
+      hash = ((hash << 5) + hash + str.charCodeAt(i)) & 0xFFFFFFFF
+    }
+    return hash.toString(36)
+  }
+
+  static _computeLicenseChecksum(license) {
+    const payload = JSON.stringify({ key: license.key, isPro: license.isPro })
+    const secret = this._buildSecret()
+    let xor = 0
+    for (let i = 0; i < payload.length; i++) {
+      xor ^= payload.charCodeAt(i) ^ secret.charCodeAt(i % secret.length)
+    }
+    return this._djb2(payload + xor.toString(36))
+  }
   constructor() {
     this._state = {
       series: {},
       settings: {
         theme: 'classic-red',
         autoRefresh: false,
-        lastRefreshCheck: 0
+        lastRefreshCheck: 0,
+        nextEpisodeOverlay: true
       },
       license: {
         key: null,
@@ -41,6 +67,11 @@ class Store {
     return { ...s, videos: [...s.videos] }
   }
 
+  /** Mutable reference for sync merge (do not expose to UI). */
+  _getSeriesMutable(playlistId) {
+    return this._state.series[playlistId] || null
+  }
+
   getSettings() {
     return { ...this._state.settings }
   }
@@ -50,7 +81,11 @@ class Store {
   }
 
   isPro() {
-    return this._state.license.isPro
+    const lic = this._state.license
+    if (!lic || !lic.isPro || !lic.key) return false
+    const verifiedAt = lic.verifiedAt || 0
+    if (Date.now() - verifiedAt > 86400000) return false
+    return true
   }
 
   canAddSeries() {
@@ -65,7 +100,20 @@ class Store {
         this._state.settings = { ...this._state.settings, ...syncData[STORAGE_KEYS.SETTINGS] }
       }
       if (syncData[STORAGE_KEYS.LICENSE]) {
-        this._state.license = { ...this._state.license, ...syncData[STORAGE_KEYS.LICENSE] }
+        const stored = syncData[STORAGE_KEYS.LICENSE]
+        const expectedChecksum = Store._computeLicenseChecksum(stored)
+        if (stored._checksum && stored._checksum !== expectedChecksum) {
+          logger.warn('Store.loadFromStorage: license checksum mismatch — TAMPER DETECTED. Resetting to free.')
+          try {
+            const data = await chrome.storage.local.get('_tamperCount')
+            const count = (data._tamperCount || 0) + 1
+            await chrome.storage.local.set({ _tamperCount: count, _lastTamper: Date.now() })
+            logger.warn(`Store.loadFromStorage: tamper attempt #${count} recorded`)
+          } catch (_) {}
+          this._state.license = { key: null, isPro: false, verifiedAt: null }
+        } else {
+          this._state.license = { ...this._state.license, key: stored.key, isPro: stored.isPro, verifiedAt: stored.verifiedAt }
+        }
       }
     } catch (err) {
       logger.error('Store.loadFromStorage: sync read failed:', err)
@@ -87,7 +135,10 @@ class Store {
     let syncOk = true
 
     for (const key of [STORAGE_KEYS.SETTINGS, STORAGE_KEYS.LICENSE]) {
-      const val = this._state[key]
+      let val = this._state[key]
+      if (key === STORAGE_KEYS.LICENSE) {
+        val = { ...val, _checksum: Store._computeLicenseChecksum(val) }
+      }
       const size = new TextEncoder().encode(JSON.stringify(val)).length
       if (size > 4096) {
         logger.warn(`Store.saveToStorage: ${key} is ${size} bytes, cannot sync. Skipping save for this key.`)
@@ -98,11 +149,11 @@ class Store {
         } catch (setErr) {
           const msg = setErr?.message || ''
           const isQuota = msg.includes('QUOTA') || msg.includes('quota') || msg.includes('153')
-          if (!isQuota) {
-            logger.error(`Store.saveToStorage: sync write failed for ${key}:`, setErr)
-            syncOk = false
-          }
+          if (isQuota) {
             logger.warn(`Store.saveToStorage: sync quota exceeded for ${key}, data not saved for this key`)
+          } else {
+            logger.error(`Store.saveToStorage: sync write failed for ${key}:`, setErr)
+          }
           syncOk = false
         }
       }
@@ -143,7 +194,10 @@ class Store {
           ...v,
           watched: existingVideo?.watched || false,
           progress: existingVideo?.progress || 0,
-          watchedAt: existingVideo?.watchedAt || null
+          watchedAt: existingVideo?.watchedAt || null,
+          resumeTime: existingVideo?.resumeTime || 0,
+          totalWatchedTime: existingVideo?.totalWatchedTime || 0,
+          lastWatchedAt: existingVideo?.lastWatchedAt || null
         }
       })
     }
@@ -166,6 +220,27 @@ class Store {
     return null
   }
 
+  playlistExists(playlistId) {
+    return playlistId in this._state.series
+  }
+
+  getNextEpisode(playlistId, currentVideoId) {
+    const series = this._state.series[playlistId]
+    if (!series) return null
+
+    const currentIndex = series.videos.findIndex(v => v.id === currentVideoId)
+    if (currentIndex === -1) return null
+
+    // Find next unwatched episode starting from current position
+    for (let i = currentIndex + 1; i < series.videos.length; i++) {
+      if (!series.videos[i].watched) {
+        return series.videos[i]
+      }
+    }
+
+    return null
+  }
+
   deleteSeries(playlistId) {
     delete this._state.series[playlistId]
     this._emitChange()
@@ -178,9 +253,12 @@ class Store {
     const video = series.videos.find(v => v.id === videoId)
     if (!video) return
 
-    video.watched = true
-    video.progress = video.duration || 0
-    video.watchedAt = Date.now()
+    if (!video.watched) {
+      video.watched = true
+      video.progress = 100
+      video.resumeTime = video.duration || 0
+      video.watchedAt = Date.now()
+    }
 
     const nextIndex = series.videos.findIndex(v => !v.watched)
     series.lastEpisodeIndex = nextIndex >= 0 ? nextIndex : series.videos.length - 1
@@ -188,7 +266,7 @@ class Store {
     this._emitChange()
   }
 
-  updateEpisodeProgress(playlistId, videoId, progress) {
+  updateEpisodeProgress(playlistId, videoId, progress, currentTime = 0, duration = 0) {
     const series = this._state.series[playlistId]
     if (!series) return
 
@@ -196,6 +274,22 @@ class Store {
     if (!video) return
 
     video.progress = progress
+    video.resumeTime = currentTime
+    video.lastWatchedAt = Date.now()
+
+    // Calculate total watched time using delta from previous resumeTime
+    if (currentTime > 0 && duration > 0) {
+      const previousResumeTime = video.resumeTime || 0
+      const delta = Math.max(0, currentTime - previousResumeTime)
+      // Only add delta if it's reasonable (user actually watched, not skipped)
+      if (delta > 0 && delta < 30) { // Max 30 seconds per update to prevent skipping issues
+        video.totalWatchedTime = (video.totalWatchedTime || 0) + delta
+      }
+    }
+
+    // Removed auto-mark to prevent false positives
+    // Videos are only marked as watched via the 'ended' event or manual action
+
     this._emitChange()
   }
 
@@ -234,4 +328,4 @@ class Store {
 }
 
 const store = new Store()
-export { store, Store }
+export { store }
