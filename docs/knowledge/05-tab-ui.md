@@ -59,6 +59,22 @@ Dispatched from detail UI when adding related playlists.
 
 Multi-select “mark watched” should call `onWatch` per video (not localStorage hacks).
 
+**Note:** Clicking an episode card opens the YouTube video directly without marking as watched. Use the checkbox to mark as watched.
+
+## Settings modal
+
+Settings use a sidebar layout with tabs for different sections:
+
+- Theme
+- Language
+- Next Episode Overlay
+- License Key (includes Auto-Refresh as Pro sub-section)
+- Cloud Sync
+- Reset Data
+- Dev Tools
+
+Only one section is visible at a time. Tabs are managed via JavaScript that toggles `.active` class on `.settings-tab` and `.settings-section-content`.
+
 ## i18n
 
 - `src/shared/i18n.js` — `en` / `it` tables, `t(key, { param })`

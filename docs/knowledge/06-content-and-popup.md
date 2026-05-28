@@ -11,13 +11,21 @@ Runs on all `https://www.youtube.com/*` pages.
 1. **Sidebar link** — inject “YT Series” into YouTube guide; click → `OPEN_SERIES_TAB`
 2. **Video end detection** — on `ended`, send `EPISODE_WATCH` with `videoId` + `playlistId` from URL `list=` param
 3. **SPA navigation** — listen `yt-navigate-finish`, re-run injection and video setup
+4. **Playlist button** — inject “Add to Series” button on playlist pages; checks `PLAYLIST_EXISTS` to show correct text
+5. **Progress tracking** — send `EPISODE_PROGRESS` periodically (throttled to 10s with 3s debounce)
+6. **Next Episode overlay** — show overlay 30s before video end with “Watch Next” button
 
 ### Duplicated EVENTS
 
-Only two types used locally (must stay in sync with `src/shared/events.js`):
+Content script defines local EVENTS object (must stay in sync with `src/shared/events.js`):
 
 - `OPEN_SERIES_TAB`
 - `EPISODE_WATCH`
+- `EPISODE_PROGRESS`
+- `GET_NEXT_EPISODE`
+- `PLAYLIST_ADD`
+- `PLAYLIST_EXISTS`
+- `STATE_GET`
 
 ### Fragile DOM selectors
 
