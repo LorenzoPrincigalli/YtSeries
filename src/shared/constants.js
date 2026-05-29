@@ -4,6 +4,14 @@ const STORAGE_KEYS = {
   LICENSE: 'license'
 }
 
+const SYNC_STORAGE_KEYS = {
+  AUTH: '_firebaseAuth',
+  QUEUE: '_syncQueue',
+  STATUS: '_syncStatus'
+}
+
+const SYNC_PUSH_DEBOUNCE_MS = 3000
+
 const API = {
   YOUTUBE_BASE: 'https://www.googleapis.com/youtube/v3',
   WORKER_BASE: 'https://shy-snowflake-0680.lollo-princigalli.workers.dev'
@@ -57,6 +65,8 @@ const EXTENSION_ID = '' // Set after publishing to Chrome Web Store
 
 export {
   STORAGE_KEYS,
+  SYNC_STORAGE_KEYS,
+  SYNC_PUSH_DEBOUNCE_MS,
   API,
   FREE_LIMITS,
   THEME_COLORS,

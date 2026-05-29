@@ -25,4 +25,4 @@ class AlarmService {
 }
 
 const alarmService = new AlarmService()
-export { alarmService, AlarmService }
+export { alarmService }

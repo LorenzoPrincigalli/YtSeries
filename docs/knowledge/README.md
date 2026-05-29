@@ -16,11 +16,12 @@ Structured documentation for Cursor agents and contributors working on this Chro
 | 4 | [03-data-model.md](03-data-model.md) | Storage, series shape, license |
 | 5 | [04-services-and-apis.md](04-services-and-apis.md) | YouTube API, worker, Lemon Squeezy |
 | 6 | [05-tab-ui.md](05-tab-ui.md) | Dashboard UI work |
-| 7 | [06-content-and-popup.md](06-content-and-popup.md) | YouTube page or popup changes |
-| 8 | [07-freemium-license.md](07-freemium-license.md) | Pro limits, activation, gating |
-| 9 | [08-dev-workflow.md](08-dev-workflow.md) | Build, icons, config, publish |
-| 10 | [09-agent-playbook.md](09-agent-playbook.md) | Checklists and common tasks |
-| 11 | [10-known-issues.md](10-known-issues.md) | Backlog and doc/code gaps |
+| 7 | [06-infrastructure.md](06-infrastructure.md) | Firebase sync, costs, CSP, secrets, service map |
+| 8 | [06-content-and-popup.md](06-content-and-popup.md) | YouTube page or popup changes |
+| 9 | [07-freemium-license.md](07-freemium-license.md) | Pro limits, activation, gating |
+| 10 | [08-dev-workflow.md](08-dev-workflow.md) | Build, icons, config, publish |
+| 11 | [09-agent-playbook.md](09-agent-playbook.md) | Checklists and common tasks |
+| 12 | [10-known-issues.md](10-known-issues.md) | Backlog and doc/code gaps |
 
 ## Task → file map
 

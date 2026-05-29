@@ -480,8 +480,7 @@ class DetailPage {
 
     const status = document.createElement('span')
     status.className = `episode-status ${video.watched ? 'episode-status-watched' : 'episode-status-unwatched'}`
-    status.textContent = video.watched ? '\u2713' : '\u25CF'
-    status.title = video.watched ? t('watched') : t('unwatched')
+    status.textContent = video.watched ? `\u2713 ${t('watched')}` : `\u25CF ${t('unwatched')}`
     info.appendChild(status)
 
     card.appendChild(info)

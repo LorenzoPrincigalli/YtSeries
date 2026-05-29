@@ -33,4 +33,4 @@ class TabService {
 }
 
 const tabService = new TabService()
-export { tabService, TabService }
+export { tabService }

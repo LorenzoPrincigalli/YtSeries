@@ -41,4 +41,4 @@ class Logger {
 
 const logger = new Logger()
 
-export { logger, Logger, LOG_LEVELS }
+export { logger }

@@ -23,6 +23,39 @@ const TRANSLATIONS = {
   }
 }
 
+function showToast(message, durationMs = 4000) {
+  const existing = document.querySelector('.yt-series-toast')
+  if (existing) existing.remove()
+
+  const toast = document.createElement('div')
+  toast.className = 'yt-series-toast'
+  toast.textContent = message
+  Object.assign(toast.style, {
+    position: 'fixed',
+    bottom: '24px',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    background: 'rgba(0,0,0,0.85)',
+    color: '#fff',
+    padding: '12px 24px',
+    borderRadius: '8px',
+    fontSize: '14px',
+    zIndex: '999999',
+    fontFamily: 'Roboto, Arial, sans-serif',
+    pointerEvents: 'none',
+    opacity: '0',
+    transition: 'opacity 0.3s ease'
+  })
+  document.body.appendChild(toast)
+
+  requestAnimationFrame(() => { toast.style.opacity = '1' })
+
+  setTimeout(() => {
+    toast.style.opacity = '0'
+    setTimeout(() => toast.remove(), 300)
+  }, durationMs)
+}
+
 let currentVideoId = null
 let currentPlaylistId = null
 let videoEndListener = null
@@ -272,18 +305,41 @@ function createNextEpisodeOverlay(nextEpisode, playlistId, currentVideoId) {
 
     nextEpisodeOverlay = document.createElement('div')
     nextEpisodeOverlay.className = 'yt-series-next-overlay'
-    nextEpisodeOverlay.innerHTML = `
-      <div class="yt-series-next-content">
-        <div class="yt-series-next-info">
-          <div class="yt-series-next-label">${t.nextEpisode}</div>
-          <div class="yt-series-next-title">${nextEpisode.title}</div>
-        </div>
-        <button class="yt-series-next-btn" id="ytSeriesNextBtn">
-          <span class="yt-series-next-icon">▶</span>
-          <span>${t.watchNext}</span>
-        </button>
-      </div>
-    `
+
+    const contentDiv = document.createElement('div')
+    contentDiv.className = 'yt-series-next-content'
+
+    const infoDiv = document.createElement('div')
+    infoDiv.className = 'yt-series-next-info'
+
+    const labelDiv = document.createElement('div')
+    labelDiv.className = 'yt-series-next-label'
+    labelDiv.textContent = t.nextEpisode
+
+    const titleDiv = document.createElement('div')
+    titleDiv.className = 'yt-series-next-title'
+    titleDiv.textContent = nextEpisode.title
+
+    infoDiv.appendChild(labelDiv)
+    infoDiv.appendChild(titleDiv)
+
+    const btn = document.createElement('button')
+    btn.className = 'yt-series-next-btn'
+    btn.id = 'ytSeriesNextBtn'
+
+    const iconSpan = document.createElement('span')
+    iconSpan.className = 'yt-series-next-icon'
+    iconSpan.textContent = '\u25B6'
+
+    const textSpan = document.createElement('span')
+    textSpan.textContent = t.watchNext
+
+    btn.appendChild(iconSpan)
+    btn.appendChild(textSpan)
+
+    contentDiv.appendChild(infoDiv)
+    contentDiv.appendChild(btn)
+    nextEpisodeOverlay.appendChild(contentDiv)
 
     document.body.appendChild(nextEpisodeOverlay)
 
@@ -319,10 +375,15 @@ function createNextEpisodeOverlay(nextEpisode, playlistId, currentVideoId) {
 function handlePageNavigation() {
   const url = new URL(window.location.href)
   const videoId = url.searchParams.get('v')
+  const listId = url.searchParams.get('list')
+
+  if (listId !== currentPlaylistId) {
+    currentPlaylistId = listId
+    addSeriesButtonInjected = false
+  }
 
   if (videoId && videoId !== currentVideoId) {
     currentVideoId = videoId
-    const listId = url.searchParams.get('list')
     setupVideoEndDetection(videoId, listId)
   } else if (!videoId) {
     currentVideoId = null
@@ -543,37 +604,33 @@ function injectSidebarLink() {
 function injectAddToSeriesButton() {
   if (addSeriesButtonInjected) return
 
-  // Remove any existing buttons first
-  const existingButtons = document.querySelectorAll('#yt-series-add-btn')
-  existingButtons.forEach(btn => btn.remove())
+  document.querySelectorAll('#yt-series-add-btn').forEach(btn => btn.remove())
+  addSeriesButtonInjected = true
 
   const url = new URL(window.location.href)
   const playlistId = url.searchParams.get('list')
-  if (!playlistId) return
-
-  // Find the playlist action menu (where loop and shuffle buttons are)
-  const actionBar = document.querySelector('#playlist-action-menu #top-level-buttons-computed')
-
-  // Also try the page header
-  const pageHeader = document.querySelector('#page-manager > ytd-browse > yt-page-header-renderer > yt-page-header-view-model > div.ytPageHeaderViewModelScrollContainer')
-
-  const targetContainer = actionBar || pageHeader
-
-  if (!targetContainer) {
+  if (!playlistId) {
+    addSeriesButtonInjected = false
     return
   }
 
-  // Use browser language for simplicity
+  const actionBar = document.querySelector('#playlist-action-menu #top-level-buttons-computed')
+  const pageHeader = document.querySelector('#page-manager > ytd-browse > yt-page-header-renderer > yt-page-header-view-model > div.ytPageHeaderViewModelScrollContainer')
+  const targetContainer = actionBar || pageHeader
+
+  if (!targetContainer) {
+    addSeriesButtonInjected = false
+    return
+  }
+
   const lang = (navigator.language || 'en').split('-')[0]
   const t = TRANSLATIONS[lang] || TRANSLATIONS.en
 
-  // Check if playlist is already added
   safeSendMessage({
     type: EVENTS.PLAYLIST_EXISTS,
     payload: { playlistId }
   }, (existsResponse) => {
     const isAdded = existsResponse && existsResponse.success && existsResponse.exists
-    console.log('[YT Series] Playlist exists check:', playlistId, isAdded, existsResponse)
 
     const button = document.createElement('button')
     button.id = 'yt-series-add-btn'
@@ -594,45 +651,43 @@ function injectAddToSeriesButton() {
       white-space: nowrap;
       flex-shrink: 0;
     `
-    button.setAttribute('aria-label', isAdded ? 'Vedi su YT Series' : 'Aggiungi a TvSeries')
-    button.innerHTML = `
-      <span>${isAdded ? 'Vedi su YT Series' : 'Aggiungi a TvSeries'}</span>
-    `
+    const buttonLabel = isAdded ? 'Vedi su YT Series' : 'Aggiungi a TvSeries'
+    button.setAttribute('aria-label', buttonLabel)
+    button.textContent = buttonLabel
 
     button.addEventListener('click', () => {
       if (isAdded) {
-        // Open the series tab
         safeSendMessage({ type: EVENTS.OPEN_SERIES_TAB })
       } else {
         const playlistUrl = window.location.href
+        button.disabled = true
+        button.textContent = 'Aggiunta in corso...'
         safeSendMessage({
           type: EVENTS.PLAYLIST_ADD,
           payload: { url: playlistUrl }
         }, (addResponse) => {
           if (addResponse && addResponse.success) {
-            button.innerHTML = `
-              <span>Vedi su YT Series</span>
-            `
-            button.disabled = true
+            button.textContent = 'Vedi su YT Series'
             button.style.background = '#e8e8e8'
-            setTimeout(() => {
-              button.innerHTML = `
-                <span>Aggiungi a TvSeries</span>
-              `
-              button.disabled = false
-              button.style.background = '#f1f1f1'
-            }, 3000)
           } else if (addResponse && addResponse.error === 'LIMIT_REACHED') {
-            alert('Hai raggiunto il limite di serie gratuite. Passa a Pro per serie illimitate.')
-          } else if (addResponse && addResponse.error) {
-            console.error('[YT Series] Error adding playlist:', addResponse.error)
+            showToast('Hai raggiunto il limite di serie gratuite. Passa a Pro per serie illimitate.')
+            button.textContent = 'Aggiungi a TvSeries'
+            button.disabled = false
+          } else if (addResponse && addResponse.error === 'CONTEXT_INVALIDATED') {
+            showToast('Estensione non disponibile. Ricarica la pagina.')
+            button.textContent = 'Aggiungi a TvSeries'
+            button.disabled = false
+          } else {
+            const msg = (addResponse && addResponse.message) ? addResponse.message : 'Errore sconosciuto'
+            showToast('Impossibile aggiungere la serie: ' + msg)
+            button.textContent = 'Aggiungi a TvSeries'
+            button.disabled = false
           }
         })
       }
     })
 
     targetContainer.appendChild(button)
-    addSeriesButtonInjected = true
   })
 }
 

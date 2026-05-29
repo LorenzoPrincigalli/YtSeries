@@ -161,7 +161,7 @@ async function handleSetIconTheme(payload) {
   const sizes = { 16: 'icon16', 48: 'icon48', 128: 'icon128' }
   const path = {}
   for (const [size, name] of Object.entries(sizes)) {
-    path[size] = `icons/${name}${payload.suffix}.png`
+    path[size] = chrome.runtime.getURL(`icons/${name}${payload.suffix}.png`)
   }
 
   try {

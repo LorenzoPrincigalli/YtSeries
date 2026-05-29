@@ -80,4 +80,4 @@ class StorageService {
 }
 
 const storageService = new StorageService()
-export { storageService, StorageService }
+export { storageService }

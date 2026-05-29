@@ -47,9 +47,12 @@ Storage keys are defined in `src/shared/constants.js` → `STORAGE_KEYS`.
 | `position` | number | Playlist order |
 | `publishedAt` | string | ISO date |
 | `duration` | number | Seconds; filled by `_getVideoDurations` in `youtube.js` |
-| `watched` | boolean | Default false |
-| `progress` | number | Optional progress |
+| `watched` | boolean | Default false; set only via `ended` event or manual action |
+| `progress` | number | Optional progress (0-100) |
 | `watchedAt` | number | Timestamp when marked watched |
+| `resumeTime` | number | Seconds; precise resume point (Netflix-style) |
+| `totalWatchedTime` | number | Seconds; total time actually watched (calculated via delta) |
+| `lastWatchedAt` | number | Timestamp of last watch session |
 
 ## Settings defaults
 

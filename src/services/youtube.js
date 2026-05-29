@@ -231,6 +231,7 @@ class YouTubeApiService {
   }
 
   _parseISO8601Duration(duration) {
+    if (typeof duration !== 'string') return 0
     const match = duration.match(/PT(\d+H)?(\d+M)?(\d+S)?/)
     if (!match) return 0
 
@@ -251,4 +252,4 @@ class YouTubeApiService {
 }
 
 const youTubeApiService = new YouTubeApiService()
-export { youTubeApiService, YouTubeApiService }
+export { youTubeApiService }

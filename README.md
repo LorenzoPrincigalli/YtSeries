@@ -25,10 +25,12 @@ Transform YouTube playlists into a TV-series tracker with Netflix-style UI.
 
 ## Setup
 
-1. Copy `src/shared/config.example.js` to `src/shared/config.js` and add your YouTube Data API v3 key
-2. Run `npm install` to install dev dependencies
+1. Run `npm install` to install dev dependencies
+2. Run `npm run setup` — interactive wizard to create `config.js` and `firebase.config.js` from examples
 3. Run `npm run icons` to generate extension icons from SVG source
 4. Load the unpacked extension in Chrome
+
+> Alternatively, manually copy `src/shared/config.example.js` → `src/shared/config.js` and `src/shared/firebase.config.example.js` → `src/shared/firebase.config.js`, then fill in your keys.
 
 ## Stack
 

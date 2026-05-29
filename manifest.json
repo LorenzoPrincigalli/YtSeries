@@ -2,13 +2,18 @@
   "manifest_version": 3,
   "name": "YT Series",
   "version": "1.1.0",
-  "description": "Transform YouTube playlists into a TV-series tracker with Netflix-style UI / Trasforma le playlist YouTube in serie TV con interfaccia Netflix",
+  "description": "Trasforma le playlist YouTube in serie TV tracciabili con interfaccia in stile Netflix",
   "permissions": [
     "storage",
     "alarms",
     "notifications",
-    "tabs"
+    "tabs",
+    "identity"
   ],
+  "oauth2": {
+    "client_id": "1052836687022-2rebg9qq23n14m4reqt5hv7ckfbd64tn.apps.googleusercontent.com",
+    "scopes": ["openid", "email", "profile"]
+  },
   "host_permissions": [
     "https://www.youtube.com/*",
     "https://www.googleapis.com/*",
@@ -16,7 +21,7 @@
     "https://shy-snowflake-0680.lollo-princigalli.workers.dev/*"
   ],
   "content_security_policy": {
-    "extension_pages": "default-src 'self'; connect-src 'self' https://shy-snowflake-0680.lollo-princigalli.workers.dev https://www.googleapis.com https://api.lemonsqueezy.com; img-src 'self' https: data:; frame-src https://www.youtube.com https://www.youtube-nocookie.com; style-src 'self' 'unsafe-inline'"
+    "extension_pages": "default-src 'self'; connect-src 'self' https://shy-snowflake-0680.lollo-princigalli.workers.dev https://www.googleapis.com https://api.lemonsqueezy.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com; img-src 'self' https: data:; frame-src https://www.youtube.com https://www.youtube-nocookie.com; style-src 'self' 'unsafe-inline'"
   },
   "background": {
     "service_worker": "src/background/index.js",

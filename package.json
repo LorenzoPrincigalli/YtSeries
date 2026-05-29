@@ -15,13 +15,17 @@
   "homepage": "https://github.com/LorenzoPrincigalli/YtSeries",
   "type": "module",
   "scripts": {
+    "setup": "node scripts/setup.mjs",
     "icons": "node src/assets/scripts/generate-icons.cjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "lint": "echo 'No linter configured yet'"
   },
   "engines": {
     "node": ">=18"
   },
   "devDependencies": {
-    "sharp": "^0.34.5"
+    "sharp": "^0.34.5",
+    "vitest": "^4.1.7"
   }
 }

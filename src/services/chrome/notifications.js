@@ -25,4 +25,4 @@ class NotificationService {
 }
 
 const notificationService = new NotificationService()
-export { notificationService, NotificationService }
+export { notificationService }

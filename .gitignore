@@ -21,6 +21,7 @@ Thumbs.db
 .env
 .env.local
 src/shared/config.js
+src/shared/firebase.config.js
 
 # Analysis reports (may contain sensitive info) — knowledge is versioned
 docs/*

@@ -22,7 +22,7 @@
 </head>
 <body>
   <h1>Privacy Policy</h1>
-  <p><strong>Last updated:</strong> May 28, 2026</p>
+  <p><strong>Last updated:</strong> May 28, 2026 (Cloud Sync section)</p>
 
   <h2>Overview</h2>
   <p>YT Series ("the Extension") lets you manage YouTube playlists as TV series with progress tracking. This policy explains what data the Extension collects, how it is used, and your rights.</p>
@@ -35,7 +35,15 @@
     <li><strong>Settings:</strong> theme preference, language, auto-refresh toggle, last refresh timestamp</li>
     <li><strong>License info:</strong> if you purchase a Pro license, the license key and verification status</li>
   </ul>
-  <p><strong>No personal data</strong> (name, email, IP address, browsing history outside YouTube) is collected or transmitted.</p>
+  <p>By default, the Extension does not collect your name or email. Optional Cloud Sync (see below) uses your Google account only when you sign in.</p>
+
+  <h3>Cloud Sync (optional, Firebase)</h3>
+  <p>If you choose <strong>Sign in with Google</strong> in Settings, the Extension syncs series progress and minimal playlist metadata to <strong>Google Firebase Firestore</strong> (EU region when configured as <code>europe-west</code>). Data is stored under your Firebase user ID and protected by security rules so only you can read or write your documents.</p>
+  <ul>
+    <li><strong>Synced:</strong> playlist IDs, titles, thumbnails, channel names, episode watch progress</li>
+    <li><strong>Not synced to Firebase:</strong> Pro license keys (remain in Chrome <code>storage.sync</code>), theme/language settings (Chrome sync), full YouTube video catalogs (refetched from YouTube API on each device)</li>
+  </ul>
+  <p>You can sign out at any time. Resetting all data in Settings also removes your remote series documents and signs you out.</p>
 
   <h3>YouTube Data API</h3>
   <p>When you add a playlist or search YouTube, the Extension sends requests to the <strong>YouTube Data API v3</strong> using your API key. These requests fetch public playlist metadata, video lists, and search results. No authentication is used—only public data is accessed.</p>
@@ -49,8 +57,9 @@
     <li><code>www.googleapis.com</code> – YouTube Data API requests</li>
     <li><code>api.lemonsqueezy.com</code> – License key verification (Pro users only)</li>
     <li><code>shy-snowflake-0680.lollo-princigalli.workers.dev</code> – YouTube API proxy (transparent relay, no data logged or stored)</li>
+    <li><code>identitytoolkit.googleapis.com</code>, <code>securetoken.googleapis.com</code>, <code>firestore.googleapis.com</code> – Cloud Sync only, when you are signed in</li>
   </ul>
-  <p>No data is sent to any other server. No analytics, no tracking, no third-party scripts. The Cloudflare Worker relay does not log or store any personal data.</p>
+  <p>No analytics, no advertising trackers, and no third-party scripts in the Extension UI. The Cloudflare Worker relay does not log or store personal data.</p>
 
   <h2>Data Retention & Deletion</h2>
   <p>All data persists in <code>chrome.storage</code> until you either:</p>
@@ -58,6 +67,7 @@
     <li>Delete individual series via the Extension UI</li>
     <li>Use the "Reset All Data" option in Settings</li>
     <li>Uninstall the Extension (Chrome automatically removes all stored data)</li>
+    <li>Sign out of Cloud Sync and/or use Reset All Data (also deletes Firestore copies of your series)</li>
   </ul>
 
   <h2>Permissions Justification</h2>
@@ -66,6 +76,7 @@
     <li><strong>alarms</strong> – needed for Pro auto-refresh (periodic background checks for new episodes)</li>
     <li><strong>notifications</strong> – needed to alert you when new episodes are found</li>
     <li><strong>tabs</strong> – needed to open the Extension's tab interface</li>
+    <li><strong>identity</strong> – needed for optional Google sign-in (Cloud Sync)</li>
     <li><strong>youtube.com</strong> – needed to inject the sidebar shortcut on YouTube pages</li>
     <li><strong>googleapis.com</strong> – needed for YouTube Data API requests</li>
     <li><strong>lemonsqueezy.com</strong> – needed for Pro license verification</li>
@@ -77,6 +88,7 @@
     <li><strong>YouTube Data API v3</strong> – subject to <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy</a></li>
     <li><strong>Lemon Squeezy</strong> – subject to <a href="https://www.lemonsqueezy.com/privacy" target="_blank" rel="noopener">Lemon Squeezy Privacy Policy</a></li>
     <li><strong>Cloudflare Workers</strong> – transparent API relay, subject to <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener">Cloudflare Privacy Policy</a></li>
+    <li><strong>Google Firebase</strong> – optional Cloud Sync storage and authentication, subject to <a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener">Firebase Privacy</a> and <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy</a></li>
   </ul>
 
   <h2>Your Rights</h2>

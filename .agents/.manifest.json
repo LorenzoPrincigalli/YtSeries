@@ -1,0 +1,14 @@
+{
+  "skills": [
+    {
+      "name": "senior-engineer",
+      "description": "Senior engineering approach for architecture, planning, and implementation",
+      "location": "skills/senior-engineer/SKILL.md"
+    },
+    {
+      "name": "greploop",
+      "description": "Iterative codebase exploration via grep chains — trace code paths, data flow, and dependencies",
+      "location": "skills/greploop/SKILL.md"
+    }
+  ]
+}

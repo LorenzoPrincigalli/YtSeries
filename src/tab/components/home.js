@@ -25,8 +25,23 @@ class HomePage {
     for (let i = 0; i < seriesList.length; i++) {
       const s = seriesList[i]
       const watchedCount = s.videos.filter(v => v.watched).length
-      const nextIndex = s.lastEpisodeIndex ?? s.videos.findIndex(v => !v.watched)
-      const progress = s.videos.length > 0 ? ((nextIndex >= 0 ? nextIndex : s.videos.length) / s.videos.length) * 100 : 0
+      // Trova il video con attività più recente (watched o in corso)
+      let lastWatched = null;
+      for (const v of s.videos) {
+        if ((v.watched || v.progress > 0) && v.watchedAt) {
+          if (!lastWatched || v.watchedAt > lastWatched.watchedAt) lastWatched = v;
+        }
+      }
+      if (!lastWatched) {
+        for (let j = s.videos.length - 1; j >= 0; j--) {
+          if (s.videos[j].progress > 0 || s.videos[j].watched) {
+            lastWatched = s.videos[j];
+            break;
+          }
+        }
+      }
+      // progress è già una percentuale (0-100)
+      const progress = lastWatched ? (lastWatched.watched ? 100 : (lastWatched.progress || 0)) : 0;
 
       const slide = document.createElement('div')
       slide.className = `hero-carousel-slide${i === 0 ? ' active' : ''}`
@@ -410,8 +425,14 @@ class HomePage {
 
   _createCard(series, onClick) {
     const watchedCount = series.videos.filter(v => v.watched).length
-    const nextIndex = series.lastEpisodeIndex ?? series.videos.findIndex(v => !v.watched)
-    const progress = series.videos.length > 0 ? ((nextIndex >= 0 ? nextIndex : series.videos.length) / series.videos.length) * 100 : 0
+    // Mostra la barra solo per il video in corso (non watched, ma con progress > 0), oppure 100% se tutti sono watched
+    let progress = 0;
+    const inProgress = series.videos.find(v => !v.watched && v.progress > 0);
+    if (inProgress) {
+      progress = inProgress.progress || 0;
+    } else if (series.videos.length > 0 && series.videos.every(v => v.watched)) {
+      progress = 100;
+    }
     const isComplete = series.completed || (series.videos.length > 0 && watchedCount === series.videos.length)
     const hasNew = series.newEpisodesCount > 0
     const previewVideo = this._getPreviewVideo(series)

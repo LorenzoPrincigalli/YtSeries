@@ -18,7 +18,23 @@
       margin-bottom: 16px;
     }
     .header img { width: 32px; height: 32px; border-radius: 4px; }
-    .header h1 { font-size: 16px; font-weight: 600; }
+    .header h1 { font-size: 16px; font-weight: 600; flex: 1; }
+    .sync-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #555;
+      flex-shrink: 0;
+    }
+    .sync-dot.connected { background: #2ecc71; }
+    .sync-dot.error { background: #ff0000; }
+    .sync-dot.syncing { background: #f39c12; }
+    .sync-hint {
+      font-size: 11px;
+      color: #888;
+      margin-bottom: 12px;
+      line-height: 1.3;
+    }
     .stats { display: flex; gap: 12px; margin-bottom: 16px; }
     .stat {
       flex: 1;
@@ -66,7 +82,9 @@
   <div class="header">
     <img src="../../icons/icon48.png" alt="">
     <h1>YT Series</h1>
+    <span id="syncDot" class="sync-dot" title="Cloud sync"></span>
   </div>
+  <p id="syncHint" class="sync-hint hidden"></p>
   <div class="stats">
     <div class="stat">
       <div class="stat-num" id="seriesCount">—</div>

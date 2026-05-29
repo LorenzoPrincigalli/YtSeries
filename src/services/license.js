@@ -52,12 +52,7 @@ class LicenseService {
     }
     return { valid: false, reason: 'NETWORK_ERROR' }
   }
-
-  invalidateCache() {
-    this.cachedResult = null
-    this.cachedAt = null
-  }
 }
 
 const licenseService = new LicenseService()
-export { licenseService, LicenseService }
+export { licenseService }
