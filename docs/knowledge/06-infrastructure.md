@@ -70,8 +70,8 @@ Firebase (Cloud Sync) is entirely optional — the extension works without it.
 | **Chrome Identity** | Built-in | Free | OAuth2 login for Cloud Sync | — |
 | **Firebase Auth** | Spark | Free | Google sign-in for sync | 10,000 auth/month |
 | **Firestore** | Spark | Free | Series sync between devices | 1 GiB storage, 10 GiB/mo download, 20K writes/day, 50K reads/day |
-| **Cloudflare Worker** | Free | Free | YouTube API proxy (hides API key) | 100K req/day, 10ms CPU |
-| **YouTube Data API v3** | Free tier | Free | Playlist/video metadata | 10,000 units/day (worker uses ~100 per playlist fetch) |
+| **Cloudflare Worker** | Free | Free | YouTube API proxy + KV cache | 100K req/day, 10ms CPU; KV: 100K reads/day, 1K writes/day |
+| **YouTube Data API v3** | Free tier | Free | Playlist/video metadata | 10,000 units/day (search=100u, playlists=1u, items=1u, videos=1u) |
 | **Lemon Squeezy** | Free | Free | License validation | 0% fees up to $100/mo |
 | **GitHub Pages** | Free | Free | Host activate.html, privacy policy | 100GB bandwidth, 1GB storage |
 | **Chrome Web Store** | Developer account | **$5 one-time** | Publishing | Required to publish |
@@ -139,8 +139,9 @@ All services are on free tiers. The only mandatory cost is the **$5 one-time** C
 
 At scale (hundreds of users), potential cost drivers:
 - **Firestore**: 20K writes/day free → ~300 users doing 1 write/hour would exceed. Mitigation: increase debounce, batch writes.
-- **Cloudflare Worker**: 100K req/day → ~3,300 playlist refreshes/day. Low risk.
-- **YouTube API**: 10K units/day → ~100 full playlist fetches. Each fetch costs ~100 units (playlist + items + durations).
+- **Cloudflare Worker**: 100K req/day → with edge cache (90%+ hit rate), actual origin calls are minimal. KV: 100K reads/day, 1K writes/day (Free plan).
+- **YouTube API**: 10K units/day → **mitigated by Worker 3-layer caching** (edge + KV). Search: 100→1 unità effettiva dopo primo hit. Stima: ~1.000 unità/giorno totali con 100 utenti attivi.
+- **Worker CPU**: KV read NON consuma CPU time. Operazioni I/O in `ctx.waitUntil` non bloccano la risposta.
 
 ## Security
 
@@ -156,6 +157,7 @@ At scale (hundreds of users), potential cost drivers:
 
 ```
 default-src 'self'
+script-src 'self'
 connect-src 'self'
   https://shy-snowflake-0680.lollo-princigalli.workers.dev
   https://www.googleapis.com

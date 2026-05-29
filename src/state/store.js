@@ -103,13 +103,7 @@ class Store {
         const stored = syncData[STORAGE_KEYS.LICENSE]
         const expectedChecksum = Store._computeLicenseChecksum(stored)
         if (stored._checksum && stored._checksum !== expectedChecksum) {
-          logger.warn('Store.loadFromStorage: license checksum mismatch — TAMPER DETECTED. Resetting to free.')
-          try {
-            const data = await chrome.storage.local.get('_tamperCount')
-            const count = (data._tamperCount || 0) + 1
-            await chrome.storage.local.set({ _tamperCount: count, _lastTamper: Date.now() })
-            logger.warn(`Store.loadFromStorage: tamper attempt #${count} recorded`)
-          } catch (_) {}
+          logger.warn('Store.loadFromStorage: license checksum mismatch — resetting to free.')
           this._state.license = { key: null, isPro: false, verifiedAt: null }
         } else {
           this._state.license = { ...this._state.license, key: stored.key, isPro: stored.isPro, verifiedAt: stored.verifiedAt }

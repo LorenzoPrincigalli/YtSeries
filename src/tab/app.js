@@ -198,14 +198,6 @@ async function handleNextEpisodeOverlayChange(e) {
   await sendMessage(EVENTS.SETTINGS_UPDATE, { nextEpisodeOverlay })
 }
 
-async function handleDevProToggle(e) {
-  if (!state) return
-  const isPro = e.target.checked
-  state.license.isPro = isPro
-  await sendMessage(EVENTS.SETTINGS_UPDATE, { isPro })
-  populateSettingsForm()
-}
-
 async function handleResetStorage() {
   const confirmed = await modalManager.confirm(t('reset_confirm'))
   if (!confirmed) return
@@ -332,7 +324,6 @@ function bindUIEvents() {
   document.getElementById('languageSelect').addEventListener('change', handleLanguageChange)
   document.getElementById('nextEpisodeOverlayToggle').addEventListener('change', handleNextEpisodeOverlayChange)
   document.getElementById('autoRefreshToggle').addEventListener('change', handleAutoRefreshChange)
-  document.getElementById('devProToggle').addEventListener('change', handleDevProToggle)
   document.getElementById('resetStorageBtn').addEventListener('click', handleResetStorage)
   document.getElementById('syncLoginBtn')?.addEventListener('click', handleSyncLogin)
   document.getElementById('syncLogoutBtn')?.addEventListener('click', handleSyncLogout)
@@ -924,7 +915,7 @@ function populateSettingsForm() {
     document.getElementById('languageSelect').value = state.settings.language || 'system'
     document.getElementById('nextEpisodeOverlayToggle').checked = state.settings.nextEpisodeOverlay !== false
     document.getElementById('autoRefreshToggle').checked = state.settings.autoRefresh || false
-    document.getElementById('devProToggle').checked = state.license.isPro || false
+
   }
 
   const proSettings = document.getElementById('proSettings')

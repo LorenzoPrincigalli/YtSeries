@@ -69,7 +69,7 @@ class DetailPage {
     document.getElementById('detailModal').classList.remove('hidden')
     document.body.style.overflow = 'hidden'
 
-    this._loadRelatedPlaylists(series)
+    this._observeRelatedSection(series)
   }
 
   // Trova il primo episodio "nuovo" (pubblicato negli ultimi 7 giorni e non visto)
@@ -485,6 +485,29 @@ class DetailPage {
 
     card.appendChild(info)
     return card
+  }
+
+  _observeRelatedSection(series) {
+    if (!series.channelId) {
+      const section = document.getElementById('detailMoreSection')
+      if (section) {
+        const loader = section.querySelector('.more-loading')
+        if (loader) loader.textContent = t('no_channel_info')
+      }
+      return
+    }
+
+    const section = document.getElementById('detailMoreSection')
+    if (!section) return
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        observer.disconnect()
+        this._loadRelatedPlaylists(series)
+      }
+    }, { root: document.getElementById('detailModalBody'), rootMargin: '100px' })
+
+    observer.observe(section)
   }
 
   _renderMoreSection(series) {

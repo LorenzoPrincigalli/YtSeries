@@ -110,34 +110,39 @@ class YouTubeApiService {
     if (!query || !query.trim()) return { playlists: [], channels: [] }
 
     try {
-      const [playlistData, channelData] = await Promise.all([
-        this._fetch(this._buildUrl(`/search?part=snippet&type=playlist&maxResults=10&q=${encodeURIComponent(query)}`)),
-        this._fetch(this._buildUrl(`/search?part=snippet&type=channel&maxResults=5&q=${encodeURIComponent(query)}`))
-      ])
+      const data = await this._fetch(this._buildUrl(`/search?part=snippet&type=playlist,channel&maxResults=15&q=${encodeURIComponent(query)}`))
 
-      const playlists = (playlistData.items || []).map(item => ({
-        playlistId: item.id.playlistId,
-        title: item.snippet.title,
-        description: item.snippet.description || '',
-        thumbnail: item.snippet.thumbnails?.high?.url
-          || item.snippet.thumbnails?.medium?.url
-          || item.snippet.thumbnails?.default?.url
-          || '',
-        channelTitle: item.snippet.channelTitle,
-        channelId: item.snippet.channelId,
-        publishedAt: item.snippet.publishedAt
-      }))
+      const items = data.items || []
+      let playlists = []
+      let channels = []
 
-      const channels = (channelData.items || []).map(item => ({
-        channelId: item.snippet.channelId,
-        title: item.snippet.title,
-        description: item.snippet.description || '',
-        thumbnail: item.snippet.thumbnails?.high?.url
-          || item.snippet.thumbnails?.medium?.url
-          || item.snippet.thumbnails?.default?.url
-          || '',
-        publishedAt: item.snippet.publishedAt
-      }))
+      for (const item of items) {
+        if (item.id?.kind === 'youtube#playlist') {
+          playlists.push({
+            playlistId: item.id.playlistId,
+            title: item.snippet.title,
+            description: item.snippet.description || '',
+            thumbnail: item.snippet.thumbnails?.high?.url
+              || item.snippet.thumbnails?.medium?.url
+              || item.snippet.thumbnails?.default?.url
+              || '',
+            channelTitle: item.snippet.channelTitle,
+            channelId: item.snippet.channelId,
+            publishedAt: item.snippet.publishedAt
+          })
+        } else if (item.id?.kind === 'youtube#channel') {
+          channels.push({
+            channelId: item.snippet.channelId,
+            title: item.snippet.title,
+            description: item.snippet.description || '',
+            thumbnail: item.snippet.thumbnails?.high?.url
+              || item.snippet.thumbnails?.medium?.url
+              || item.snippet.thumbnails?.default?.url
+              || '',
+            publishedAt: item.snippet.publishedAt
+          })
+        }
+      }
 
       return { playlists, channels }
     } catch (err) {

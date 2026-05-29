@@ -131,10 +131,18 @@ async function openSeriesTab() {
   }
 }
 
+let lastSearchTime = 0
+
 async function handlePlaylistSearch(payload) {
   if (!payload || typeof payload.query !== 'string' || !payload.query.trim()) {
     return { success: false, playlists: [], channels: [] }
   }
+
+  const now = Date.now()
+  if (now - lastSearchTime < 3000) {
+    return { success: false, playlists: [], channels: [] }
+  }
+  lastSearchTime = now
 
   const results = await youTubeApiService.search(payload.query.trim())
   return { success: true, ...results }
@@ -179,27 +187,12 @@ async function init() {
   await reverifyLicense()
 
   if (!API.WORKER_BASE) {
-    let keyLoaded = false
-    try {
-      const url = chrome.runtime.getURL('src/shared/config.js')
-      const resp = await fetch(url)
-      const text = await resp.text()
-      const match = text.match(/YT_API_KEY\s*=\s*['"]([^'"]+)['"]/)
-      if (match && match[1]) {
-        youTubeApiService.setApiKey(match[1])
-        keyLoaded = true
-        logger.info('API key loaded from config.js')
-      }
-    } catch (e) {
-      logger.warn('Config fetch failed:', e.message)
-    }
-
-    if (!keyLoaded) {
-      const settings = store.getSettings()
-      if (settings.apiKey) {
-        youTubeApiService.setApiKey(settings.apiKey)
-        logger.info('API key loaded from settings')
-      }
+    const settings = store.getSettings()
+    if (settings.apiKey) {
+      youTubeApiService.setApiKey(settings.apiKey)
+      logger.info('API key loaded from settings')
+    } else {
+      logger.warn('No API key configured — set a key in settings or configure WORKER_BASE')
     }
   } else {
     logger.info('Using Cloudflare Worker proxy, API key not needed in extension')

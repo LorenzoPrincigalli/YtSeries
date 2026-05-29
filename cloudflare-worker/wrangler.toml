@@ -1,3 +1,7 @@
-name = "yt-series-api-proxy"
+name = "shy-snowflake-0680"
 main = "index.js"
 compatibility_date = "2026-05-27"
+
+[[kv_namespaces]]
+binding = "CACHE_KV"
+id = "d23a00e598044e9495fb84b879335d90"

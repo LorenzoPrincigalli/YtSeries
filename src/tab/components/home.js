@@ -3,10 +3,18 @@ import { t } from '../../shared/i18n.js'
 class HomePage {
   constructor() {
     this.isPro = false
+    this._heroTimer = null
   }
 
   setPro(isPro) {
     this.isPro = isPro
+  }
+
+  destroy() {
+    if (this._heroTimer) {
+      clearInterval(this._heroTimer)
+      this._heroTimer = null
+    }
   }
 
   renderHeroCarousel(seriesList, onContinue, onClick) {
@@ -17,7 +25,10 @@ class HomePage {
     slidesContainer.className = 'hero-carousel-slides'
 
     let currentIndex = 0
-    let autoTimer = null
+    if (this._heroTimer) {
+      clearInterval(this._heroTimer)
+      this._heroTimer = null
+    }
 
     const slides = []
     const dots = []
@@ -133,15 +144,15 @@ class HomePage {
       goTo((currentIndex + 1) % slides.length)
     }
 
-    function resetAuto() {
-      if (autoTimer) clearInterval(autoTimer)
-      autoTimer = setInterval(next, 10000)
+    const resetAuto = () => {
+      if (this._heroTimer) clearInterval(this._heroTimer)
+      this._heroTimer = setInterval(next, 10000)
     }
 
     if (slides.length > 1) resetAuto()
 
     section.addEventListener('mouseenter', () => {
-      if (autoTimer) clearInterval(autoTimer)
+      if (this._heroTimer) clearInterval(this._heroTimer)
     })
     section.addEventListener('mouseleave', () => {
       if (slides.length > 1) resetAuto()
@@ -339,7 +350,7 @@ class HomePage {
 
     const expandBtn = document.createElement('button')
     expandBtn.className = 'btn-primary channel-expand-btn'
-    expandBtn.textContent = 'Vedi playlist'
+    expandBtn.textContent = t('see_playlists')
 
     const playlistContainer = document.createElement('div')
     playlistContainer.className = 'channel-playlists hidden'

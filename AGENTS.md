@@ -19,11 +19,14 @@ Istruzioni e riferimenti rapidi per AI coding agents che lavorano su questo prog
 - Installazione dipendenze: `npm install`
 - Generazione icone: `npm run icons`
 - Build/pack: vedi [08-dev-workflow.md](docs/knowledge/08-dev-workflow.md)
+- Test: `npm test` (Vitest, 81 test su 5 file)
+- API key in `src/shared/config.js` — NON inserire chiavi reali (vanno nel bundle)
 
 ## Documentazione chiave
 - [docs/knowledge/00-quick-start.md](docs/knowledge/00-quick-start.md) — orientamento rapido
 - [docs/knowledge/01-architecture.md](docs/knowledge/01-architecture.md) — overview architettura
 - [docs/knowledge/09-agent-playbook.md](docs/knowledge/09-agent-playbook.md) — checklist e task comuni
+- [docs/2026-05-29_1930/07-Final-Report.md](docs/2026-05-29_1930/07-Final-Report.md) — analisi completa e fix applicati
 
 ## Note
 - Non duplicare documentazione già presente: **linka** sempre ai file esistenti.
@@ -31,6 +34,8 @@ Istruzioni e riferimenti rapidi per AI coding agents che lavorano su questo prog
 - Skill locali disponibili:
   - `senior-engineer` (`.agents/skills/senior-engineer/SKILL.md`) — architettura, refactoring, planning
   - `greploop` (`.agents/skills/greploop/SKILL.md`) — esplorazione iterativa del codebase via grep
+  - `check-pr` (`.agents/skills/check-pr/SKILL.md`) — analisi PR con `gh` CLI
+- `gh` CLI installato in `C:\Program Files\GitHub CLI` e autenticato come `LorenzoPrincigalli`
 - Se trovi flussi, regole o dettagli non documentati o cambiati, aggiorna la knowledge di conseguenza.
 - Se modifichi i flussi principali, aggiorna anche la doc in `docs/knowledge/`.
 

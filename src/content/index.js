@@ -1,3 +1,6 @@
+// NOTE: Content scripts in MV3 cannot use ES module imports.
+// Keep EVENTS in sync with src/shared/events.js and TRANSLATIONS with src/shared/i18n.js.
+
 const EVENTS = {
   OPEN_SERIES_TAB: 'OPEN_SERIES_TAB',
   EPISODE_WATCH: 'EPISODE_WATCH',
@@ -13,13 +16,25 @@ const TRANSLATIONS = {
     nextEpisode: 'Next Episode',
     watchNext: 'Watch Next',
     added: 'Added',
-    addToSeries: 'Add to Series'
+    addToSeries: 'Add to Series',
+    viewOnYtSeries: 'View on YT Series',
+    adding: 'Adding...',
+    limitReached: 'Free series limit reached. Upgrade to Pro for unlimited series.',
+    extensionUnavailable: 'Extension not available. Reload the page.',
+    unknownError: 'Unknown error',
+    couldNotAdd: 'Could not add series'
   },
   it: {
     nextEpisode: 'Prossimo Episodio',
     watchNext: 'Guarda Prossimo',
     added: 'Aggiunto',
-    addToSeries: 'Aggiungi a Serie'
+    addToSeries: 'Aggiungi a Serie',
+    viewOnYtSeries: 'Vedi su YT Series',
+    adding: 'Aggiunta in corso...',
+    limitReached: 'Hai raggiunto il limite di serie gratuite. Passa a Pro per serie illimitate.',
+    extensionUnavailable: 'Estensione non disponibile. Ricarica la pagina.',
+    unknownError: 'Errore sconosciuto',
+    couldNotAdd: 'Impossibile aggiungere la serie'
   }
 }
 
@@ -65,8 +80,11 @@ let progressSaveTimeout = null
 let lastProgressSent = null
 let nextEpisodeOverlay = null
 let isContextValid = true
-let playerMode = 'normal' // normal, cinema, full, mini
+let playerMode = 'normal'
 let addSeriesButtonInjected = false
+let visibilityHandler = null
+let modeObserver = null
+let fullscreenHandler = null
 
 function cleanupVideoListener() {
   if (videoDetectionInterval) {
@@ -88,6 +106,18 @@ function cleanupVideoListener() {
   if (nextEpisodeOverlay) {
     nextEpisodeOverlay.remove()
     nextEpisodeOverlay = null
+  }
+  if (visibilityHandler) {
+    document.removeEventListener('visibilitychange', visibilityHandler)
+    visibilityHandler = null
+  }
+  if (modeObserver) {
+    modeObserver.disconnect()
+    modeObserver = null
+  }
+  if (fullscreenHandler) {
+    document.removeEventListener('fullscreenchange', fullscreenHandler)
+    fullscreenHandler = null
   }
   lastProgressSent = null
 }
@@ -151,7 +181,7 @@ function setupVideoEndDetection(videoId, playlistId) {
   let attempts = 0
   let paused = false
 
-  document.addEventListener('visibilitychange', () => {
+  visibilityHandler = () => {
     if (document.hidden) {
       paused = true
       if (videoDetectionInterval) {
@@ -162,7 +192,8 @@ function setupVideoEndDetection(videoId, playlistId) {
       paused = false
       if (!videoDetectionInterval) startPolling()
     }
-  })
+  }
+  document.addEventListener('visibilitychange', visibilityHandler)
 
   function startPolling() {
     videoDetectionInterval = setInterval(() => {
@@ -347,7 +378,7 @@ function createNextEpisodeOverlay(nextEpisode, playlistId, currentVideoId) {
     updateOverlayPosition()
 
     // Listen for player mode changes
-    const modeObserver = new MutationObserver(() => {
+    modeObserver = new MutationObserver(() => {
       updateOverlayPosition()
     })
 
@@ -357,7 +388,8 @@ function createNextEpisodeOverlay(nextEpisode, playlistId, currentVideoId) {
     }
 
     // Listen for fullscreen changes
-    document.addEventListener('fullscreenchange', updateOverlayPosition)
+    fullscreenHandler = updateOverlayPosition
+    document.addEventListener('fullscreenchange', fullscreenHandler)
 
     document.getElementById('ytSeriesNextBtn').addEventListener('click', () => {
       // Marca episodio corrente come visto
@@ -651,7 +683,7 @@ function injectAddToSeriesButton() {
       white-space: nowrap;
       flex-shrink: 0;
     `
-    const buttonLabel = isAdded ? 'Vedi su YT Series' : 'Aggiungi a TvSeries'
+    const buttonLabel = isAdded ? t.viewOnYtSeries : t.addToSeries
     button.setAttribute('aria-label', buttonLabel)
     button.textContent = buttonLabel
 
@@ -661,26 +693,26 @@ function injectAddToSeriesButton() {
       } else {
         const playlistUrl = window.location.href
         button.disabled = true
-        button.textContent = 'Aggiunta in corso...'
+        button.textContent = t.adding
         safeSendMessage({
           type: EVENTS.PLAYLIST_ADD,
           payload: { url: playlistUrl }
         }, (addResponse) => {
           if (addResponse && addResponse.success) {
-            button.textContent = 'Vedi su YT Series'
+            button.textContent = t.viewOnYtSeries
             button.style.background = '#e8e8e8'
           } else if (addResponse && addResponse.error === 'LIMIT_REACHED') {
-            showToast('Hai raggiunto il limite di serie gratuite. Passa a Pro per serie illimitate.')
-            button.textContent = 'Aggiungi a TvSeries'
+            showToast(t.limitReached)
+            button.textContent = t.addToSeries
             button.disabled = false
           } else if (addResponse && addResponse.error === 'CONTEXT_INVALIDATED') {
-            showToast('Estensione non disponibile. Ricarica la pagina.')
-            button.textContent = 'Aggiungi a TvSeries'
+            showToast(t.extensionUnavailable)
+            button.textContent = t.addToSeries
             button.disabled = false
           } else {
-            const msg = (addResponse && addResponse.message) ? addResponse.message : 'Errore sconosciuto'
-            showToast('Impossibile aggiungere la serie: ' + msg)
-            button.textContent = 'Aggiungi a TvSeries'
+            const msg = (addResponse && addResponse.message) ? addResponse.message : t.unknownError
+            showToast(t.couldNotAdd + ': ' + msg)
+            button.textContent = t.addToSeries
             button.disabled = false
           }
         })

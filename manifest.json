@@ -21,7 +21,7 @@
     "https://shy-snowflake-0680.lollo-princigalli.workers.dev/*"
   ],
   "content_security_policy": {
-    "extension_pages": "default-src 'self'; connect-src 'self' https://shy-snowflake-0680.lollo-princigalli.workers.dev https://www.googleapis.com https://api.lemonsqueezy.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com; img-src 'self' https: data:; frame-src https://www.youtube.com https://www.youtube-nocookie.com; style-src 'self' 'unsafe-inline'"
+    "extension_pages": "default-src 'self'; script-src 'self'; connect-src 'self' https://shy-snowflake-0680.lollo-princigalli.workers.dev https://www.googleapis.com https://api.lemonsqueezy.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com; img-src 'self' https: data:; frame-src https://www.youtube.com https://www.youtube-nocookie.com; style-src 'self' 'unsafe-inline'"
   },
   "background": {
     "service_worker": "src/background/index.js",

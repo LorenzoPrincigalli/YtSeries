@@ -22,7 +22,8 @@ npm run icons
 | Script | Command | Purpose |
 |--------|---------|---------|
 | `icons` | `node src/assets/scripts/generate-icons.cjs` | SVG → PNG 16/48/128 (+ `_light`) in `icons/` |
-| `lint` | echo placeholder | **No linter configured** |
+| `setup` | `node scripts/setup.mjs` | Interactive config wizard |
+| `test` | `vitest run` | Run 81 unit tests |
 
 Other scripts in `src/assets/scripts/` (not in package.json):
 
@@ -33,24 +34,32 @@ Other scripts in `src/assets/scripts/` (not in package.json):
 ## Project constraints
 
 - **No bundler** — paths in manifest and HTML must resolve as real files
-- **No test runner** — manual testing in Chrome
+- **No linter** — manual code review
 - ES modules only where manifest declares `type: "module"`
-
-## Reload checklist
-
-1. Reload extension on `chrome://extensions`
-2. Hard-refresh dashboard tab (`src/tab/index.html`)
-3. Refresh YouTube tabs for content script
+- Tests: Vitest (81 tests, `npm test`)
 
 ## Worker deploy (maintainers)
 
+### First-time setup
+
 ```bash
 cd cloudflare-worker
-# wrangler secret put YT_API_KEY
-# wrangler deploy
+npx wrangler login
+npx wrangler kv namespace create "YT_SERIES_CACHE"
+# Copy the namespace ID into wrangler.toml [[kv_namespaces]] section
 ```
 
-Update `API.WORKER_BASE` + manifest permissions/CSP if URL changes.
+### Every deploy
+
+```bash
+cd cloudflare-worker
+npx wrangler deploy
+```
+
+- Secret `YT_API_KEY` already set in Worker environment
+- KV namespace `CACHE_KV` bound in `wrangler.toml`
+- 3-layer caching: edge (`caches.default`) → KV (`CACHE_KV`) → YouTube API
+- Update `API.WORKER_BASE` + manifest permissions/CSP if URL changes
 
 ## Publishing (Chrome Web Store)
 
