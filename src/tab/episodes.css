@@ -4,6 +4,12 @@
   gap: var(--space-md);
 }
 
+.episode-grid input[type="checkbox"],
+.episode-card input[type="checkbox"] {
+  margin-right: 10px;
+  cursor: pointer;
+}
+
 .episode-card {
   display: flex;
   gap: 12px;

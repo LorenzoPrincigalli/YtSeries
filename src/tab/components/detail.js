@@ -86,56 +86,43 @@ class DetailPage {
   // Rende la sezione in evidenza per il nuovo episodio
   _renderNewEpisodeHighlight(series, video) {
     const section = document.createElement('div')
-    section.style.background = 'var(--card-bg)'
-    section.style.borderRadius = '8px'
-    section.style.marginBottom = '18px'
-    section.style.display = 'flex'
-    section.style.flexDirection = 'column'
+    section.className = 'detail-new-highlight'
 
     const accent = document.createElement('div')
     accent.className = 'new-accent-bar'
     section.appendChild(accent)
 
     const body = document.createElement('div')
-    body.style.display = 'flex'
-    body.style.alignItems = 'center'
-    body.style.gap = '18px'
-    body.style.padding = '18px 18px 12px 18px'
+    body.className = 'detail-new-highlight-body'
     section.appendChild(body)
 
     const img = document.createElement('img')
     img.src = video.thumbnail || ''
     img.alt = video.title
-    img.style.width = '160px'
-    img.style.borderRadius = '6px'
-    img.style.objectFit = 'cover'
+    img.className = 'detail-new-highlight-thumb'
     body.appendChild(img)
 
     const info = document.createElement('div')
-    info.style.flex = '1'
+    info.className = 'detail-new-highlight-info'
 
     const title = document.createElement('div')
     const badge = document.createElement('span')
     badge.className = 'new-badge'
     badge.textContent = t('new_episode')
     title.appendChild(badge)
-    title.style.fontSize = '17px'
-    title.style.fontWeight = 'bold'
-    title.style.marginBottom = '6px'
+    title.className = 'detail-new-highlight-title'
     info.appendChild(title)
 
     const epTitle = document.createElement('div')
     epTitle.textContent = video.title
-    epTitle.style.fontSize = '15px'
-    epTitle.style.marginBottom = '6px'
+    epTitle.className = 'detail-new-highlight-episode'
     info.appendChild(epTitle)
 
     if (video.publishedAt) {
       const dateEl = document.createElement('div')
       const d = new Date(video.publishedAt)
       dateEl.textContent = d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
-      dateEl.style.fontSize = '13px'
-      dateEl.style.color = 'var(--text-muted)'
+      dateEl.className = 'detail-new-highlight-date'
       info.appendChild(dateEl)
     }
 
@@ -145,7 +132,6 @@ class DetailPage {
     btn.onclick = () => {
       window.open(`https://www.youtube.com/watch?v=${video.id}&list=${series.playlistId}`, '_blank', 'noopener')
     }
-    btn.style.marginTop = '10px'
     info.appendChild(btn)
 
     body.appendChild(info)
@@ -287,8 +273,7 @@ class DetailPage {
     actions.appendChild(refresh)
 
     const del = document.createElement('button')
-    del.className = 'btn-secondary'
-    del.style.color = 'var(--primary)'
+    del.className = 'btn-secondary text-error'
     del.textContent = `\uD83D\uDDD1 ${t('delete')}`
     del.addEventListener('click', () => this._confirmDelete(series))
     actions.appendChild(del)
@@ -407,7 +392,6 @@ class DetailPage {
     // Checkbox selezione multipla
     const checkbox = document.createElement('input')
     checkbox.type = 'checkbox'
-    checkbox.style.marginRight = '10px'
     checkbox.checked = selectedIds && selectedIds.has(video.id)
     checkbox.addEventListener('click', (e) => {
       e.stopPropagation()
@@ -638,7 +622,6 @@ class DetailPage {
     const confirmBtn = document.createElement('button')
     confirmBtn.className = 'btn-primary'
     confirmBtn.id = 'confirmDeleteBtn'
-    confirmBtn.style.background = 'var(--primary)'
     confirmBtn.textContent = t('delete')
     footer.appendChild(cancelBtn)
     footer.appendChild(confirmBtn)

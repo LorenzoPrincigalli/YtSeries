@@ -354,14 +354,14 @@ select option {
   border-radius: var(--radius-lg);
   overflow: hidden;
   background: var(--card-bg);
-  margin-bottom: var(--space-md);
+  margin-bottom: var(--space-lg);
 }
 
 .detail-new-highlight-body {
   display: flex;
   align-items: center;
-  gap: var(--space-md);
-  padding: var(--space-md);
+  gap: var(--space-lg);
+  padding: var(--space-lg) var(--space-lg) 12px var(--space-lg);
 }
 
 .detail-new-highlight-thumb {
@@ -390,7 +390,16 @@ select option {
   color: var(--text-muted);
 }
 
+.detail-new-highlight-info .btn-primary {
+  margin-top: 10px;
+}
+
 /* modal confirm */
+.modal-confirm-body {
+  text-align: center;
+  padding: var(--space-xl) var(--space-lg);
+}
+
 .modal-confirm-icon {
   font-size: 40px;
   margin-bottom: var(--space-md);

@@ -863,7 +863,7 @@ function handleBuyPro() {
   } else {
     const msgEl = document.getElementById('licenseMessage')
     msgEl.textContent = 'Checkout URL not configured yet. Set PRO_CHECKOUT.URL in constants.js'
-    msgEl.style.color = 'var(--primary)'
+    msgEl.classList.add('text-error')
     msgEl.classList.remove('hidden')
   }
 }
@@ -883,18 +883,21 @@ async function handleVerifyLicense() {
       state.license.isPro = true
       state.license.key = key
       msgEl.textContent = t('license_activated')
-      msgEl.style.color = '#2ecc71'
+      msgEl.classList.remove('text-error')
+      msgEl.classList.add('text-success')
       msgEl.classList.remove('hidden')
       populateSettingsForm()
       render()
     } else {
       msgEl.textContent = response.reason === 'NETWORK_ERROR' ? t('license_failed') : t('license_invalid')
-      msgEl.style.color = 'var(--primary)'
+      msgEl.classList.remove('text-success')
+      msgEl.classList.add('text-error')
       msgEl.classList.remove('hidden')
     }
   } catch (err) {
     msgEl.textContent = t('license_failed')
-    msgEl.style.color = 'var(--primary)'
+    msgEl.classList.remove('text-success')
+    msgEl.classList.add('text-error')
     msgEl.classList.remove('hidden')
   } finally {
     document.getElementById('verifyLicenseBtn').disabled = false
@@ -919,10 +922,10 @@ function populateSettingsForm() {
   }
 
   const proSettings = document.getElementById('proSettings')
-  proSettings.style.display = isPro ? 'block' : 'none'
+  proSettings.classList.toggle('hidden', !isPro)
   const buySection = document.getElementById('buyProSection')
   if (buySection) {
-    buySection.style.display = isPro ? 'none' : 'block'
+    buySection.classList.toggle('hidden', isPro)
     document.getElementById('buyProBtn').textContent = t('buy_pro')
   }
   document.getElementById('licenseKeyInput').disabled = false
@@ -951,10 +954,10 @@ function populateSyncUI() {
 
   const s = syncStatus || {}
   if (!s.configured) {
-    section.style.display = 'none'
+    section.classList.add('hidden')
     return
   }
-  section.style.display = 'block'
+  section.classList.remove('hidden')
 
   if (msgEl) msgEl.classList.add('hidden')
 
@@ -1014,7 +1017,8 @@ async function handleSyncLogin() {
       const msgEl = document.getElementById('syncMessage')
       if (msgEl) {
         msgEl.textContent = response.message || t('sync_login_failed')
-        msgEl.style.color = 'var(--primary)'
+        msgEl.classList.remove('text-success')
+        msgEl.classList.add('text-error')
         msgEl.classList.remove('hidden')
       }
     }
@@ -1041,7 +1045,8 @@ async function handleSyncNow() {
       const msgEl = document.getElementById('syncMessage')
       if (msgEl) {
         msgEl.textContent = response.message || t('sync_status_error')
-        msgEl.style.color = 'var(--primary)'
+        msgEl.classList.remove('text-success')
+        msgEl.classList.add('text-error')
         msgEl.classList.remove('hidden')
       }
     }

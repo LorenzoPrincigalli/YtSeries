@@ -35,21 +35,18 @@ class ModalManager {
       modal.className = 'modal confirm-modal'
 
       const body = document.createElement('div')
-      body.className = 'modal-body'
-      body.style.textAlign = 'center'
-      body.style.padding = '32px 24px'
+      body.className = 'modal-body modal-confirm-body'
 
       const icon = document.createElement('div')
-      icon.style.cssText = 'font-size: 40px;margin-bottom: 16px'
+      icon.className = 'modal-confirm-icon'
       icon.textContent = '\u26A0\uFE0F'
 
       const msg = document.createElement('p')
-      msg.style.cssText = 'color: var(--text);font-size: 15px;line-height: 1.5;margin-bottom: 24px'
+      msg.className = 'modal-confirm-msg'
       msg.textContent = message
 
       const footer = document.createElement('div')
-      footer.className = 'modal-footer'
-      footer.style.justifyContent = 'center'
+      footer.className = 'modal-footer centered-footer'
 
       const cancelBtn = document.createElement('button')
       cancelBtn.className = 'btn-secondary'
@@ -62,7 +59,6 @@ class ModalManager {
       const confirmBtn = document.createElement('button')
       confirmBtn.className = 'btn-primary'
       confirmBtn.textContent = t('confirm')
-      confirmBtn.style.background = 'var(--primary)'
       confirmBtn.addEventListener('click', () => {
         overlay.remove()
         resolve(true)

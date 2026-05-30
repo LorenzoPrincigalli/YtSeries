@@ -209,19 +209,19 @@ class HomePage {
       mouseDown = true
       startX = e.pageX - grid.offsetLeft
       scrollLeftStart = grid.scrollLeft
-      grid.style.cursor = 'grabbing'
+      grid.classList.add('dragging')
     })
 
     grid.addEventListener('mouseleave', () => {
       if (mouseDown) {
         mouseDown = false
-        grid.style.cursor = ''
+        grid.classList.remove('dragging')
       }
     })
 
     grid.addEventListener('mouseup', () => {
       mouseDown = false
-      grid.style.cursor = ''
+      grid.classList.remove('dragging')
     })
 
     grid.addEventListener('mousemove', (e) => {
