@@ -1083,6 +1083,7 @@ function applyTheme() {
   root.style.setProperty('--surface', colors.surface)
   root.style.setProperty('--primary', colors.primary)
   root.style.setProperty('--primary-hover', colors.primaryHover)
+  root.style.setProperty('--primary-rgb', colors.primaryRgb)
   root.style.setProperty('--text', colors.text)
   root.style.setProperty('--text-muted', colors.textMuted)
   root.style.setProperty('--card-bg', colors.cardBg)

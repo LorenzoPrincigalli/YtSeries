@@ -6,6 +6,10 @@ html, body {
   overflow-x: hidden;
 }
 
+body {
+  background-image: radial-gradient(ellipse at 50% 0%, rgba(var(--primary-rgb), 0.06), transparent 70%);
+}
+
 #app {
   min-height: 100vh;
   display: flex;

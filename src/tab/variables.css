@@ -112,6 +112,7 @@
   --bg: #0f0f0f;
   --surface: #212121;
   --primary: #ff0000;
+  --primary-rgb: 255, 0, 0;
   --primary-hover: #cc0000;
   --text: #f1f1f1;
   --text-muted: #aaaaaa;

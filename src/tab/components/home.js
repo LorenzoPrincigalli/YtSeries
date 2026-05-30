@@ -184,8 +184,10 @@ class HomePage {
     const grid = document.createElement('div')
     grid.className = 'carousel-grid'
 
-    for (const s of seriesList) {
-      const card = this._createCard(s, onClick)
+    for (let i = 0; i < seriesList.length; i++) {
+      const card = this._createCard(seriesList[i], onClick)
+      card.style.setProperty('--i', i)
+      card.classList.add('card-reveal')
       grid.appendChild(card)
     }
 
