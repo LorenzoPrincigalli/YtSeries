@@ -3,6 +3,19 @@
   font-weight: 600;
   margin-bottom: 18px;
   letter-spacing: -0.01em;
+  position: relative;
+  padding-left: 14px;
+}
+
+.section-title::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 2px;
+  bottom: 2px;
+  width: 4px;
+  background: var(--primary);
+  border-radius: 2px;
 }
 
 .series-row {

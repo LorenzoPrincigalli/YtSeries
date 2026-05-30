@@ -17,26 +17,18 @@ class HomePage {
     }
   }
 
-  renderHeroCarousel(seriesList, onContinue, onClick) {
+  renderFeaturedHero(seriesList, onContinue, onClick) {
     const section = document.createElement('section')
-    section.className = 'hero-section hero-carousel'
+    section.className = 'hero-featured'
 
-    const slidesContainer = document.createElement('div')
-    slidesContainer.className = 'hero-carousel-slides'
+    const grid = document.createElement('div')
+    grid.className = 'hero-featured-grid'
 
-    let currentIndex = 0
-    if (this._heroTimer) {
-      clearInterval(this._heroTimer)
-      this._heroTimer = null
-    }
+    const take = Math.min(seriesList.length, 3)
 
-    const slides = []
-    const dots = []
-
-    for (let i = 0; i < seriesList.length; i++) {
+    for (let i = 0; i < take; i++) {
       const s = seriesList[i]
       const watchedCount = s.videos.filter(v => v.watched).length
-      // Trova il video con attività più recente (watched o in corso)
       let lastWatched = null;
       for (const v of s.videos) {
         if ((v.watched || v.progress > 0) && v.watchedAt) {
@@ -51,44 +43,41 @@ class HomePage {
           }
         }
       }
-      // progress è già una percentuale (0-100)
       const progress = lastWatched ? (lastWatched.watched ? 100 : (lastWatched.progress || 0)) : 0;
 
-      const slide = document.createElement('div')
-      slide.className = `hero-carousel-slide${i === 0 ? ' active' : ''}`
-      slide.dataset.index = i
+      const card = document.createElement('div')
+      card.className = `hero-featured-card${take === 3 && i === 2 ? ' hero-featured-tall' : ''}`
+      card.addEventListener('click', () => onClick(s))
 
       const img = document.createElement('img')
-      img.className = 'hero-backdrop'
+      img.className = 'hero-featured-img'
       img.src = s.thumbnail || ''
       img.alt = s.title
       img.onerror = function () { this.src = '' }
 
       const gradient = document.createElement('div')
-      gradient.className = 'hero-gradient'
+      gradient.className = 'hero-featured-gradient'
 
       const content = document.createElement('div')
-      content.className = 'hero-content'
+      content.className = 'hero-featured-content'
 
-      const h1 = document.createElement('h1')
-      h1.className = 'hero-title'
-      h1.textContent = s.title
+      const h3 = document.createElement('h3')
+      h3.className = 'hero-featured-title'
+      h3.textContent = s.title
 
       const subtitle = document.createElement('p')
-      subtitle.className = 'hero-subtitle'
+      subtitle.className = 'hero-featured-subtitle'
       subtitle.textContent = s.channelTitle || ''
 
-      const progressContainer = document.createElement('div')
-      progressContainer.className = 'hero-progress'
+      const progressOuter = document.createElement('div')
+      progressOuter.className = 'hero-featured-progress'
       const progressBar = document.createElement('div')
-      progressBar.className = 'hero-progress-bar'
+      progressBar.className = 'hero-featured-progress-bar'
       progressBar.style.width = `${progress}%`
-      progressContainer.appendChild(progressBar)
-
-
+      progressOuter.appendChild(progressBar)
 
       const btn = document.createElement('button')
-      btn.className = 'hero-btn hero-btn-play'
+      btn.className = 'hero-featured-btn'
       const btnLabel = watchedCount > 0 ? t('continue_watching') : t('start')
       btn.textContent = `\u25B6 ${btnLabel}`
       btn.addEventListener('click', (e) => {
@@ -96,68 +85,19 @@ class HomePage {
         onContinue(s)
       })
 
-      const btnGroup = document.createElement('div')
-      btnGroup.className = 'hero-btn-group'
-      btnGroup.appendChild(btn)
-
-      content.appendChild(h1)
+      content.appendChild(h3)
       content.appendChild(subtitle)
-      content.appendChild(progressContainer)
-      content.appendChild(btnGroup)
+      content.appendChild(progressOuter)
+      content.appendChild(btn)
 
-      slide.appendChild(img)
-      slide.appendChild(gradient)
-      slide.appendChild(content)
+      card.appendChild(img)
+      card.appendChild(gradient)
+      card.appendChild(content)
 
-      slide.addEventListener('click', () => onClick(s))
-
-      slidesContainer.appendChild(slide)
-      slides.push(slide)
-
-      const dot = document.createElement('span')
-      dot.className = `hero-dot${i === 0 ? ' active' : ''}`
-      dot.addEventListener('click', (e) => {
-        e.stopPropagation()
-        goTo(i)
-      })
-      dots.push(dot)
+      grid.appendChild(card)
     }
 
-    const dotsContainer = document.createElement('div')
-    dotsContainer.className = 'hero-dots'
-    for (const dot of dots) dotsContainer.appendChild(dot)
-
-    section.appendChild(slidesContainer)
-    section.appendChild(dotsContainer)
-
-    function goTo(index) {
-      if (index === currentIndex) return
-      slides[currentIndex].classList.remove('active')
-      dots[currentIndex].classList.remove('active')
-      currentIndex = index
-      slides[currentIndex].classList.add('active')
-      dots[currentIndex].classList.add('active')
-      resetAuto()
-    }
-
-    function next() {
-      goTo((currentIndex + 1) % slides.length)
-    }
-
-    const resetAuto = () => {
-      if (this._heroTimer) clearInterval(this._heroTimer)
-      this._heroTimer = setInterval(next, 10000)
-    }
-
-    if (slides.length > 1) resetAuto()
-
-    section.addEventListener('mouseenter', () => {
-      if (this._heroTimer) clearInterval(this._heroTimer)
-    })
-    section.addEventListener('mouseleave', () => {
-      if (slides.length > 1) resetAuto()
-    })
-
+    section.appendChild(grid)
     return section
   }
 

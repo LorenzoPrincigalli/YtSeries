@@ -531,7 +531,7 @@ function renderHome() {
   if (!currentSearch && currentFilter === 'all') {
     const heroSeries = buildHeroSeries(seriesArray)
     if (heroSeries.length > 0) {
-      main.appendChild(homePage.renderHeroCarousel(heroSeries, onContinueWatching, onSeriesClick))
+      main.appendChild(homePage.renderFeaturedHero(heroSeries, onContinueWatching, onSeriesClick))
     }
     if (currentFilter === 'all' && !currentSearch) {
       const thisWeekSeries = getThisWeekSeries(seriesArray)
@@ -1147,20 +1147,8 @@ function showErrorToast(message) {
   if (existing) existing.remove()
 
   const toast = document.createElement('div')
-  toast.className = 'toast-error'
+  toast.className = 'toast toast-error'
   toast.textContent = message
-  Object.assign(toast.style, {
-    position: 'fixed',
-    bottom: '24px',
-    right: '24px',
-    padding: '12px 20px',
-    background: 'var(--primary)',
-    color: '#fff',
-    borderRadius: '8px',
-    fontSize: '14px',
-    zIndex: '300',
-    animation: 'fadeIn 0.2s ease'
-  })
   document.body.appendChild(toast)
 
   setTimeout(() => toast.remove(), 3000)
