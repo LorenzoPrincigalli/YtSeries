@@ -63,8 +63,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.15);
+  background: var(--modal-close-bg);
+  border: 1px solid var(--modal-close-border);
   border-radius: 50%;
   color: var(--text-muted);
   font-size: 20px;
@@ -76,7 +76,7 @@
 }
 
 .modal-close:hover {
-  background: rgba(255,255,255,0.18);
+  background: var(--modal-close-hover-bg);
   border-color: var(--text);
   color: var(--text);
 }
@@ -97,7 +97,7 @@
   padding: 12px var(--space-md);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: rgba(0,0,0,0.3);
+  background: var(--input-bg);
   color: var(--text);
   font-size: 14px;
   font-family: var(--font-primary);

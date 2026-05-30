@@ -16,7 +16,7 @@
 }
 
 .icon-btn:hover {
-  background: rgba(255,255,255,0.1);
+  background: var(--hover-overlay-strong);
 }
 
 .btn-primary {
@@ -53,7 +53,7 @@
 }
 
 .btn-secondary:hover {
-  background: rgba(255,255,255,0.1);
+  background: var(--hover-overlay-strong);
 }
 
 .btn-secondary:active {
@@ -90,7 +90,7 @@ select {
   padding: 10px 36px 10px 14px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: rgba(0,0,0,0.4);
+  background: var(--input-bg);
   color: var(--text);
   font-size: 14px;
   font-family: var(--font-primary);
@@ -100,13 +100,13 @@ select {
 
 select:hover {
   border-color: var(--text-muted);
-  background: rgba(0,0,0,0.5);
+  background: var(--card-hover);
 }
 
 select:focus {
   outline: none;
   border-color: var(--primary);
-  background: rgba(0,0,0,0.55);
+  background: var(--card-hover);
 }
 
 select option {

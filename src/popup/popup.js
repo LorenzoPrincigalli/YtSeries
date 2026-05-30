@@ -19,11 +19,19 @@ const THEME_COLORS = {
     border: '#2a3a2a', modalBg: '#1a2a1a', danger: '#E50914', success: '#2ecc71',
     warning: '#f97316', borderLight: 'rgba(180,220,180,0.08)'
   }
+  'light': {
+    bg: '#f8f6f3', surface: '#ffffff', primary: '#d40000', primaryRgb: '212, 0, 0', primaryHover: '#b30000',
+    text: '#1a1a1a', textMuted: '#888888', cardBg: '#ffffff', cardHover: '#f0eeeb',
+    border: '#e0ddd8', modalBg: '#ffffff', danger: '#d40000', success: '#1a8a3a',
+    warning: '#d97706', borderLight: 'rgba(0,0,0,0.06)'
+  }
 }
 
 function applyPopupTheme(themeName) {
   const colors = THEME_COLORS[themeName] || THEME_COLORS['classic-red']
   const root = document.documentElement
+  const isDark = themeName !== 'light'
+
   root.style.setProperty('--bg', colors.bg)
   root.style.setProperty('--surface', colors.surface)
   root.style.setProperty('--primary', colors.primary)
@@ -39,7 +47,14 @@ function applyPopupTheme(themeName) {
   root.style.setProperty('--success', colors.success)
   root.style.setProperty('--warning', colors.warning)
   root.style.setProperty('--border-light', colors.borderLight)
-}
+  root.style.setProperty('--hover-overlay', isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)')
+  root.style.setProperty('--hover-overlay-strong', isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)')
+  root.style.setProperty('--input-bg', isDark ? 'rgba(0,0,0,0.3)' : colors.surface)
+  root.style.setProperty('--card-shadow', isDark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.06)')
+  root.style.setProperty('--card-elevated', isDark ? '0 8px 30px rgba(0,0,0,0.5)' : '0 8px 30px rgba(0,0,0,0.12)')
+  root.style.setProperty('--modal-close-bg', isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)')
+  root.style.setProperty('--modal-close-border', isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)')
+  root.style.setProperty('--modal-close-hover-bg', isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.12)')
 
 const SYNC_HINTS = {
   not_configured: '',

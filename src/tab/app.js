@@ -1078,12 +1078,13 @@ function applyTheme() {
   const themeName = state?.settings?.theme || 'classic-red'
   const colors = THEME_COLORS[themeName] || THEME_COLORS['classic-red']
   const root = document.documentElement
+  const isDark = themeName !== 'light'
 
   root.style.setProperty('--bg', colors.bg)
   root.style.setProperty('--surface', colors.surface)
   root.style.setProperty('--primary', colors.primary)
-  root.style.setProperty('--primary-hover', colors.primaryHover)
   root.style.setProperty('--primary-rgb', colors.primaryRgb)
+  root.style.setProperty('--primary-hover', colors.primaryHover)
   root.style.setProperty('--text', colors.text)
   root.style.setProperty('--text-muted', colors.textMuted)
   root.style.setProperty('--card-bg', colors.cardBg)
@@ -1094,6 +1095,14 @@ function applyTheme() {
   root.style.setProperty('--success', colors.success)
   root.style.setProperty('--warning', colors.warning)
   root.style.setProperty('--border-light', colors.borderLight)
+  root.style.setProperty('--hover-overlay', isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)')
+  root.style.setProperty('--hover-overlay-strong', isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)')
+  root.style.setProperty('--input-bg', isDark ? 'rgba(0,0,0,0.3)' : colors.surface)
+  root.style.setProperty('--card-shadow', isDark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.06)')
+  root.style.setProperty('--card-elevated', isDark ? '0 8px 30px rgba(0,0,0,0.5)' : '0 8px 30px rgba(0,0,0,0.12)')
+  root.style.setProperty('--modal-close-bg', isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)')
+  root.style.setProperty('--modal-close-border', isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)')
+  root.style.setProperty('--modal-close-hover-bg', isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.12)')
 
   let metaTheme = document.querySelector('meta[name="theme-color"]')
   if (!metaTheme) {

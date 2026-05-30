@@ -49,7 +49,7 @@
 .nav-link:hover,
 .nav-link.active {
   color: var(--text);
-  background: rgba(255,255,255,0.06);
+  background: var(--hover-overlay-strong);
 }
 
 .nav-home-icon {
@@ -72,7 +72,7 @@
   padding: var(--space-sm) 32px var(--space-sm) var(--space-md);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: rgba(0,0,0,0.3);
+  background: var(--input-bg);
   color: var(--text);
   font-size: 14px;
   font-family: var(--font-primary);
@@ -81,7 +81,7 @@
 
 .search-container input:focus {
   outline: none;
-  border-color: var(--text);
+  border-color: var(--primary);
 }
 
 .search-clear {

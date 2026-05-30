@@ -149,4 +149,18 @@
   --transition-fast: 0.15s ease;
   --transition: 0.2s ease;
   --transition-slow: 0.4s ease;
+
+  --text-on-primary: #fff;
+  --hero-btn-bg: #fff;
+  --hero-btn-text: #000;
+  --hover-overlay: rgba(255,255,255,0.04);
+  --hover-overlay-strong: rgba(255,255,255,0.1);
+  --input-bg: rgba(0,0,0,0.3);
+  --card-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  --card-elevated: 0 8px 30px rgba(0,0,0,0.5);
+  --scrollbar-thumb: var(--text-muted);
+  --modal-close-bg: rgba(255,255,255,0.08);
+  --modal-close-border: rgba(255,255,255,0.15);
+  --modal-close-hover-bg: rgba(255,255,255,0.18);
+  --skeleton-bg: linear-gradient(90deg, var(--card-bg) 25%, var(--card-hover) 50%, var(--card-bg) 75%);
 }

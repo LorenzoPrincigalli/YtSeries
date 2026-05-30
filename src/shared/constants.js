@@ -72,6 +72,23 @@ const THEME_COLORS = {
     success: '#2ecc71',
     warning: '#f97316',
     borderLight: 'rgba(180,220,180,0.08)'
+  },
+  'light': {
+    bg: '#f8f6f3',
+    surface: '#ffffff',
+    primary: '#d40000',
+    primaryRgb: '212, 0, 0',
+    primaryHover: '#b30000',
+    text: '#1a1a1a',
+    textMuted: '#888888',
+    cardBg: '#ffffff',
+    cardHover: '#f0eeeb',
+    border: '#e0ddd8',
+    modalBg: '#ffffff',
+    danger: '#d40000',
+    success: '#1a8a3a',
+    warning: '#d97706',
+    borderLight: 'rgba(0,0,0,0.06)'
   }
 }
 
