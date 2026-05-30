@@ -26,28 +26,49 @@ const THEME_COLORS = {
     bg: '#0f0f0f',
     surface: '#212121',
     primary: '#ff0000',
+    primaryHover: '#cc0000',
     text: '#f1f1f1',
     textMuted: '#aaaaaa',
     cardBg: '#1a1a1a',
-    hover: '#2a2a2a'
+    cardHover: '#2a2a2a',
+    border: '#333',
+    modalBg: '#212121',
+    danger: '#E50914',
+    success: '#2ecc71',
+    warning: '#f97316',
+    borderLight: 'rgba(255,255,255,0.08)'
   },
   'ocean-blue': {
     bg: '#0a1628',
     surface: '#0f1f3d',
     primary: '#1e90ff',
+    primaryHover: '#187bda',
     text: '#e0e8f0',
     textMuted: '#607080',
     cardBg: '#152540',
-    hover: '#1a2f50'
+    cardHover: '#1a2f50',
+    border: '#1a3050',
+    modalBg: '#0f1f3d',
+    danger: '#E50914',
+    success: '#2ecc71',
+    warning: '#f97316',
+    borderLight: 'rgba(200,220,255,0.08)'
   },
   'forest': {
     bg: '#0f1a0f',
     surface: '#1a2a1a',
     primary: '#2ecc71',
+    primaryHover: '#27ae60',
     text: '#e0f0e0',
     textMuted: '#608060',
     cardBg: '#1f301f',
-    hover: '#2a402a'
+    cardHover: '#2a402a',
+    border: '#2a3a2a',
+    modalBg: '#1a2a1a',
+    danger: '#E50914',
+    success: '#2ecc71',
+    warning: '#f97316',
+    borderLight: 'rgba(180,220,180,0.08)'
   }
 }
 

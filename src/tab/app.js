@@ -1077,10 +1077,17 @@ function applyTheme() {
   root.style.setProperty('--bg', colors.bg)
   root.style.setProperty('--surface', colors.surface)
   root.style.setProperty('--primary', colors.primary)
+  root.style.setProperty('--primary-hover', colors.primaryHover)
   root.style.setProperty('--text', colors.text)
   root.style.setProperty('--text-muted', colors.textMuted)
   root.style.setProperty('--card-bg', colors.cardBg)
-  root.style.setProperty('--card-hover', colors.hover)
+  root.style.setProperty('--card-hover', colors.cardHover)
+  root.style.setProperty('--border', colors.border)
+  root.style.setProperty('--modal-bg', colors.modalBg)
+  root.style.setProperty('--danger', colors.danger)
+  root.style.setProperty('--success', colors.success)
+  root.style.setProperty('--warning', colors.warning)
+  root.style.setProperty('--border-light', colors.borderLight)
 
   let metaTheme = document.querySelector('meta[name="theme-color"]')
   if (!metaTheme) {
