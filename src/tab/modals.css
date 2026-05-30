@@ -67,12 +67,16 @@
   border: 1px solid var(--modal-close-border);
   border-radius: 50%;
   color: var(--text-muted);
-  font-size: 20px;
   cursor: pointer;
   padding: 0;
-  line-height: 1;
   font-family: var(--font-primary);
   transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.modal-close svg {
+  width: 16px;
+  height: 16px;
+  display: block;
 }
 
 .modal-close:hover {

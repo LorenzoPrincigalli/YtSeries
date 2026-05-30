@@ -28,7 +28,7 @@ class DetailPage {
     const close = document.createElement('button')
     close.className = 'modal-close'
     close.id = 'detailModalClose'
-    close.textContent = '\u00D7'
+    close.innerHTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>'
     close.addEventListener('click', () => this.close())
     header.appendChild(close)
 
@@ -664,7 +664,7 @@ class DetailPage {
     header.className = 'modal-header'
     const closeBtn = document.createElement('button')
     closeBtn.className = 'modal-close channel-close-btn'
-    closeBtn.innerHTML = '&times;'
+    closeBtn.innerHTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>'
     header.appendChild(closeBtn)
     const h2 = document.createElement('h2')
     h2.textContent = t('more_from', { channel: channelTitle })

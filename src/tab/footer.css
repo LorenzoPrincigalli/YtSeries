@@ -1,6 +1,6 @@
 #footer {
   margin-top: auto;
-  padding: 20px var(--space-2xl);
+  padding: 12px var(--space-2xl);
   border-top: 1px solid var(--border);
 }
 
@@ -13,19 +13,19 @@
 }
 
 .footer-copyright {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-muted);
 }
 
 .footer-links {
   display: flex;
-  gap: 20px;
+  gap: 16px;
 }
 
 .footer-links a {
   color: var(--text-muted);
   text-decoration: none;
-  font-size: 13px;
+  font-size: 12px;
   transition: color var(--transition);
 }
 

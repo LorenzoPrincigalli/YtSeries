@@ -22,9 +22,9 @@
 .btn-primary {
   padding: var(--space-sm) 20px;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: 20px;
   background: var(--primary);
-  color: #fff;
+  color: var(--text-on-primary, #fff);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -43,7 +43,7 @@
 .btn-secondary {
   padding: var(--space-sm) 20px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: 20px;
   background: transparent;
   color: var(--text);
   font-size: 14px;
