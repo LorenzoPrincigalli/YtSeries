@@ -217,7 +217,6 @@ class HomePage {
       img.className = 'card-thumb-img'
       img.src = pl.thumbnail || ''
       img.alt = pl.title
-      img.loading = 'lazy'
       img.onerror = function () { this.src = '' }
       thumb.appendChild(img)
 
@@ -318,91 +317,6 @@ class HomePage {
               img.className = 'card-thumb-img'
               img.src = pl.thumbnail || ''
               img.alt = pl.title
-              img.loading = 'lazy'
-              thumb.appendChild(img)
-              plCard.appendChild(thumb)
-
-              const infoEl = document.createElement('div')
-              infoEl.className = 'card-info'
-              const titleEl = document.createElement('div')
-              titleEl.className = 'card-title'
-              titleEl.textContent = pl.title
-              infoEl.appendChild(titleEl)
-              const subtitleEl = document.createElement('div')
-              subtitleEl.className = 'card-subtitle'
-              subtitleEl.textContent = `${pl.videoCount || '?'} video`
-              infoEl.appendChild(subtitleEl)
-              plCard.appendChild(infoEl)
-
-              plCard.addEventListener('click', () => onPlaylistClick(pl))
-
-              const addBtn = document.createElement('button')
-              addBtn.className = 'card-add-overlay'
-              addBtn.textContent = '+'
-              addBtn.addEventListener('click', (e) => {
-                e.stopPropagation()
-                onPlaylistClick(pl)
-              })
-              thumb.appendChild(addBtn)
-
-              grid.appendChild(plCard)
-            }
-            playlistContainer.appendChild(grid)
-          } else {
-            playlistContainer.innerHTML = `<p class="search-empty">${t('no_playlists_found')}</p>`
-          }
-        } catch (err) {
-          playlistContainer.innerHTML = `<p class="search-empty">${t('load_error')}</p>`
-        }
-        expandBtn.textContent = t('hide')
-        expandBtn.disabled = false
-      } else {
-        playlistContainer.classList.add('hidden')
-    expandBtn.textContent = t('see_playlists')
-      }
-    })
-
-    card.appendChild(avatar)
-    card.appendChild(info)
-    card.appendChild(expandBtn)
-    section.appendChild(card)
-    section.appendChild(playlistContainer)
-
-    return section
-  }
-
-  _getPreviewVideo(series) {
-    const unwatched = series.videos.find(v => !v.watched)
-    return unwatched || series.videos[0] || null
-  }
-
-  _createCard(series, onClick) {
-    const watchedCount = series.videos.filter(v => v.watched).length
-    // Mostra la barra solo per il video in corso (non watched, ma con progress > 0), oppure 100% se tutti sono watched
-    let progress = 0;
-    const inProgress = series.videos.find(v => !v.watched && v.progress > 0);
-    if (inProgress) {
-      progress = inProgress.progress || 0;
-    } else if (series.videos.length > 0 && series.videos.every(v => v.watched)) {
-      progress = 100;
-    }
-    const isComplete = series.completed || (series.videos.length > 0 && watchedCount === series.videos.length)
-    const hasNew = series.newEpisodesCount > 0
-    const previewVideo = this._getPreviewVideo(series)
-
-    const card = document.createElement('div')
-    card.className = 'series-card'
-    card.dataset.id = series.playlistId
-    card.addEventListener('click', () => onClick(series))
-
-    const thumb = document.createElement('div')
-    thumb.className = 'card-thumbnail'
-
-    const img = document.createElement('img')
-    img.className = 'card-thumb-img'
-    img.src = series.thumbnail || ''
-    img.alt = series.title
-    img.loading = 'lazy'
     img.onerror = function () { this.src = '' }
     thumb.appendChild(img)
 
