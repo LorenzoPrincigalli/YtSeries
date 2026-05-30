@@ -17,18 +17,26 @@ class HomePage {
     }
   }
 
-  renderFeaturedHero(seriesList, onContinue, onClick) {
+  renderHeroCarousel(seriesList, onContinue, onClick) {
     const section = document.createElement('section')
-    section.className = 'hero-featured'
+    section.className = 'hero-section hero-carousel'
 
-    const grid = document.createElement('div')
-    grid.className = 'hero-featured-grid'
+    const slidesContainer = document.createElement('div')
+    slidesContainer.className = 'hero-carousel-slides'
 
-    const take = Math.min(seriesList.length, 3)
+    let currentIndex = 0
+    if (this._heroTimer) {
+      clearInterval(this._heroTimer)
+      this._heroTimer = null
+    }
 
-    for (let i = 0; i < take; i++) {
+    const slides = []
+    const dots = []
+
+    for (let i = 0; i < seriesList.length; i++) {
       const s = seriesList[i]
       const watchedCount = s.videos.filter(v => v.watched).length
+      // Trova il video con attività più recente (watched o in corso)
       let lastWatched = null;
       for (const v of s.videos) {
         if ((v.watched || v.progress > 0) && v.watchedAt) {
@@ -43,41 +51,44 @@ class HomePage {
           }
         }
       }
+      // progress è già una percentuale (0-100)
       const progress = lastWatched ? (lastWatched.watched ? 100 : (lastWatched.progress || 0)) : 0;
 
-      const card = document.createElement('div')
-      card.className = `hero-featured-card${take === 3 && i === 2 ? ' hero-featured-tall' : ''}`
-      card.addEventListener('click', () => onClick(s))
+      const slide = document.createElement('div')
+      slide.className = `hero-carousel-slide${i === 0 ? ' active' : ''}`
+      slide.dataset.index = i
 
       const img = document.createElement('img')
-      img.className = 'hero-featured-img'
+      img.className = 'hero-backdrop'
       img.src = s.thumbnail || ''
       img.alt = s.title
       img.onerror = function () { this.src = '' }
 
       const gradient = document.createElement('div')
-      gradient.className = 'hero-featured-gradient'
+      gradient.className = 'hero-gradient'
 
       const content = document.createElement('div')
-      content.className = 'hero-featured-content'
+      content.className = 'hero-content'
 
-      const h3 = document.createElement('h3')
-      h3.className = 'hero-featured-title'
-      h3.textContent = s.title
+      const h1 = document.createElement('h1')
+      h1.className = 'hero-title'
+      h1.textContent = s.title
 
       const subtitle = document.createElement('p')
-      subtitle.className = 'hero-featured-subtitle'
+      subtitle.className = 'hero-subtitle'
       subtitle.textContent = s.channelTitle || ''
 
-      const progressOuter = document.createElement('div')
-      progressOuter.className = 'hero-featured-progress'
+      const progressContainer = document.createElement('div')
+      progressContainer.className = 'hero-progress'
       const progressBar = document.createElement('div')
-      progressBar.className = 'hero-featured-progress-bar'
+      progressBar.className = 'hero-progress-bar'
       progressBar.style.width = `${progress}%`
-      progressOuter.appendChild(progressBar)
+      progressContainer.appendChild(progressBar)
+
+
 
       const btn = document.createElement('button')
-      btn.className = 'hero-featured-btn'
+      btn.className = 'hero-btn hero-btn-play'
       const btnLabel = watchedCount > 0 ? t('continue_watching') : t('start')
       btn.textContent = `\u25B6 ${btnLabel}`
       btn.addEventListener('click', (e) => {
@@ -85,19 +96,68 @@ class HomePage {
         onContinue(s)
       })
 
-      content.appendChild(h3)
+      const btnGroup = document.createElement('div')
+      btnGroup.className = 'hero-btn-group'
+      btnGroup.appendChild(btn)
+
+      content.appendChild(h1)
       content.appendChild(subtitle)
-      content.appendChild(progressOuter)
-      content.appendChild(btn)
+      content.appendChild(progressContainer)
+      content.appendChild(btnGroup)
 
-      card.appendChild(img)
-      card.appendChild(gradient)
-      card.appendChild(content)
+      slide.appendChild(img)
+      slide.appendChild(gradient)
+      slide.appendChild(content)
 
-      grid.appendChild(card)
+      slide.addEventListener('click', () => onClick(s))
+
+      slidesContainer.appendChild(slide)
+      slides.push(slide)
+
+      const dot = document.createElement('span')
+      dot.className = `hero-dot${i === 0 ? ' active' : ''}`
+      dot.addEventListener('click', (e) => {
+        e.stopPropagation()
+        goTo(i)
+      })
+      dots.push(dot)
     }
 
-    section.appendChild(grid)
+    const dotsContainer = document.createElement('div')
+    dotsContainer.className = 'hero-dots'
+    for (const dot of dots) dotsContainer.appendChild(dot)
+
+    section.appendChild(slidesContainer)
+    section.appendChild(dotsContainer)
+
+    function goTo(index) {
+      if (index === currentIndex) return
+      slides[currentIndex].classList.remove('active')
+      dots[currentIndex].classList.remove('active')
+      currentIndex = index
+      slides[currentIndex].classList.add('active')
+      dots[currentIndex].classList.add('active')
+      resetAuto()
+    }
+
+    function next() {
+      goTo((currentIndex + 1) % slides.length)
+    }
+
+    const resetAuto = () => {
+      if (this._heroTimer) clearInterval(this._heroTimer)
+      this._heroTimer = setInterval(next, 10000)
+    }
+
+    if (slides.length > 1) resetAuto()
+
+    section.addEventListener('mouseenter', () => {
+      if (this._heroTimer) clearInterval(this._heroTimer)
+    })
+    section.addEventListener('mouseleave', () => {
+      if (slides.length > 1) resetAuto()
+    })
+
     return section
   }
 
@@ -124,10 +184,8 @@ class HomePage {
     const grid = document.createElement('div')
     grid.className = 'carousel-grid'
 
-    for (let i = 0; i < seriesList.length; i++) {
-      const card = this._createCard(seriesList[i], onClick)
-      card.style.setProperty('--i', i)
-      card.classList.add('card-reveal')
+    for (const s of seriesList) {
+      const card = this._createCard(s, onClick)
       grid.appendChild(card)
     }
 
@@ -151,19 +209,19 @@ class HomePage {
       mouseDown = true
       startX = e.pageX - grid.offsetLeft
       scrollLeftStart = grid.scrollLeft
-      grid.classList.add('dragging')
+      grid.style.cursor = 'grabbing'
     })
 
     grid.addEventListener('mouseleave', () => {
       if (mouseDown) {
         mouseDown = false
-        grid.classList.remove('dragging')
+        grid.style.cursor = ''
       }
     })
 
     grid.addEventListener('mouseup', () => {
       mouseDown = false
-      grid.classList.remove('dragging')
+      grid.style.cursor = ''
     })
 
     grid.addEventListener('mousemove', (e) => {

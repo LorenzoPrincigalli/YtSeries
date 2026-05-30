@@ -531,7 +531,7 @@ function renderHome() {
   if (!currentSearch && currentFilter === 'all') {
     const heroSeries = buildHeroSeries(seriesArray)
     if (heroSeries.length > 0) {
-      main.appendChild(homePage.renderFeaturedHero(heroSeries, onContinueWatching, onSeriesClick))
+      main.appendChild(homePage.renderHeroCarousel(heroSeries, onContinueWatching, onSeriesClick))
     }
     if (currentFilter === 'all' && !currentSearch) {
       const thisWeekSeries = getThisWeekSeries(seriesArray)
@@ -863,7 +863,7 @@ function handleBuyPro() {
   } else {
     const msgEl = document.getElementById('licenseMessage')
     msgEl.textContent = 'Checkout URL not configured yet. Set PRO_CHECKOUT.URL in constants.js'
-    msgEl.classList.add('text-error')
+    msgEl.style.color = 'var(--primary)'
     msgEl.classList.remove('hidden')
   }
 }
@@ -883,21 +883,18 @@ async function handleVerifyLicense() {
       state.license.isPro = true
       state.license.key = key
       msgEl.textContent = t('license_activated')
-      msgEl.classList.remove('text-error')
-      msgEl.classList.add('text-success')
+      msgEl.style.color = '#2ecc71'
       msgEl.classList.remove('hidden')
       populateSettingsForm()
       render()
     } else {
       msgEl.textContent = response.reason === 'NETWORK_ERROR' ? t('license_failed') : t('license_invalid')
-      msgEl.classList.remove('text-success')
-      msgEl.classList.add('text-error')
+      msgEl.style.color = 'var(--primary)'
       msgEl.classList.remove('hidden')
     }
   } catch (err) {
     msgEl.textContent = t('license_failed')
-    msgEl.classList.remove('text-success')
-    msgEl.classList.add('text-error')
+    msgEl.style.color = 'var(--primary)'
     msgEl.classList.remove('hidden')
   } finally {
     document.getElementById('verifyLicenseBtn').disabled = false
@@ -922,10 +919,10 @@ function populateSettingsForm() {
   }
 
   const proSettings = document.getElementById('proSettings')
-  proSettings.classList.toggle('hidden', !isPro)
+  proSettings.style.display = isPro ? 'block' : 'none'
   const buySection = document.getElementById('buyProSection')
   if (buySection) {
-    buySection.classList.toggle('hidden', isPro)
+    buySection.style.display = isPro ? 'none' : 'block'
     document.getElementById('buyProBtn').textContent = t('buy_pro')
   }
   document.getElementById('licenseKeyInput').disabled = false
@@ -954,10 +951,10 @@ function populateSyncUI() {
 
   const s = syncStatus || {}
   if (!s.configured) {
-    section.classList.add('hidden')
+    section.style.display = 'none'
     return
   }
-  section.classList.remove('hidden')
+  section.style.display = 'block'
 
   if (msgEl) msgEl.classList.add('hidden')
 
@@ -1017,8 +1014,7 @@ async function handleSyncLogin() {
       const msgEl = document.getElementById('syncMessage')
       if (msgEl) {
         msgEl.textContent = response.message || t('sync_login_failed')
-        msgEl.classList.remove('text-success')
-        msgEl.classList.add('text-error')
+        msgEl.style.color = 'var(--primary)'
         msgEl.classList.remove('hidden')
       }
     }
@@ -1045,8 +1041,7 @@ async function handleSyncNow() {
       const msgEl = document.getElementById('syncMessage')
       if (msgEl) {
         msgEl.textContent = response.message || t('sync_status_error')
-        msgEl.classList.remove('text-success')
-        msgEl.classList.add('text-error')
+        msgEl.style.color = 'var(--primary)'
         msgEl.classList.remove('hidden')
       }
     }
@@ -1078,31 +1073,14 @@ function applyTheme() {
   const themeName = state?.settings?.theme || 'classic-red'
   const colors = THEME_COLORS[themeName] || THEME_COLORS['classic-red']
   const root = document.documentElement
-  const isDark = themeName !== 'light'
 
   root.style.setProperty('--bg', colors.bg)
   root.style.setProperty('--surface', colors.surface)
   root.style.setProperty('--primary', colors.primary)
-  root.style.setProperty('--primary-rgb', colors.primaryRgb)
-  root.style.setProperty('--primary-hover', colors.primaryHover)
   root.style.setProperty('--text', colors.text)
   root.style.setProperty('--text-muted', colors.textMuted)
   root.style.setProperty('--card-bg', colors.cardBg)
-  root.style.setProperty('--card-hover', colors.cardHover)
-  root.style.setProperty('--border', colors.border)
-  root.style.setProperty('--modal-bg', colors.modalBg)
-  root.style.setProperty('--danger', colors.danger)
-  root.style.setProperty('--success', colors.success)
-  root.style.setProperty('--warning', colors.warning)
-  root.style.setProperty('--border-light', colors.borderLight)
-  root.style.setProperty('--hover-overlay', isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)')
-  root.style.setProperty('--hover-overlay-strong', isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)')
-  root.style.setProperty('--input-bg', isDark ? 'rgba(0,0,0,0.3)' : colors.surface)
-  root.style.setProperty('--card-shadow', isDark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.06)')
-  root.style.setProperty('--card-elevated', isDark ? '0 8px 30px rgba(0,0,0,0.5)' : '0 8px 30px rgba(0,0,0,0.12)')
-  root.style.setProperty('--modal-close-bg', isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)')
-  root.style.setProperty('--modal-close-border', isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)')
-  root.style.setProperty('--modal-close-hover-bg', isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.12)')
+  root.style.setProperty('--card-hover', colors.hover)
 
   let metaTheme = document.querySelector('meta[name="theme-color"]')
   if (!metaTheme) {
@@ -1147,8 +1125,20 @@ function showErrorToast(message) {
   if (existing) existing.remove()
 
   const toast = document.createElement('div')
-  toast.className = 'toast toast-error'
+  toast.className = 'toast-error'
   toast.textContent = message
+  Object.assign(toast.style, {
+    position: 'fixed',
+    bottom: '24px',
+    right: '24px',
+    padding: '12px 20px',
+    background: 'var(--primary)',
+    color: '#fff',
+    borderRadius: '8px',
+    fontSize: '14px',
+    zIndex: '300',
+    animation: 'fadeIn 0.2s ease'
+  })
   document.body.appendChild(toast)
 
   setTimeout(() => toast.remove(), 3000)
