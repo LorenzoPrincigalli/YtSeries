@@ -26,12 +26,10 @@
   overflow: hidden;
   background: var(--card-bg);
   transition: box-shadow var(--transition);
-  border: 2px solid var(--border);
 }
 
 .series-card:hover .card-thumbnail {
-  border-color: var(--primary);
-  box-shadow: 0 16px 48px -8px rgba(0,0,0,0.5);
+  box-shadow: 0 0 0 2px var(--primary), 0 16px 48px -8px rgba(0,0,0,0.5);
 }
 
 .card-play-overlay {
