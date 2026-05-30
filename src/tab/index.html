@@ -6,7 +6,17 @@
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <title>YT Series</title>
   <link rel="stylesheet" href="variables.css">
-  <link rel="stylesheet" href="main.css">
+  <link rel="stylesheet" href="reset.css">
+  <link rel="stylesheet" href="base.css">
+  <link rel="stylesheet" href="header.css">
+  <link rel="stylesheet" href="hero.css">
+  <link rel="stylesheet" href="cards.css">
+  <link rel="stylesheet" href="carousel.css">
+  <link rel="stylesheet" href="episodes.css">
+  <link rel="stylesheet" href="components.css">
+  <link rel="stylesheet" href="modals.css">
+  <link rel="stylesheet" href="footer.css">
+  <link rel="stylesheet" href="responsive.css">
 </head>
 <body>
   <div id="app">
@@ -117,7 +127,7 @@
               <button id="buyProBtn" class="btn-primary buy-pro-btn">Get Pro — €4.99</button>
               <p class="buy-pro-desc" data-i18n="buy_pro_desc">Unlimited series, auto-refresh, and new episode notifications.</p>
             </div>
-            <div id="proSettings" style="margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border);">
+            <div id="proSettings" class="pro-separator">
               <h3 data-i18n="auto_refresh">Auto-Refresh</h3>
               <p class="settings-desc">Check for new episodes every 24h (Pro feature)</p>
               <label class="toggle-label">
@@ -141,7 +151,7 @@
           <div class="settings-section-content" data-section="reset">
             <h3>Reset Data</h3>
             <p class="settings-desc">Clear all your series and settings data.</p>
-            <button id="resetStorageBtn" class="btn-secondary" style="color:#E50914;width:100%">Reset all data</button>
+            <button id="resetStorageBtn" class="btn-secondary danger-btn">Reset all data</button>
           </div>
 
         </div>

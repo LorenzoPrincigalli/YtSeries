@@ -1,0 +1,172 @@
+.section-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 18px;
+  letter-spacing: -0.01em;
+}
+
+.series-row {
+  position: relative;
+  z-index: var(--z-base);
+  margin-bottom: 56px;
+}
+
+.carousel-grid {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  padding: 12px 10px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.carousel-grid::-webkit-scrollbar {
+  display: none;
+}
+
+.carousel-grid .series-card {
+  flex: 0 0 auto;
+  width: 310px;
+  scroll-snap-align: start;
+}
+
+.carousel-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(20, 20, 20, 0.85);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-card-hover);
+  opacity: 0;
+  transition: opacity 0.2s;
+  box-shadow: var(--shadow-card);
+}
+
+.series-row:hover .carousel-btn {
+  opacity: 1;
+}
+
+.carousel-btn svg {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+}
+
+.carousel-btn-left {
+  left: -16px;
+}
+
+.carousel-btn-right {
+  right: -16px;
+}
+
+.carousel-btn:hover {
+  background: rgba(40, 40, 40, 0.95);
+}
+
+/* search playlist card */
+.search-playlist-card .card-thumbnail {
+  position: relative;
+}
+
+.card-add-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.6);
+  font-size: 48px;
+  font-weight: 300;
+  color: #fff;
+  opacity: 0;
+  transition: opacity 0.2s;
+  cursor: pointer;
+  border-radius: var(--radius-lg);
+}
+
+.search-playlist-card:hover .card-add-overlay {
+  opacity: 1;
+}
+
+/* channel section */
+.channel-section {
+  margin-bottom: var(--space-xl);
+}
+
+.channel-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  background: var(--card-bg);
+  border-radius: var(--radius-lg);
+  transition: background 0.15s;
+}
+
+.channel-card:hover {
+  background: var(--card-hover);
+}
+
+.channel-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--surface);
+}
+
+.channel-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.channel-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.channel-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: var(--space-xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.channel-expand-btn {
+  flex-shrink: 0;
+}
+
+.channel-playlists {
+  margin-top: 12px;
+  padding-left: 80px;
+}
+
+.channel-playlists .carousel-grid {
+  gap: 12px;
+}
+
+.channel-playlist-card {
+  flex: 0 0 auto;
+  width: 200px;
+}

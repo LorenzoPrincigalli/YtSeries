@@ -1,0 +1,175 @@
+#footer {
+  margin-top: auto;
+  padding: 20px var(--space-2xl);
+  border-top: 1px solid var(--border);
+}
+
+.footer-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.footer-copyright {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.footer-links {
+  display: flex;
+  gap: 20px;
+}
+
+.footer-links a {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 13px;
+  transition: color var(--transition);
+}
+
+.footer-links a:hover {
+  color: var(--text);
+}
+
+/* FAQ */
+.faq-section {
+  border-top: 1px solid var(--card-bg);
+  padding-top: var(--space-md);
+}
+
+.faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+}
+
+.faq-item {
+  border: 1px solid var(--card-bg);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.faq-question {
+  width: 100%;
+  padding: 12px var(--space-md);
+  background: var(--card-bg);
+  border: none;
+  color: var(--text);
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-primary);
+  transition: background var(--transition);
+}
+
+.faq-question::after {
+  content: '+';
+  font-size: 18px;
+  color: var(--text-muted);
+  transition: transform var(--transition);
+}
+
+.faq-question:hover {
+  background: var(--card-hover);
+}
+
+.faq-item.open .faq-question::after {
+  content: '\u2212';
+}
+
+.faq-answer {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.25s ease, padding 0.25s ease;
+  padding: 0 var(--space-md);
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.faq-item.open .faq-answer {
+  max-height: 200px;
+  padding: 12px var(--space-md);
+}
+
+#faqModal .modal-body {
+  padding: var(--space-lg);
+}
+
+/* changelog */
+.changelog-entry {
+  padding: var(--space-md) 0;
+  border-bottom: 1px solid var(--card-bg);
+}
+
+.changelog-entry:last-child {
+  border-bottom: none;
+}
+
+.changelog-version {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.changelog-date {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.changelog-items {
+  margin-top: var(--space-sm);
+  padding-left: 18px;
+}
+
+.changelog-items li {
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.5;
+  margin-bottom: var(--space-xs);
+}
+
+.changelog-empty {
+  text-align: center;
+  padding: var(--space-xl) var(--space-md);
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+/* bug report */
+#bugReportText {
+  width: 100%;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 14px;
+  padding: 12px;
+  resize: vertical;
+  font-family: var(--font-primary);
+  margin-top: var(--space-sm);
+}
+
+#bugReportText:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+#bugReportGithubLink {
+  display: inline-block;
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+#bugReportGithubLink:hover {
+  color: var(--text);
+}
