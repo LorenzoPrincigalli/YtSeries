@@ -1,271 +1,549 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="referrer" content="strict-origin-when-cross-origin">
-  <title>YT Series</title>
-  <link rel="stylesheet" href="variables.css">
-  <link rel="stylesheet" href="reset.css">
-  <link rel="stylesheet" href="base.css">
-  <link rel="stylesheet" href="header.css">
-  <link rel="stylesheet" href="hero.css">
-  <link rel="stylesheet" href="cards.css">
-  <link rel="stylesheet" href="carousel.css">
-  <link rel="stylesheet" href="episodes.css">
-  <link rel="stylesheet" href="components.css">
-  <link rel="stylesheet" href="modals.css">
-  <link rel="stylesheet" href="footer.css">
-  <link rel="stylesheet" href="responsive.css">
-</head>
-<body>
-  <div id="app">
-    <header id="header">
-      <div class="header-left">
-        <h1 class="logo">YT Series</h1>
-        <nav class="nav-links">
-          <a href="#" class="nav-link active" data-view="home" data-i18n="home">
-            <svg class="nav-home-icon" viewBox="0 0 24 24" width="18" height="18"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
-            <span data-i18n="home">Home</span>
-          </a>
-          <a href="#" class="nav-link" data-filter="watching" data-i18n="watching">Watching</a>
-          <a href="#" class="nav-link" data-filter="completed" data-i18n="completed">Completed</a>
-          <a href="#" class="nav-link" data-filter="new" data-i18n="new_episodes">New Episodes</a>
-        </nav>
-      </div>
-      <div class="header-right">
-        <div class="search-container">
-          <input type="text" id="searchInput" placeholder="Search series..." />
-          <button id="searchClear" class="search-clear hidden"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <title>YT Series</title>
+    <link rel="stylesheet" href="variables.css" />
+    <link rel="stylesheet" href="reset.css" />
+    <link rel="stylesheet" href="base.css" />
+    <link rel="stylesheet" href="header.css" />
+    <link rel="stylesheet" href="hero.css" />
+    <link rel="stylesheet" href="cards.css" />
+    <link rel="stylesheet" href="carousel.css" />
+    <link rel="stylesheet" href="episodes.css" />
+    <link rel="stylesheet" href="components.css" />
+    <link rel="stylesheet" href="modals.css" />
+    <link rel="stylesheet" href="footer.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header id="header">
+        <div class="header-left">
+          <h1 class="logo">YT Series</h1>
+          <nav class="nav-links">
+            <a
+              href="#"
+              class="nav-link active"
+              data-view="home"
+              data-i18n="home"
+            >
+              <svg
+                class="nav-home-icon"
+                viewBox="0 0 24 24"
+                width="18"
+                height="18"
+              >
+                <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+              </svg>
+              <span data-i18n="home">Home</span>
+            </a>
+            <a
+              href="#"
+              class="nav-link"
+              data-filter="watching"
+              data-i18n="watching"
+              >Watching</a
+            >
+            <a
+              href="#"
+              class="nav-link"
+              data-filter="completed"
+              data-i18n="completed"
+              >Completed</a
+            >
+            <a
+              href="#"
+              class="nav-link"
+              data-filter="new"
+              data-i18n="new_episodes"
+              >New Episodes</a
+            >
+          </nav>
         </div>
-        <button id="settingsBtn" class="icon-btn" title="Settings">&#9881;</button>
-        <button id="addPlaylistBtn" class="btn-primary">+ Add Series</button>
-      </div>
-    </header>
+        <div class="header-right">
+          <div class="search-container">
+            <input
+              type="text"
+              id="searchInput"
+              placeholder="Search series..."
+            />
+            <button id="searchClear" class="search-clear hidden">
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              >
+                <path d="M4 4l8 8M12 4l-8 8" />
+              </svg>
+            </button>
+          </div>
+          <button
+            id="headerProBtn"
+            class="header-pro-btn hidden"
+            title="Upgrade to Pro"
+          >
+            <svg
+              class="header-pro-star"
+              viewBox="0 0 16 16"
+              width="14"
+              height="14"
+            >
+              <path
+                d="M8 1l1.5 5h5l-4 3 1.5 5L8 11l-4 3 1.5-5-4-3h5z"
+                fill="currentColor"
+              />
+            </svg>
+            Get Pro
+          </button>
+          <span id="headerProBadge" class="header-pro-badge hidden">Pro</span>
+          <button id="settingsBtn" class="icon-btn" title="Settings">
+            &#9881;
+          </button>
+          <button id="addPlaylistBtn" class="btn-primary">+ Add Series</button>
+        </div>
+      </header>
 
-    <main id="mainContent">
-      <div id="loadingScreen" class="loading-screen">
-        <div class="skeleton-hero">
-          <div class="skeleton"></div>
-        </div>
-        <div class="skeleton-section">
-          <div class="skeleton skeleton-section-title"></div>
-          <div class="skeleton-cards-row">
-            <div class="skeleton-card">
-              <div class="skeleton skeleton-card-thumb"></div>
-              <div class="skeleton skeleton-card-text"></div>
-            </div>
-            <div class="skeleton-card">
-              <div class="skeleton skeleton-card-thumb"></div>
-              <div class="skeleton skeleton-card-text"></div>
-            </div>
-            <div class="skeleton-card">
-              <div class="skeleton skeleton-card-thumb"></div>
-              <div class="skeleton skeleton-card-text"></div>
-            </div>
-            <div class="skeleton-card">
-              <div class="skeleton skeleton-card-thumb"></div>
-              <div class="skeleton skeleton-card-text"></div>
-            </div>
-            <div class="skeleton-card">
-              <div class="skeleton skeleton-card-thumb"></div>
-              <div class="skeleton skeleton-card-text"></div>
+      <main id="mainContent">
+        <div id="loadingScreen" class="loading-screen">
+          <div class="skeleton-hero">
+            <div class="skeleton"></div>
+          </div>
+          <div class="skeleton-section">
+            <div class="skeleton skeleton-section-title"></div>
+            <div class="skeleton-cards-row">
+              <div class="skeleton-card">
+                <div class="skeleton skeleton-card-thumb"></div>
+                <div class="skeleton skeleton-card-text"></div>
+              </div>
+              <div class="skeleton-card">
+                <div class="skeleton skeleton-card-thumb"></div>
+                <div class="skeleton skeleton-card-text"></div>
+              </div>
+              <div class="skeleton-card">
+                <div class="skeleton skeleton-card-thumb"></div>
+                <div class="skeleton skeleton-card-text"></div>
+              </div>
+              <div class="skeleton-card">
+                <div class="skeleton skeleton-card-thumb"></div>
+                <div class="skeleton skeleton-card-text"></div>
+              </div>
+              <div class="skeleton-card">
+                <div class="skeleton skeleton-card-thumb"></div>
+                <div class="skeleton skeleton-card-text"></div>
+              </div>
             </div>
           </div>
+          <p data-i18n="loading" aria-hidden="true">Loading your series...</p>
         </div>
-        <p data-i18n="loading" aria-hidden="true">Loading your series...</p>
-      </div>
-    </main>
-  </div>
+      </main>
+    </div>
 
-  <div id="addPlaylistModal" class="modal-overlay hidden">
-    <div class="modal">
-      <div class="modal-header">
-        <h2 id="addPlaylistModalTitle">Add Series</h2>
-        <button class="modal-close" data-modal="addPlaylistModal"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
-      </div>
-      <div class="modal-body">
-        <p class="modal-desc" id="addPlaylistDesc">Paste a YouTube playlist URL to add it as a series.</p>
-        <input type="text" id="playlistUrlInput" placeholder="https://www.youtube.com/playlist?list=..." />
-        <div id="playlistError" class="error-msg hidden"></div>
-      </div>
-      <div class="modal-footer">
-        <button id="addPlaylistCancel" class="btn-secondary" data-modal="addPlaylistModal">Cancel</button>
-        <button id="addPlaylistConfirm" class="btn-primary">Add Series</button>
+    <div id="addPlaylistModal" class="modal-overlay hidden">
+      <div class="modal">
+        <div class="modal-header">
+          <h2 id="addPlaylistModalTitle">Add Series</h2>
+          <button class="modal-close" data-modal="addPlaylistModal">
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            >
+              <path d="M4 4l8 8M12 4l-8 8" />
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-desc" id="addPlaylistDesc">
+            Paste a YouTube playlist URL to add it as a series.
+          </p>
+          <input
+            type="text"
+            id="playlistUrlInput"
+            placeholder="https://www.youtube.com/playlist?list=..."
+          />
+          <div id="playlistError" class="error-msg hidden"></div>
+        </div>
+        <div class="modal-footer">
+          <button
+            id="addPlaylistCancel"
+            class="btn-secondary"
+            data-modal="addPlaylistModal"
+          >
+            Cancel
+          </button>
+          <button id="addPlaylistConfirm" class="btn-primary">
+            Add Series
+          </button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <div id="settingsModal" class="modal-overlay hidden">
-    <div class="modal settings-modal">
-      <div class="modal-header">
-        <h2 id="settingsModalTitle">Settings</h2>
-        <button class="modal-close" data-modal="settingsModal"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
-      </div>
-      <div class="modal-body settings-layout">
-        <div class="settings-sidebar">
-          <button class="settings-tab active" data-section="theme" data-i18n="theme">Theme</button>
-          <button class="settings-tab" data-section="language" data-i18n="language">Language</button>
-          <button class="settings-tab" data-section="overlay">Overlays</button>
-          <button class="settings-tab" data-section="license" data-i18n="license_key">License Key</button>
-          <button class="settings-tab" data-section="sync" data-i18n="sync_title">Cloud Sync</button>
-          <button class="settings-tab" data-section="reset">Reset Data</button>
-          <button class="settings-tab" data-section="dev">Dev Tools</button>
+    <div id="settingsModal" class="modal-overlay hidden">
+      <div class="modal settings-modal">
+        <div class="modal-header">
+          <h2 id="settingsModalTitle">Settings</h2>
+          <button class="modal-close" data-modal="settingsModal">
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            >
+              <path d="M4 4l8 8M12 4l-8 8" />
+            </svg>
+          </button>
         </div>
-        <div class="settings-content">
-          <div class="settings-section-content active" data-section="theme">
-            <h3 data-i18n="theme">Theme</h3>
-            <div class="select-wrapper">
-              <select id="themeSelect">
-                <option value="classic-red">Classic Red</option>
-                <option value="ocean-blue">Ocean Blue</option>
-                <option value="forest">Forest Green</option>
-                <option value="light">Light</option>
-              </select>
-            </div>
+        <div class="modal-body settings-layout">
+          <div class="settings-sidebar">
+            <button
+              class="settings-tab active"
+              data-section="theme"
+              data-i18n="theme"
+            >
+              Theme
+            </button>
+            <button
+              class="settings-tab"
+              data-section="language"
+              data-i18n="language"
+            >
+              Language
+            </button>
+            <button class="settings-tab" data-section="overlay">
+              Overlays
+            </button>
+            <button
+              class="settings-tab"
+              data-section="license"
+              data-i18n="license_key"
+            >
+              License Key
+            </button>
+            <button
+              class="settings-tab"
+              data-section="sync"
+              data-i18n="sync_title"
+            >
+              Cloud Sync
+            </button>
+            <button class="settings-tab" data-section="reset">
+              Reset Data
+            </button>
+            <button class="settings-tab" data-section="dev">Dev Tools</button>
           </div>
-          <div class="settings-section-content" data-section="language">
-            <h3 data-i18n="language">Language</h3>
-            <div class="select-wrapper">
-              <select id="languageSelect">
-                <option value="system">System</option>
-                <option value="en">English</option>
-                <option value="it">Italiano</option>
-              </select>
+          <div class="settings-content">
+            <div class="settings-section-content active" data-section="theme">
+              <h3 data-i18n="theme">Theme</h3>
+              <div class="select-wrapper">
+                <select id="themeSelect">
+                  <option value="classic-red">Classic Red</option>
+                  <option value="ocean-blue">Ocean Blue</option>
+                  <option value="forest">Forest Green</option>
+                  <option value="light">Light</option>
+                </select>
+              </div>
             </div>
-          </div>
-          <div class="settings-section-content" data-section="overlay">
-            <h3>Next Episode Overlay</h3>
-            <p class="settings-desc">Show "Watch Next" button on YouTube when episode is ending</p>
-            <label class="toggle-label">
-              <input type="checkbox" id="nextEpisodeOverlayToggle" />
-              <span class="toggle-slider"></span>
-              <span class="toggle-text">Enable overlay</span>
-            </label>
-          </div>
-          <div class="settings-section-content" data-section="license">
-            <h3><span data-i18n="license_key">License Key</span> <span class="pro-badge" id="licenseBadge">FREE</span></h3>
-            <div class="license-input-group">
-              <input type="text" id="licenseKeyInput" placeholder="Enter license key" />
-              <button id="verifyLicenseBtn" class="btn-primary">Activate</button>
+            <div class="settings-section-content" data-section="language">
+              <h3 data-i18n="language">Language</h3>
+              <div class="select-wrapper">
+                <select id="languageSelect">
+                  <option value="system">System</option>
+                  <option value="en">English</option>
+                  <option value="it">Italiano</option>
+                </select>
+              </div>
             </div>
-            <div id="licenseMessage" class="hidden"></div>
-            <div id="buyProSection" class="buy-pro-section">
-              <div class="divider"><span data-i18n="or">or</span></div>
-              <button id="buyProBtn" class="btn-primary buy-pro-btn">Get Pro — €4.99</button>
-              <p class="buy-pro-desc" data-i18n="buy_pro_desc">Unlimited series, auto-refresh, and new episode notifications.</p>
-            </div>
-            <div id="proSettings" class="pro-separator">
-              <h3 data-i18n="auto_refresh">Auto-Refresh</h3>
-              <p class="settings-desc">Check for new episodes every 24h (Pro feature)</p>
+            <div class="settings-section-content" data-section="overlay">
+              <h3>Next Episode Overlay</h3>
+              <p class="settings-desc">
+                Show "Watch Next" button on YouTube when episode is ending
+              </p>
               <label class="toggle-label">
-                <input type="checkbox" id="autoRefreshToggle" />
+                <input type="checkbox" id="nextEpisodeOverlayToggle" />
                 <span class="toggle-slider"></span>
-                <span class="toggle-text">Enable auto-refresh</span>
+                <span class="toggle-text">Enable overlay</span>
               </label>
             </div>
-          </div>
-          <div class="settings-section-content" data-section="sync" id="cloudSyncSection">
-            <h3 data-i18n="sync_title">Cloud Sync</h3>
-            <p class="settings-desc" id="syncDesc" data-i18n="sync_desc">Sync your series progress across devices with your Google account.</p>
-            <p class="sync-status-text" id="syncStatusText"></p>
-            <div class="sync-actions">
-              <button type="button" id="syncLoginBtn" class="btn-primary" data-i18n="sync_login">Sign in with Google</button>
-              <button type="button" id="syncLogoutBtn" class="btn-secondary hidden" data-i18n="sync_logout">Sign out</button>
-              <button type="button" id="syncNowBtn" class="btn-secondary hidden" data-i18n="sync_now">Sync now</button>
+            <div class="settings-section-content" data-section="license">
+              <div class="license-plan-card" id="licensePlanCard">
+                <div class="license-plan-header">
+                  <span class="pro-badge" id="licenseBadge">FREE</span>
+                  <span id="licensePlanName" class="license-plan-name"
+                    >Free Plan</span
+                  >
+                </div>
+                <p class="license-plan-desc" id="licensePlanDesc">
+                  Up to 3 series
+                </p>
+                <p
+                  class="license-status"
+                  id="licenseStatus"
+                  data-i18n="enter_license"
+                >
+                  Enter your license key to unlock Pro
+                </p>
+              </div>
+
+              <div class="license-input-group">
+                <input
+                  type="text"
+                  id="licenseKeyInput"
+                  placeholder="Enter license key"
+                />
+                <button id="verifyLicenseBtn" class="btn-primary">
+                  Activate
+                </button>
+              </div>
+              <div id="licenseMessage" class="hidden"></div>
+
+              <div id="buyProSection" class="buy-pro-section">
+                <div class="divider"><span data-i18n="or">or</span></div>
+                <button id="buyProBtn" class="btn-primary buy-pro-btn">
+                  Get Pro — €4.99
+                </button>
+                <p class="buy-pro-desc" data-i18n="buy_pro_desc">
+                  Unlimited series, auto-refresh, and new episode notifications.
+                </p>
+              </div>
+
+              <div id="licenseActiveInfo" class="hidden">
+                <p class="license-active-key" id="licenseActiveKey"></p>
+              </div>
+
+              <div id="proSettings" class="pro-separator">
+                <h3 data-i18n="auto_refresh">Auto-Refresh</h3>
+                <p class="settings-desc">
+                  Check for new episodes every 24h (Pro feature)
+                </p>
+                <label class="toggle-label">
+                  <input type="checkbox" id="autoRefreshToggle" />
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-text">Enable auto-refresh</span>
+                </label>
+              </div>
             </div>
-            <p id="syncMessage" class="hidden"></p>
-          </div>
-          <div class="settings-section-content" data-section="reset">
-            <h3>Reset Data</h3>
-            <p class="settings-desc">Clear all your series and settings data.</p>
-            <button id="resetStorageBtn" class="btn-secondary danger-btn">Reset all data</button>
-          </div>
-
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div id="bugReportModal" class="modal-overlay hidden">
-    <div class="modal">
-      <div class="modal-header">
-        <h2 id="bugReportTitle" data-i18n="bug_title">Report a Bug</h2>
-        <button class="modal-close" data-modal="bugReportModal"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
-      </div>
-      <div class="modal-body">
-        <p class="modal-desc" id="bugReportDesc" data-i18n="bug_desc">Describe the issue you encountered.</p>
-        <textarea id="bugReportText" rows="6" placeholder="What went wrong? What were you doing?"></textarea>
-        <div id="bugReportError" class="error-msg hidden"></div>
-        <a href="#" id="bugReportGithubLink" data-i18n="bug_also_github">Or report on GitHub</a>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-secondary" data-modal="bugReportModal" data-i18n="cancel">Cancel</button>
-        <button id="bugReportSend" class="btn-primary" data-i18n="bug_send">Send Report</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="changelogModal" class="modal-overlay hidden">
-    <div class="modal">
-      <div class="modal-header">
-        <h2 data-i18n="changelog_title">What's New</h2>
-        <button class="modal-close" data-modal="changelogModal"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
-      </div>
-      <div class="modal-body" id="changelogBody"></div>
-      <div class="modal-footer">
-        <button class="btn-secondary" data-modal="changelogModal" data-i18n="close">Close</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="faqModal" class="modal-overlay hidden">
-    <div class="modal">
-      <div class="modal-header">
-        <h2 data-i18n="faq_title">Frequently Asked Questions</h2>
-        <button class="modal-close" data-modal="faqModal"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
-      </div>
-      <div class="modal-body">
-        <div class="faq-list">
-          <div class="faq-item">
-            <button class="faq-question" data-i18n="faq_what_is">What is YT Series?</button>
-            <div class="faq-answer" data-i18n="faq_what_is_a">YT Series transforms YouTube playlists into trackable TV series. Add a playlist and track which episodes you've watched.</div>
-          </div>
-          <div class="faq-item">
-            <button class="faq-question" data-i18n="faq_limits">Are there any limits?</button>
-            <div class="faq-answer" data-i18n="faq_limits_a">The free version supports up to 3 series. Upgrade to Pro (€4.99 one-time) for unlimited series and auto-refresh.</div>
-          </div>
-          <div class="faq-item">
-            <button class="faq-question" data-i18n="faq_data">Where is my data stored?</button>
-            <div class="faq-answer" data-i18n="faq_data_a">All your data is stored locally in your browser using Chrome Storage API. Nothing is sent to our servers.</div>
-          </div>
-          <div class="faq-item">
-            <button class="faq-question" data-i18n="faq_auto">How does auto-refresh work?</button>
-            <div class="faq-answer" data-i18n="faq_auto_a">Pro users can enable auto-refresh to check for new episodes every 24 hours. Changes are notified via the extension badge.</div>
-          </div>
-          <div class="faq-item">
-            <button class="faq-question" data-i18n="faq_license">How do I activate my license?</button>
-            <div class="faq-answer" data-i18n="faq_license_a">After purchase, you'll receive a license key via email. Enter it in Settings → License Key to unlock Pro.</div>
+            <div
+              class="settings-section-content"
+              data-section="sync"
+              id="cloudSyncSection"
+            >
+              <h3 data-i18n="sync_title">Cloud Sync</h3>
+              <p class="settings-desc" id="syncDesc" data-i18n="sync_desc">
+                Sync your series progress across devices with your Google
+                account.
+              </p>
+              <p class="sync-status-text" id="syncStatusText"></p>
+              <div class="sync-actions">
+                <button
+                  type="button"
+                  id="syncLoginBtn"
+                  class="btn-primary"
+                  data-i18n="sync_login"
+                >
+                  Sign in with Google
+                </button>
+                <button
+                  type="button"
+                  id="syncLogoutBtn"
+                  class="btn-secondary hidden"
+                  data-i18n="sync_logout"
+                >
+                  Sign out
+                </button>
+                <button
+                  type="button"
+                  id="syncNowBtn"
+                  class="btn-secondary hidden"
+                  data-i18n="sync_now"
+                >
+                  Sync now
+                </button>
+              </div>
+              <p id="syncMessage" class="hidden"></p>
+            </div>
+            <div class="settings-section-content" data-section="reset">
+              <h3>Reset Data</h3>
+              <p class="settings-desc">
+                Clear all your series and settings data.
+              </p>
+              <button id="resetStorageBtn" class="btn-secondary danger-btn">
+                Reset all data
+              </button>
+            </div>
           </div>
         </div>
       </div>
-      <div class="modal-footer">
-        <button class="btn-secondary" data-modal="faqModal" data-i18n="close">Close</button>
+    </div>
+
+    <div id="bugReportModal" class="modal-overlay hidden">
+      <div class="modal">
+        <div class="modal-header">
+          <h2 id="bugReportTitle" data-i18n="bug_title">Report a Bug</h2>
+          <button class="modal-close" data-modal="bugReportModal">
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            >
+              <path d="M4 4l8 8M12 4l-8 8" />
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-desc" id="bugReportDesc" data-i18n="bug_desc">
+            Describe the issue you encountered.
+          </p>
+          <textarea
+            id="bugReportText"
+            rows="6"
+            placeholder="What went wrong? What were you doing?"
+          ></textarea>
+          <div id="bugReportError" class="error-msg hidden"></div>
+          <a href="#" id="bugReportGithubLink" data-i18n="bug_also_github"
+            >Or report on GitHub</a
+          >
+        </div>
+        <div class="modal-footer">
+          <button
+            class="btn-secondary"
+            data-modal="bugReportModal"
+            data-i18n="cancel"
+          >
+            Cancel
+          </button>
+          <button id="bugReportSend" class="btn-primary" data-i18n="bug_send">
+            Send Report
+          </button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <footer id="footer">
-    <div class="footer-inner">
-      <span class="footer-copyright" data-i18n="footer_copyright">YT Series — Free browser extension</span>
-      <nav class="footer-links">
-        <a href="#" id="footerChangelogLink" data-i18n="footer_changelog">What's New</a>
-        <a href="#" id="footerFaqLink" data-i18n="footer_faq">FAQ</a>
-        <a href="#" id="footerBugLink" data-i18n="footer_bug">Report a bug</a>
-      </nav>
+    <div id="changelogModal" class="modal-overlay hidden">
+      <div class="modal">
+        <div class="modal-header">
+          <h2 data-i18n="changelog_title">What's New</h2>
+          <button class="modal-close" data-modal="changelogModal">
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            >
+              <path d="M4 4l8 8M12 4l-8 8" />
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body" id="changelogBody"></div>
+        <div class="modal-footer">
+          <button
+            class="btn-secondary"
+            data-modal="changelogModal"
+            data-i18n="close"
+          >
+            Close
+          </button>
+        </div>
+      </div>
     </div>
-  </footer>
 
-  <script type="module" src="app.js"></script>
-</body>
+    <div id="faqModal" class="modal-overlay hidden">
+      <div class="modal">
+        <div class="modal-header">
+          <h2 data-i18n="faq_title">Frequently Asked Questions</h2>
+          <button class="modal-close" data-modal="faqModal">
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            >
+              <path d="M4 4l8 8M12 4l-8 8" />
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="faq-list">
+            <div class="faq-item">
+              <button class="faq-question" data-i18n="faq_what_is">
+                What is YT Series?
+              </button>
+              <div class="faq-answer" data-i18n="faq_what_is_a">
+                YT Series transforms YouTube playlists into trackable TV series.
+                Add a playlist and track which episodes you've watched.
+              </div>
+            </div>
+            <div class="faq-item">
+              <button class="faq-question" data-i18n="faq_limits">
+                Are there any limits?
+              </button>
+              <div class="faq-answer" data-i18n="faq_limits_a">
+                The free version supports up to 3 series. Upgrade to Pro (€4.99
+                one-time) for unlimited series and auto-refresh.
+              </div>
+            </div>
+            <div class="faq-item">
+              <button class="faq-question" data-i18n="faq_data">
+                Where is my data stored?
+              </button>
+              <div class="faq-answer" data-i18n="faq_data_a">
+                All your data is stored locally in your browser using Chrome
+                Storage API. Nothing is sent to our servers.
+              </div>
+            </div>
+            <div class="faq-item">
+              <button class="faq-question" data-i18n="faq_auto">
+                How does auto-refresh work?
+              </button>
+              <div class="faq-answer" data-i18n="faq_auto_a">
+                Pro users can enable auto-refresh to check for new episodes
+                every 24 hours. Changes are notified via the extension badge.
+              </div>
+            </div>
+            <div class="faq-item">
+              <button class="faq-question" data-i18n="faq_license">
+                How do I activate my license?
+              </button>
+              <div class="faq-answer" data-i18n="faq_license_a">
+                After purchase, you'll receive a license key via email. Enter it
+                in Settings → License Key to unlock Pro.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" data-modal="faqModal" data-i18n="close">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <footer id="footer">
+      <div class="footer-inner">
+        <span class="footer-copyright" data-i18n="footer_copyright"
+          >YT Series — Free browser extension</span
+        >
+        <nav class="footer-links">
+          <a href="#" id="footerChangelogLink" data-i18n="footer_changelog"
+            >What's New</a
+          >
+          <a href="#" id="footerFaqLink" data-i18n="footer_faq">FAQ</a>
+          <a href="#" id="footerBugLink" data-i18n="footer_bug">Report a bug</a>
+        </nav>
+      </div>
+    </footer>
+
+    <script type="module" src="app.js"></script>
+  </body>
 </html>

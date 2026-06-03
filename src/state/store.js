@@ -260,6 +260,26 @@ class Store {
     this._emitChange()
   }
 
+  markEpisodeUnwatched(playlistId, videoId) {
+    const series = this._state.series[playlistId]
+    if (!series) return
+
+    const video = series.videos.find(v => v.id === videoId)
+    if (!video) return
+
+    if (video.watched) {
+      video.watched = false
+      video.progress = 0
+      video.watchedAt = null
+      video.resumeTime = 0
+    }
+
+    const nextIndex = series.videos.findIndex(v => !v.watched)
+    series.lastEpisodeIndex = nextIndex >= 0 ? nextIndex : series.videos.length - 1
+
+    this._emitChange()
+  }
+
   updateEpisodeProgress(playlistId, videoId, progress, currentTime = 0, duration = 0) {
     const series = this._state.series[playlistId]
     if (!series) return

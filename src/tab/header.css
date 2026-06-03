@@ -103,3 +103,41 @@
 .search-clear.hidden {
   display: none;
 }
+
+.header-pro-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border: 1px solid var(--primary);
+  border-radius: 20px;
+  background: transparent;
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-primary);
+  transition: background 0.15s, color 0.15s;
+}
+
+.header-pro-btn:hover {
+  background: var(--primary);
+  color: #fff;
+}
+
+.header-pro-star {
+  flex-shrink: 0;
+}
+
+.header-pro-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: var(--success);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}

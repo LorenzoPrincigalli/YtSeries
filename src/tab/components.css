@@ -29,7 +29,9 @@
   font-weight: 600;
   cursor: pointer;
   font-family: var(--font-primary);
-  transition: background var(--transition), transform 0.1s;
+  transition:
+    background var(--transition),
+    transform 0.1s;
 }
 
 .btn-primary:hover {
@@ -49,7 +51,9 @@
   font-size: 14px;
   cursor: pointer;
   font-family: var(--font-primary);
-  transition: background var(--transition), transform 0.1s;
+  transition:
+    background var(--transition),
+    transform 0.1s;
 }
 
 .btn-secondary:hover {
@@ -73,7 +77,7 @@
 }
 
 .select-wrapper::after {
-  content: '\25BE';
+  content: "\25BE";
   position: absolute;
   right: 12px;
   top: 50%;
@@ -95,7 +99,9 @@ select {
   font-size: 14px;
   font-family: var(--font-primary);
   cursor: pointer;
-  transition: border-color var(--transition), background var(--transition);
+  transition:
+    border-color var(--transition),
+    background var(--transition);
 }
 
 select:hover {
@@ -136,7 +142,7 @@ select option {
 }
 
 .toggle-slider::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 3px;
   left: 3px;
@@ -182,6 +188,70 @@ select option {
   color: var(--text-muted);
 }
 
+/* license plan card */
+.license-plan-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-bottom: 14px;
+}
+
+.license-plan-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.license-plan-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.license-plan-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0 0 6px 0;
+}
+
+.license-status {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.license-active-key {
+  font-size: 11px;
+  color: var(--text-muted);
+  word-break: break-all;
+  font-family: monospace;
+  margin-top: 4px;
+}
+
+.license-input-group {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.license-input-group input {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 13px;
+  font-family: var(--font-primary);
+}
+
+.license-input-group input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
 /* buy pro */
 .buy-pro-btn {
   width: 100%;
@@ -219,7 +289,7 @@ select option {
 
 .divider::before,
 .divider::after {
-  content: '';
+  content: "";
   flex: 1;
   height: 1px;
   background: var(--border);
@@ -229,16 +299,6 @@ select option {
   margin-top: var(--space-lg);
   padding-top: var(--space-lg);
   border-top: 1px solid var(--border);
-}
-
-/* license input */
-.license-input-group {
-  display: flex;
-  gap: var(--space-sm);
-}
-
-.license-input-group input {
-  flex: 1;
 }
 
 /* dev section */
@@ -329,15 +389,24 @@ select option {
 
 /* loading — spinner (legacy fallback) */
 .skeleton {
-  background: linear-gradient(90deg, var(--card-bg) 25%, var(--card-hover) 50%, var(--card-bg) 75%);
+  background: linear-gradient(
+    90deg,
+    var(--card-bg) 25%,
+    var(--card-hover) 50%,
+    var(--card-bg) 75%
+  );
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
   border-radius: var(--radius);
 }
 
 @keyframes shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 /* empty state */
@@ -396,35 +465,6 @@ select option {
 
 .empty-state-btn:hover {
   opacity: 0.85;
-}
-
-/* toasts */
-.toast {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  padding: 12px 20px;
-  border-radius: var(--radius);
-  font-size: 14px;
-  font-weight: 500;
-  z-index: var(--z-modal);
-  animation: toast-in 0.25s ease;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-}
-
-.toast-error {
-  background: var(--primary);
-  color: #fff;
-}
-
-.toast-success {
-  background: var(--success);
-  color: #fff;
-}
-
-@keyframes toast-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
 }
 
 /* error */
@@ -533,14 +573,13 @@ select option {
 }
 
 .card-reveal {
-  animation: cardFadeIn var(--transition-slow) ease forwards;
+  animation: cardFadeIn var(--transition-slow) ease both;
   animation-delay: calc(var(--i, 0) * 60ms);
-  opacity: 0;
 }
 
 /* grain texture */
 body::before {
-  content: '';
+  content: "";
   position: fixed;
   inset: 0;
   z-index: 0;
@@ -563,7 +602,7 @@ body::before {
 
 .toast {
   padding: 12px var(--space-md);
-  background: rgba(0,0,0,0.85);
+  background: rgba(0, 0, 0, 0.85);
   color: var(--text);
   border-radius: var(--radius);
   font-size: 13px;
@@ -576,6 +615,10 @@ body::before {
 
 .toast-success {
   border-left-color: var(--success);
+}
+
+.toast-error {
+  border-left-color: var(--primary);
 }
 
 .toast-warning {

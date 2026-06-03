@@ -90,6 +90,64 @@ describe('store', () => {
     })
   })
 
+  describe('markEpisodeUnwatched', () => {
+    it('resets a watched video to unwatched', () => {
+      store.addSeries({
+        playlistId: 'PL1', title: 'S', channelTitle: 'C', channelId: 'UC',
+        videoCount: 2,
+        videos: [
+          { id: 'v1', title: 'V1', duration: 120 },
+          { id: 'v2', title: 'V2', duration: 240 }
+        ]
+      })
+      store.markEpisodeWatched('PL1', 'v1')
+      store.markEpisodeUnwatched('PL1', 'v1')
+      const s = store.getSeriesById('PL1')
+      expect(s.videos[0].watched).toBe(false)
+      expect(s.videos[0].progress).toBe(0)
+      expect(s.videos[0].watchedAt).toBeNull()
+      expect(s.videos[0].resumeTime).toBe(0)
+    })
+
+    it('updates lastEpisodeIndex after unwatch', () => {
+      store.addSeries({
+        playlistId: 'PL1', title: 'S', channelTitle: 'C', channelId: 'UC',
+        videoCount: 2,
+        videos: [
+          { id: 'v1', title: 'V1' },
+          { id: 'v2', title: 'V2' }
+        ]
+      })
+      store.markEpisodeWatched('PL1', 'v1')
+      store.markEpisodeWatched('PL1', 'v2')
+      store.markEpisodeUnwatched('PL1', 'v2')
+      const s = store.getSeriesById('PL1')
+      expect(s.lastEpisodeIndex).toBe(1)
+    })
+
+    it('does nothing for already unwatched video', () => {
+      store.addSeries({
+        playlistId: 'PL1', title: 'S', channelTitle: 'C', channelId: 'UC',
+        videoCount: 1, videos: [{ id: 'v1', title: 'V1' }]
+      })
+      store.markEpisodeUnwatched('PL1', 'v1')
+      const s = store.getSeriesById('PL1')
+      expect(s.videos[0].watched).toBe(false)
+    })
+
+    it('does nothing for non-existent series', () => {
+      expect(() => store.markEpisodeUnwatched('NONEXIST', 'v1')).not.toThrow()
+    })
+
+    it('does nothing for non-existent video', () => {
+      store.addSeries({
+        playlistId: 'PL1', title: 'S', channelTitle: 'C', channelId: 'UC',
+        videoCount: 1, videos: [{ id: 'v1', title: 'V1' }]
+      })
+      expect(() => store.markEpisodeUnwatched('PL1', 'nonexistent')).not.toThrow()
+    })
+  })
+
   describe('getNextEpisode', () => {
     it('returns the next unwatched episode', () => {
       store.addSeries({

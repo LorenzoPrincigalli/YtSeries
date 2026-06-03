@@ -65,7 +65,7 @@ class YouTubeApiService {
     if (!channelId) return []
 
     try {
-      const data = await this._fetch(this._buildUrl(`/playlists?part=snippet&channelId=${channelId}&maxResults=10`))
+      const data = await this._fetch(this._buildUrl(`/playlists?part=snippet,contentDetails&channelId=${channelId}&maxResults=10`))
 
       if (!data.items) return []
 

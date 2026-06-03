@@ -18,7 +18,7 @@ const THEME_COLORS = {
     text: '#e0f0e0', textMuted: '#608060', cardBg: '#1f301f', cardHover: '#2a402a',
     border: '#2a3a2a', modalBg: '#1a2a1a', danger: '#E50914', success: '#2ecc71',
     warning: '#f97316', borderLight: 'rgba(180,220,180,0.08)'
-  }
+  },
   'light': {
     bg: '#f8f6f3', surface: '#ffffff', primary: '#d40000', primaryRgb: '212, 0, 0', primaryHover: '#b30000',
     text: '#1a1a1a', textMuted: '#888888', cardBg: '#ffffff', cardHover: '#f0eeeb',
@@ -55,6 +55,7 @@ function applyPopupTheme(themeName) {
   root.style.setProperty('--modal-close-bg', isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)')
   root.style.setProperty('--modal-close-border', isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)')
   root.style.setProperty('--modal-close-hover-bg', isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.12)')
+}
 
 const SYNC_HINTS = {
   not_configured: '',

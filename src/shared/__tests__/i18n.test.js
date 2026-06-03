@@ -16,6 +16,8 @@ describe('i18n', () => {
   it('returns English string by default', async () => {
     const { t } = await getI18n()
     expect(t('watched')).toBe('Watched')
+    expect(t('mark_as_watched')).toBe('Mark as watched')
+    expect(t('mark_as_unwatched')).toBe('Mark as unwatched')
   })
 
   it('returns the key when translation is missing', async () => {
@@ -28,6 +30,8 @@ describe('i18n', () => {
     setLanguage('it')
     expect(t('watched')).toBe('Visto')
     expect(t('unwatched')).toBe('Non visto')
+    expect(t('mark_as_watched')).toBe('Segna come visto')
+    expect(t('mark_as_unwatched')).toBe('Segna come non visto')
   })
 
   it('interpolates params in strings', async () => {

@@ -47,9 +47,9 @@ class DetailPage {
     document.body.appendChild(modal)
   }
 
-  async render(series, { onWatch, onBack, onRefresh, onCompleteToggle, onAddSeries, isPro }) {
+  async render(series, { onWatch, onUnwatch, onBack, onRefresh, onCompleteToggle, onAddSeries, isPro }) {
 
-    this.callbacks = { onWatch, onBack, onRefresh, onCompleteToggle, onAddSeries }
+    this.callbacks = { onWatch, onUnwatch, onBack, onRefresh, onCompleteToggle, onAddSeries }
     this.series = series
 
     const body = document.getElementById('detailModalBody')
@@ -63,7 +63,7 @@ class DetailPage {
         body.appendChild(this._renderNewEpisodeHighlight(series, newEp))
       }
     }
-    body.appendChild(this._renderEpisodes(series))
+    body.appendChild(this._renderEpisodes(series, this.callbacks))
     body.appendChild(this._renderMoreSection(series))
 
     document.getElementById('detailModal').classList.remove('hidden')
@@ -283,11 +283,10 @@ class DetailPage {
     return container
   }
 
-  _renderEpisodes(series) {
+  _renderEpisodes(series, callbacks) {
     const section = document.createElement('div')
     section.className = 'detail-episodes'
 
-    // Header con titolo, selezione multipla e bottone
     const header = document.createElement('div')
     header.className = 'episodes-header'
 
@@ -298,7 +297,6 @@ class DetailPage {
     const rightGroup = document.createElement('div')
     rightGroup.className = 'episodes-header-right'
 
-    // Select ordinamento
     const sortSelect = document.createElement('select')
     sortSelect.className = 'episode-sort'
     const sorts = ['default', 'date_desc', 'date_asc', 'unwatched_first', 'watched_first']
@@ -317,18 +315,8 @@ class DetailPage {
     }
     rightGroup.appendChild(sortSelect)
 
-    // Bottone segna come visto
-    const markBtn = document.createElement('button')
-    markBtn.className = 'btn-primary'
-    markBtn.textContent = t('mark_as_watched')
-    markBtn.disabled = true
-    rightGroup.appendChild(markBtn)
-
     header.appendChild(rightGroup)
     section.appendChild(header)
-
-    // Stato selezione
-    let selectedIds = new Set()
 
     const grid = document.createElement('div')
     grid.className = 'episode-grid'
@@ -352,28 +340,8 @@ class DetailPage {
       }
       videos.forEach((v, i) => {
         const originalIndex = series.videos.indexOf(v)
-        grid.appendChild(this._createEpisodeCard(series, v, originalIndex >= 0 ? originalIndex : i, selectedIds, onSelect))
+        grid.appendChild(this._createEpisodeCard(series, v, originalIndex >= 0 ? originalIndex : i, callbacks))
       })
-      // Aggiorna stato bottone
-      markBtn.disabled = selectedIds.size === 0
-    }
-
-    // Gestore selezione
-    const onSelect = (id, checked) => {
-      if (checked) selectedIds.add(id)
-      else selectedIds.delete(id)
-      markBtn.disabled = selectedIds.size === 0
-    }
-
-    // Azione segna come visto
-    markBtn.onclick = async () => {
-      if (!selectedIds.size) return
-      for (const v of series.videos) {
-        if (selectedIds.has(v.id) && !v.watched) {
-          this.callbacks.onWatch(series.playlistId, v.id)
-        }
-      }
-      selectedIds.clear()
     }
 
     renderEpisodes(sortSelect.value)
@@ -383,21 +351,11 @@ class DetailPage {
     return section
   }
 
-  _createEpisodeCard(series, video, index, selectedIds = new Set(), onSelect = null) {
+  _createEpisodeCard(series, video, index, callbacks = {}) {
 
     const card = document.createElement('div')
     card.className = 'episode-card'
     card.dataset.videoId = video.id
-
-    // Checkbox selezione multipla
-    const checkbox = document.createElement('input')
-    checkbox.type = 'checkbox'
-    checkbox.checked = selectedIds && selectedIds.has(video.id)
-    checkbox.addEventListener('click', (e) => {
-      e.stopPropagation()
-      if (typeof onSelect === 'function') onSelect(video.id, checkbox.checked)
-    })
-    card.appendChild(checkbox)
 
     card.addEventListener('click', () => {
       window.open(`https://www.youtube.com/watch?v=${video.id}&list=${series.playlistId}`, '_blank', 'noopener')
@@ -465,6 +423,14 @@ class DetailPage {
     const status = document.createElement('span')
     status.className = `episode-status ${video.watched ? 'episode-status-watched' : 'episode-status-unwatched'}`
     status.textContent = video.watched ? `\u2713 ${t('watched')}` : `\u25CF ${t('unwatched')}`
+    status.addEventListener('click', (e) => {
+      e.stopPropagation()
+      if (video.watched) {
+        if (callbacks.onUnwatch) callbacks.onUnwatch(series.playlistId, video.id)
+      } else {
+        if (callbacks.onWatch) callbacks.onWatch(series.playlistId, video.id)
+      }
+    })
     info.appendChild(status)
 
     card.appendChild(info)

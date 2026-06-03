@@ -370,6 +370,9 @@ async function handleMessage(message) {
     case EVENTS.EPISODE_WATCH:
       return handleEpisodeWatch(message.payload)
 
+    case EVENTS.EPISODE_UNWATCH:
+      return handleEpisodeUnwatch(message.payload)
+
     case EVENTS.SETTINGS_UPDATE:
       return handleSettingsUpdate(message.payload)
 
@@ -478,6 +481,33 @@ async function handleEpisodeWatch(payload) {
   }
 
   store.markEpisodeWatched(playlistId, videoId)
+  await store.saveToStorage(storageService)
+  await notifySeriesSync(playlistId)
+  broadcastStateUpdate()
+
+  return { success: true, state: store.getState() }
+}
+
+async function handleEpisodeUnwatch(payload) {
+  if (!payload || typeof payload.videoId !== 'string' || !payload.videoId.trim()) {
+    return { success: false, error: 'MISSING_PARAMS', message: 'videoId is required' }
+  }
+
+  let { playlistId, videoId } = payload
+
+  if (!playlistId || typeof playlistId !== 'string' || !playlistId.trim()) {
+    playlistId = store.findPlaylistByVideoId(videoId)
+    if (!playlistId) {
+      return { success: false, error: 'VIDEO_NOT_FOUND', message: 'No series contains this video' }
+    }
+  }
+
+  const series = store.getSeriesById(playlistId)
+  if (!series) {
+    return { success: false, error: 'SERIES_NOT_FOUND', message: 'Series not found.' }
+  }
+
+  store.markEpisodeUnwatched(playlistId, videoId)
   await store.saveToStorage(storageService)
   await notifySeriesSync(playlistId)
   broadcastStateUpdate()
