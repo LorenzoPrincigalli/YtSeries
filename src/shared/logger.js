@@ -1,5 +1,4 @@
 const LOG_LEVELS = {
-  DEBUG: 0,
   INFO: 1,
   WARN: 2,
   ERROR: 3
@@ -12,12 +11,6 @@ class Logger {
 
   setLevel(level) {
     this.level = level
-  }
-
-  debug(...args) {
-    if (this.level <= LOG_LEVELS.DEBUG) {
-      console.debug('[YT Series][DEBUG]', ...args)
-    }
   }
 
   info(...args) {

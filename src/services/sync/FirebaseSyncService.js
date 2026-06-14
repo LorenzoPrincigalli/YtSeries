@@ -96,7 +96,7 @@ class FirebaseSyncService {
   async listRemoteSeries(uid) {
     const headers = await this._authHeaders()
     const url = this._baseUrl(uid)
-    const resp = await fetch(url, { headers })
+    const resp = await fetch(url, { headers, signal: AbortSignal.timeout(15000) })
     const data = await resp.json()
 
     if (!resp.ok) {
@@ -119,7 +119,8 @@ class FirebaseSyncService {
     let resp = await fetch(docUrl, {
       method: 'PATCH',
       headers,
-      body: JSON.stringify(encodeFields(payload))
+      body: JSON.stringify(encodeFields(payload)),
+      signal: AbortSignal.timeout(15000)
     })
 
     if (resp.status === 404) {
@@ -128,7 +129,8 @@ class FirebaseSyncService {
         {
           method: 'POST',
           headers,
-          body: JSON.stringify(encodeFields(payload))
+          body: JSON.stringify(encodeFields(payload)),
+          signal: AbortSignal.timeout(15000)
         }
       )
     }
@@ -145,7 +147,7 @@ class FirebaseSyncService {
   async deleteSeries(uid, playlistId) {
     const headers = await this._authHeaders()
     const url = `${this._baseUrl(uid)}/${encodeURIComponent(playlistId)}`
-    const resp = await fetch(url, { method: 'DELETE', headers })
+    const resp = await fetch(url, { method: 'DELETE', headers, signal: AbortSignal.timeout(15000) })
     if (resp.status === 404) return
     if (!resp.ok) {
       const data = await resp.json().catch(() => ({}))

@@ -19,15 +19,6 @@
 @font-face {
   font-family: 'Poppins';
   font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('fonts/poppins-400-devanagari.woff2') format('woff2');
-  unicode-range: U+0900-097F, U+1CD0-1CF9, U+200C-200D, U+20A8, U+20B9, U+20F0, U+25CC, U+A830-A839, U+A8E0-A8FF, U+11B00-11B09;
-}
-
-@font-face {
-  font-family: 'Poppins';
-  font-style: normal;
   font-weight: 500;
   font-display: swap;
   src: url('fonts/poppins-500-latin.woff2') format('woff2');
@@ -48,8 +39,8 @@
   font-style: normal;
   font-weight: 500;
   font-display: swap;
-  src: url('fonts/poppins-500-devanagari.woff2') format('woff2');
-  unicode-range: U+0900-097F, U+1CD0-1CF9, U+200C-200D, U+20A8, U+20B9, U+20F0, U+25CC, U+A830-A839, U+A8E0-A8FF, U+11B00-11B09;
+  src: url('fonts/poppins-500-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
 @font-face {
@@ -73,15 +64,6 @@
 @font-face {
   font-family: 'Poppins';
   font-style: normal;
-  font-weight: 600;
-  font-display: swap;
-  src: url('fonts/poppins-600-devanagari.woff2') format('woff2');
-  unicode-range: U+0900-097F, U+1CD0-1CF9, U+200C-200D, U+20A8, U+20B9, U+20F0, U+25CC, U+A830-A839, U+A8E0-A8FF, U+11B00-11B09;
-}
-
-@font-face {
-  font-family: 'Poppins';
-  font-style: normal;
   font-weight: 700;
   font-display: swap;
   src: url('fonts/poppins-700-latin.woff2') format('woff2');
@@ -97,39 +79,11 @@
   unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
-@font-face {
-  font-family: 'Poppins';
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-  src: url('fonts/poppins-700-devanagari.woff2') format('woff2');
-  unicode-range: U+0900-097F, U+1CD0-1CF9, U+200C-200D, U+20A8, U+20B9, U+20F0, U+25CC, U+A830-A839, U+A8E0-A8FF, U+11B00-11B09;
-}
-
 :root {
+  /* Font stack — Poppins with system fallbacks */
   --font-primary: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
-  --bg: #0f0f0f;
-  --surface: #212121;
-  --primary: #ff0000;
-  --primary-rgb: 255, 0, 0;
-  --primary-hover: #cc0000;
-  --text: #f1f1f1;
-  --text-muted: #aaaaaa;
-  --card-bg: #1a1a1a;
-  --card-hover: #2a2a2a;
-  --border: #333;
-  --modal-bg: #212121;
-
-  --danger: #E50914;
-  --success: #2ecc71;
-  --warning: #f97316;
-
-  --radius-sm: 4px;
-  --radius: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
-
+  /* Spacing */
   --space-xs: 4px;
   --space-sm: 8px;
   --space-md: 16px;
@@ -137,30 +91,49 @@
   --space-xl: 32px;
   --space-2xl: 60px;
 
+  /* Radii */
+  --radius-sm: 4px;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  /* Z-index */
   --z-base: 1;
-  --z-card-hover: 10;
-  --z-header: 100;
+  --z-card-hover: 5;
   --z-modal: 200;
+  --z-header: 100;
   --z-toast: 300;
 
-  --shadow-card: 0 2px 8px rgba(0,0,0,0.3);
-  --shadow-elevated: 0 8px 30px rgba(0,0,0,0.5);
-
-  --transition-fast: 0.15s ease;
+  /* Transition */
   --transition: 0.2s ease;
   --transition-slow: 0.4s ease;
 
-  --text-on-primary: #fff;
-  --hero-btn-bg: #fff;
-  --hero-btn-text: #000;
-  --hover-overlay: rgba(255,255,255,0.04);
-  --hover-overlay-strong: rgba(255,255,255,0.1);
-  --input-bg: rgba(0,0,0,0.3);
-  --card-shadow: 0 2px 8px rgba(0,0,0,0.3);
-  --card-elevated: 0 8px 30px rgba(0,0,0,0.5);
-  --scrollbar-thumb: var(--text-muted);
-  --modal-close-bg: rgba(255,255,255,0.08);
-  --modal-close-border: rgba(255,255,255,0.15);
-  --modal-close-hover-bg: rgba(255,255,255,0.18);
-  --skeleton-bg: linear-gradient(90deg, var(--card-bg) 25%, var(--card-hover) 50%, var(--card-bg) 75%);
+  /* Neutral fallbacks (overridden by JS theme) */
+  --bg: #f8f6f3;
+  --surface: #ffffff;
+  --primary: #d40000;
+  --primary-rgb: 212, 0, 0;
+  --primary-hover: #b30000;
+  --text: #1a1a1a;
+  --text-muted: #888888;
+  --text-on-primary: #ffffff;
+  --card-bg: #ffffff;
+  --card-hover: #f0eeeb;
+  --border: #e0ddd8;
+  --border-light: rgba(0,0,0,0.06);
+  --modal-bg: #ffffff;
+  --danger: #d40000;
+  --success: #1a8a3a;
+  --warning: #d97706;
+
+  --hover-overlay: rgba(0,0,0,0.04);
+  --hover-overlay-strong: rgba(0,0,0,0.08);
+  --input-bg: #ffffff;
+  --card-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  --card-elevated: 0 8px 30px rgba(0,0,0,0.12);
+  --shadow-card: 0 2px 8px rgba(0,0,0,0.06);
+  --shadow-elevated: 0 8px 30px rgba(0,0,0,0.12);
+  --modal-close-bg: rgba(0,0,0,0.06);
+  --modal-close-border: rgba(0,0,0,0.1);
+  --modal-close-hover-bg: rgba(0,0,0,0.12);
 }

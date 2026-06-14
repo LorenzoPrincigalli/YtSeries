@@ -102,6 +102,8 @@ const PRO_CHECKOUT = {
 
 const GITHUB_URL = 'https://github.com/LorenzoPrincigalli/YtSeries'
 
+const LICENSE_STORE_ID = 0 // Replace with numeric store ID from Lemon Squeezy dashboard
+
 const EXTENSION_ID = '' // Set after publishing to Chrome Web Store
 
 export {
@@ -115,6 +117,7 @@ export {
   AUTO_REFRESH_INTERVAL_MINUTES,
   YOUTUBE_API_MAX_RESULTS,
   PRO_CHECKOUT,
+  LICENSE_STORE_ID,
   EXTENSION_ID,
   GITHUB_URL
 }

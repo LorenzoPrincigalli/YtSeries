@@ -1,3 +1,7 @@
+// NOTE: Popup cannot import ES modules (MV3 restriction).
+// THEME_COLORS and CHECKOUT_URL are intentionally duplicated from src/shared/constants.js.
+// Keep them in sync manually when constants change.
+
 const CHECKOUT_URL = 'https://ytseries.lemonsqueezy.com/checkout/buy/e9fee22a-1883-4076-b0db-22e34323b961'
 
 const THEME_COLORS = {
@@ -144,7 +148,7 @@ try {
     if (state.license?.isPro) {
       document.getElementById('proBadge').textContent = 'Pro'
     } else if (CHECKOUT_URL) {
-      document.getElementById('buyProBtn').style.display = 'block'
+      document.getElementById('proSection').style.display = 'block'
     }
   })
 } catch (_) {}

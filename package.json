@@ -1,8 +1,8 @@
 {
   "name": "yt-series",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
-  "description": "Transform YouTube playlists into a TV-series tracker with Netflix-style UI",
+  "description": "Transform YouTube playlists into a TV-series tracker with cinematic UI",
   "license": "MIT",
   "author": "LorenzoPrincigalli",
   "repository": {
@@ -19,12 +19,15 @@
     "icons": "node src/assets/scripts/generate-icons.cjs",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "echo 'No linter configured yet'"
+    "lint": "echo 'No linter configured yet'",
+    "trailer": "node scripts/generate-trailer.cjs"
   },
   "engines": {
     "node": ">=18"
   },
   "devDependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "playwright": "^1.60.0",
     "sharp": "^0.34.5",
     "vitest": "^4.1.7"
   }

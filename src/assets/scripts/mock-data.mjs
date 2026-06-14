@@ -108,4 +108,4 @@ const SERIES = [
   ], { addedDaysAgo: 150, completed: true, lastWatchedAt: now - 100 * DAY }),
 ]
 
-module.exports = { SERIES }
+export { SERIES }

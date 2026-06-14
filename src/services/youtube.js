@@ -16,15 +16,7 @@ class YouTubeApiService {
     return `${base}${path}${keySuffix}`
   }
 
-  async fetchPlaylist(playlistUrl) {
-    const playlistId = this._extractPlaylistId(playlistUrl)
-    if (!playlistId) {
-      throw { code: 'INVALID_URL', message: 'Invalid YouTube playlist URL' }
-    }
-
-    const playlist = await this._getPlaylistDetails(playlistId)
-    const videos = await this._getPlaylistItems(playlistId)
-
+  _buildPlaylistResult(playlistId, playlist, videos) {
     return {
       playlistId,
       title: playlist.snippet.title,
@@ -41,24 +33,21 @@ class YouTubeApiService {
     }
   }
 
+  async fetchPlaylist(playlistUrl) {
+    const playlistId = this._extractPlaylistId(playlistUrl)
+    if (!playlistId) {
+      throw { code: 'INVALID_URL', message: 'Invalid YouTube playlist URL' }
+    }
+
+    const playlist = await this._getPlaylistDetails(playlistId)
+    const videos = await this._getPlaylistItems(playlistId)
+    return this._buildPlaylistResult(playlistId, playlist, videos)
+  }
+
   async refreshPlaylist(playlistId) {
     const videos = await this._getPlaylistItems(playlistId)
     const playlist = await this._getPlaylistDetails(playlistId)
-
-    return {
-      playlistId,
-      title: playlist.snippet.title,
-      description: playlist.snippet.description || '',
-      thumbnail: playlist.snippet.thumbnails?.maxres?.url
-        || playlist.snippet.thumbnails?.high?.url
-        || playlist.snippet.thumbnails?.medium?.url
-        || playlist.snippet.thumbnails?.default?.url
-        || '',
-      channelTitle: playlist.snippet.channelTitle,
-      channelId: playlist.snippet.channelId,
-      videoCount: parseInt(playlist.contentDetails?.itemCount || videos.length, 10),
-      videos
-    }
+    return this._buildPlaylistResult(playlistId, playlist, videos)
   }
 
   async fetchChannelPlaylists(channelId, excludePlaylistId) {

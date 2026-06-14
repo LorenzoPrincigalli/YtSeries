@@ -28,6 +28,10 @@ Istruzioni e riferimenti rapidi per AI coding agents che lavorano su questo prog
 - [docs/knowledge/09-agent-playbook.md](docs/knowledge/09-agent-playbook.md) — checklist e task comuni
 - [docs/2026-05-29_1930/07-Final-Report.md](docs/2026-05-29_1930/07-Final-Report.md) — analisi completa e fix applicati
 
+## Pre-publish
+
+Before publishing, check `PUBLISH-CHECKLIST.md` for blockers and required steps.
+
 ## Note
 - Non duplicare documentazione già presente: **linka** sempre ai file esistenti.
 - Prima di analizzare o modificare codice, consulta SEMPRE la knowledge in `docs/knowledge/`.

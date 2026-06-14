@@ -2,7 +2,7 @@
 
 ## What this is
 
-**YT Series** — Chrome **Manifest V3** extension that turns YouTube playlists into a Netflix-style series tracker.
+**YT Series** — Chrome **Manifest V3** extension that turns YouTube playlists into a TV series tracker.
 
 ## Stack
 
@@ -60,3 +60,7 @@ Dev fallback: copy `src/shared/config.example.js` → `config.js` (gitignored) a
 ## Next
 
 Read [01-architecture.md](01-architecture.md) before touching more than one context.
+
+## Pre-publish
+
+See `PUBLISH-CHECKLIST.md` in the project root for the full pre-publish checklist.

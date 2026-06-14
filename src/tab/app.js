@@ -1,6 +1,6 @@
 import { EVENTS } from "../shared/events.js";
 import { logger } from "../shared/logger.js";
-import { THEME_COLORS, PRO_CHECKOUT, GITHUB_URL } from "../shared/constants.js";
+import { THEME_COLORS, PRO_CHECKOUT, EXTENSION_ID, GITHUB_URL } from "../shared/constants.js";
 import { CHANGELOG } from "../shared/changelog.js";
 import { t, setLanguage } from "../shared/i18n.js";
 import { HomePage } from "./components/home.js";
@@ -13,6 +13,7 @@ let currentFilter = "all";
 let currentSearch = "";
 let currentSearchResults = null;
 let searchTimeout = null;
+let searchHintTimeout = null;
 let recommendedPlaylists = null;
 
 const homePage = new HomePage();
@@ -24,7 +25,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   listenBroadcasts();
   await loadState();
   applyTheme();
-  initIconTheme();
+  updateToolbarIcon();
   updateHeaderPro();
 
   // Apri settings se richiesto dal popup
@@ -48,6 +49,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (themeSection) themeSection.classList.add("active");
   }
 
+  const seriesParam = params.get("series");
+  if (seriesParam && Object.prototype.hasOwnProperty.call(state.series, seriesParam)) {
+    onSeriesClick(state.series[seriesParam]);
+  }
+
   // Aggiorna stato/UI quando la scheda torna in focus
   document.addEventListener("visibilitychange", async () => {
     if (!document.hidden) {
@@ -65,7 +71,7 @@ window.addEventListener("yt-series-add", async (e) => {
     state.series[response.series.playlistId] = response.series;
     render();
   } else if (response?.error === "LIMIT_REACHED") {
-    showErrorToast(t("limit_reached"));
+    // Banner in dashboard already shows the limit; no toast needed
   }
 });
 
@@ -127,9 +133,6 @@ function translateUI() {
     ["autoRefreshToggle", "nextText", "auto_refresh_desc"],
     ["licenseBadge", "textContent", "free"],
     ["bugReportText", "placeholder", "bug_placeholder"],
-    ["playlistSearchInput", "placeholder", "search_playlist_placeholder"],
-    ["playlistSearchBtn", "textContent", "search_btn"],
-    ["addPlaylistSearchDesc", "textContent", "search_playlists"],
   ];
 
   for (const [id, prop, key] of map) {
@@ -183,9 +186,17 @@ function translateUI() {
 }
 
 function initIconTheme() {
+  updateToolbarIcon();
+
+  // Also listen for system preference changes as fallback
   const mq = window.matchMedia("(prefers-color-scheme: dark)");
-  setToolbarIcon(mq.matches);
-  mq.addEventListener("change", (e) => setToolbarIcon(e.matches));
+  mq.addEventListener("change", () => updateToolbarIcon());
+}
+
+function updateToolbarIcon() {
+  const themeName = state?.settings?.theme || "classic-red";
+  const isDark = themeName !== "light";
+  setToolbarIcon(isDark);
 }
 
 function setToolbarIcon(isDark) {
@@ -233,6 +244,51 @@ async function handleResetStorage() {
   await loadState();
   populateSettingsForm();
   translateUI();
+}
+
+function handleExportData() {
+  if (!state?.series || !Object.keys(state.series).length) {
+    showErrorToast(t('no_data_to_export'));
+    return;
+  }
+  const json = JSON.stringify(state.series, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `yt-series-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function handleImportData() {
+  const input = document.getElementById('importFileInput');
+  const file = input.files?.[0];
+  if (!file) return;
+
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+
+    if (typeof data !== 'object' || Array.isArray(data) || !Object.keys(data).length) {
+      showErrorToast(t('invalid_import_format'));
+      return;
+    }
+
+    const confirmed = await modalManager.confirm(t('import_confirm', { count: Object.keys(data).length }));
+    if (!confirmed) { input.value = ''; return; }
+
+    const response = await sendMessage(EVENTS.IMPORT_SERIES, { series: data });
+    if (response.success) {
+      await loadState();
+      showErrorToast(t('import_success'));
+    } else {
+      showErrorToast(response.message || t('import_error'));
+    }
+  } catch (_) {
+    showErrorToast(t('invalid_import_format'));
+  }
+  input.value = '';
 }
 
 function handleBugReport() {
@@ -407,6 +463,15 @@ function bindUIEvents() {
     .getElementById("resetStorageBtn")
     .addEventListener("click", handleResetStorage);
   document
+    .getElementById("exportDataBtn")
+    .addEventListener("click", handleExportData);
+  document
+    .getElementById("importDataBtn")
+    .addEventListener("click", () => document.getElementById("importFileInput").click());
+  document
+    .getElementById("importFileInput")
+    .addEventListener("change", handleImportData);
+  document
     .getElementById("syncLoginBtn")
     ?.addEventListener("click", handleSyncLogin);
   document
@@ -461,21 +526,25 @@ function bindUIEvents() {
     const clearBtn = document.getElementById("searchClear");
     if (currentSearch) {
       clearBtn.classList.remove("hidden");
+      // Show hint after 2s if user hasn't searched yet
+      if (searchHintTimeout) clearTimeout(searchHintTimeout);
+      if (!currentSearchResults) {
+        searchHintTimeout = setTimeout(() => renderHome(), 2000);
+      }
     } else {
       clearBtn.classList.add("hidden");
-    }
-
-    if (currentSearch) {
-      searchTimeout = setTimeout(async () => {
-        const response = await sendMessage(EVENTS.PLAYLIST_SEARCH, {
-          query: currentSearch,
-        });
-        currentSearchResults = response.success ? response : null;
-        renderHome();
-      }, 400);
-    } else {
       currentSearchResults = null;
-      renderHome();
+      if (searchHintTimeout) clearTimeout(searchHintTimeout);
+    }
+    // Update local filter immediately (no API call)
+    renderHome();
+  });
+
+  document.getElementById("searchInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && currentSearch) {
+      if (searchTimeout) clearTimeout(searchTimeout);
+      if (searchHintTimeout) clearTimeout(searchHintTimeout);
+      doYouTubeSearch();
     }
   });
 
@@ -485,7 +554,16 @@ function bindUIEvents() {
     currentSearchResults = null;
     document.getElementById("searchClear").classList.add("hidden");
     renderHome();
+  })
+async function doYouTubeSearch() {
+  const response = await sendMessage(EVENTS.PLAYLIST_SEARCH, {
+    query: currentSearch,
   });
+  if (response.success) {
+    currentSearchResults = response;
+  }
+  renderHome();
+};
 
   document.querySelectorAll(".nav-link[data-filter]").forEach((chip) => {
     chip.addEventListener("click", (e) => {
@@ -595,6 +673,13 @@ function renderHome() {
     h2.className = "search-header-title";
     h2.textContent = `"${currentSearch}"`;
     searchHeader.appendChild(h2);
+    // Show "Press Enter" hint if YouTube search hasn't been triggered yet
+    if (!currentSearchResults && searchHintTimeout) {
+      const hint = document.createElement("p");
+      hint.className = "search-header-hint";
+      hint.textContent = t("search_hint");
+      searchHeader.appendChild(hint);
+    }
     main.appendChild(searchHeader);
   }
 
@@ -657,7 +742,7 @@ function renderHome() {
         ),
       );
     }
-    if (currentFilter === "all" && !currentSearch) {
+    if (currentFilter === "all" && !currentSearch && state.license.isPro) {
       const thisWeekSeries = getThisWeekSeries(seriesArray);
       if (thisWeekSeries.length > 0) {
         main.appendChild(
@@ -675,7 +760,7 @@ function renderHome() {
     const watching = continueSeries.slice(0, 10);
     if (watching.length > 0) {
       main.appendChild(
-        homePage.renderRow(t("continue_watching"), watching, onSeriesClick),
+        homePage.renderRow(t("in_progress"), watching, onSeriesClick),
       );
     }
   }
@@ -691,6 +776,41 @@ function renderHome() {
         onSeriesClick,
       ),
     );
+  } else if (currentFilter === "new" && !state.license.isPro) {
+    const upsell = document.createElement('div');
+    upsell.className = 'upsell-card';
+    upsell.innerHTML = `<div class="upsell-icon">🔔</div><p>${t('new_episodes_pro_only')}</p><p class="upsell-sub">${t('buy_pro_desc')}</p><button class="btn-primary" id="upsellProBtn">${t('get_pro')}</button>`;
+    main.appendChild(upsell);
+    setTimeout(() => {
+      const btn = document.getElementById('upsellProBtn');
+      if (btn) btn.onclick = () => handleBuyPro();
+    }, 0);
+  }
+
+  // Free tier banner (first open per day, dismissible)
+  if (!state.license.isPro && seriesArray.length > 0 && currentFilter === "all" && !currentSearch) {
+    const today = new Date().toDateString();
+    const lastDismissed = localStorage.getItem('yt-series-banner-dismissed');
+    if (lastDismissed !== today) {
+      const banner = document.createElement('div');
+      banner.className = 'free-tier-banner';
+      const seriesCount = Object.keys(state.series).length;
+      const limit = 3;
+      const text = seriesCount >= limit
+        ? `${t('limit_reached')} `
+        : t('free_tier_banner', { count: seriesCount, limit: limit });
+      banner.innerHTML = `<span>${text}</span><button class="btn-primary" id="bannerProBtn">${t('get_pro')}</button><button class="banner-close" id="bannerCloseBtn" title="${t('close')}">✕</button>`;
+      main.appendChild(banner);
+      setTimeout(() => {
+        const proBtn = document.getElementById('bannerProBtn');
+        if (proBtn) proBtn.onclick = () => handleBuyPro();
+        const closeBtn = document.getElementById('bannerCloseBtn');
+        if (closeBtn) closeBtn.onclick = () => {
+          banner.remove();
+          localStorage.setItem('yt-series-banner-dismissed', today);
+        };
+      }, 0);
+    }
   }
 
   if (
@@ -918,10 +1038,23 @@ async function handleSeriesCompleteToggle(playlistId) {
   if (response.success && response.state) {
     state = response.state;
     const series = state.series[playlistId];
+    const wasJustCompleted = series?.completed;
+
     if (series) {
       detailPage.render(series, _detailCallbacks());
     }
     render();
+
+    // Post-completion upsell: show after marking complete (for free users)
+    if (wasJustCompleted && !state.license.isPro) {
+      setTimeout(() => {
+        showErrorToast(
+          t("completed_upsell"),
+          t("get_pro"),
+          () => { if (PRO_CHECKOUT.URL) window.open(PRO_CHECKOUT.URL, "_blank"); }
+        );
+      }, 800);
+    }
   }
 }
 
@@ -1048,6 +1181,15 @@ async function handleAddPlaylist() {
   try {
     if (!url) {
       throw new Error(t("enter_url"));
+    }
+
+    const listMatch = url.match(/[?&]list=([a-zA-Z0-9_-]+)/);
+    if (listMatch) {
+      const existsResp = await sendMessage(EVENTS.PLAYLIST_EXISTS, { playlistId: listMatch[1] });
+      if (existsResp.exists) {
+        showErrorToast(t('playlist_already_added'));
+        return;
+      }
     }
 
     const response = await sendMessage(EVENTS.PLAYLIST_ADD, { url });
@@ -1201,6 +1343,63 @@ function populateSettingsForm() {
 
   updateHeaderPro();
   populateSyncUI();
+  populateDevTools();
+}
+
+function populateDevTools() {
+  if (EXTENSION_ID) {
+    const tab = document.querySelector('.settings-tab[data-section="dev"]');
+    const content = document.querySelector('.settings-section-content[data-section="dev"]');
+    if (tab) tab.style.display = 'none';
+    if (content) content.style.display = 'none';
+    return;
+  }
+  const tab = document.querySelector('.settings-tab[data-section="dev"]');
+  const content = document.querySelector('.settings-section-content[data-section="dev"]');
+  if (tab) tab.style.display = '';
+  if (content) content.style.display = '';
+
+  const status = document.getElementById("devProStatus");
+  const btn = document.getElementById("devToggleProBtn");
+  if (!status || !btn) return;
+
+  const isPro = state?.license?.isPro || false;
+  status.textContent = `Pro status: ${isPro ? 'Pro (simulated)' : 'Free'}`;
+
+  btn.onclick = async () => {
+    btn.disabled = true;
+    btn.textContent = 'Toggling...';
+    try {
+      const response = await sendMessage(EVENTS.DEV_TOGGLE_PRO);
+      if (response.success) {
+        status.textContent = `Pro status: ${response.isPro ? 'Pro (simulated)' : 'Free'}`;
+      }
+    } catch (_) {}
+    btn.disabled = false;
+    btn.textContent = 'Toggle Pro (simulate)';
+  };
+
+  // Load demo data button
+  const demoBtn = document.getElementById("loadDemoBtn");
+  if (demoBtn) {
+    demoBtn.onclick = async () => {
+      demoBtn.disabled = true;
+      demoBtn.textContent = 'Loading...';
+      try {
+        const response = await sendMessage(EVENTS.LOAD_DEMO_DATA);
+        if (response.success) {
+          demoBtn.textContent = `Loaded ${response.count} series!`;
+          setTimeout(() => { demoBtn.textContent = 'Load demo data'; demoBtn.disabled = false; }, 2000);
+        } else {
+          demoBtn.textContent = 'Failed';
+          demoBtn.disabled = false;
+        }
+      } catch (_) {
+        demoBtn.textContent = 'Load demo data';
+        demoBtn.disabled = false;
+      }
+    };
+  }
 }
 
 function formatSyncTime(ts) {
@@ -1330,6 +1529,7 @@ async function handleThemeChange(e) {
   const theme = e.target.value;
   state.settings.theme = theme;
   applyTheme();
+  updateToolbarIcon();
   await sendMessage(EVENTS.SETTINGS_UPDATE, { theme });
 }
 
@@ -1348,14 +1548,34 @@ function applyTheme() {
   const themeName = state?.settings?.theme || "classic-red";
   const colors = THEME_COLORS[themeName] || THEME_COLORS["classic-red"];
   const root = document.documentElement;
+  const isDark = themeName !== "light";
 
   root.style.setProperty("--bg", colors.bg);
   root.style.setProperty("--surface", colors.surface);
   root.style.setProperty("--primary", colors.primary);
+  root.style.setProperty("--primary-rgb", colors.primaryRgb);
+  root.style.setProperty("--primary-hover", colors.primaryHover);
   root.style.setProperty("--text", colors.text);
   root.style.setProperty("--text-muted", colors.textMuted);
   root.style.setProperty("--card-bg", colors.cardBg);
-  root.style.setProperty("--card-hover", colors.hover);
+  root.style.setProperty("--card-hover", colors.cardHover);
+  root.style.setProperty("--border", colors.border);
+  root.style.setProperty("--modal-bg", colors.modalBg);
+  root.style.setProperty("--danger", colors.danger);
+  root.style.setProperty("--success", colors.success);
+  root.style.setProperty("--warning", colors.warning);
+  root.style.setProperty("--border-light", colors.borderLight);
+  root.style.setProperty("--hover-overlay", isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.04)");
+  root.style.setProperty("--hover-overlay-strong", isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)");
+  root.style.setProperty("--input-bg", isDark ? "rgba(0,0,0,0.3)" : colors.surface);
+  root.style.setProperty("--card-shadow", isDark ? "0 2px 8px rgba(0,0,0,0.3)" : "0 2px 8px rgba(0,0,0,0.06)");
+  root.style.setProperty("--card-elevated", isDark ? "0 8px 30px rgba(0,0,0,0.5)" : "0 8px 30px rgba(0,0,0,0.12)");
+  root.style.setProperty("--shadow-card", isDark ? "0 2px 8px rgba(0,0,0,0.3)" : "0 2px 8px rgba(0,0,0,0.06)");
+  root.style.setProperty("--shadow-elevated", isDark ? "0 8px 30px rgba(0,0,0,0.5)" : "0 8px 30px rgba(0,0,0,0.12)");
+  root.style.setProperty("--modal-close-bg", isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)");
+  root.style.setProperty("--modal-close-border", isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.1)");
+  root.style.setProperty("--modal-close-hover-bg", isDark ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.12)");
+  root.style.setProperty("--text-on-primary", "#fff");
 
   let metaTheme = document.querySelector('meta[name="theme-color"]');
   if (!metaTheme) {
@@ -1395,13 +1615,12 @@ function showError(message) {
   main.appendChild(empty);
 }
 
-function showErrorToast(message) {
+function showErrorToast(message, actionLabel, actionFn) {
   const existing = document.querySelector(".toast-error");
   if (existing) existing.remove();
 
   const toast = document.createElement("div");
   toast.className = "toast-error";
-  toast.textContent = message;
   Object.assign(toast.style, {
     position: "fixed",
     bottom: "24px",
@@ -1413,8 +1632,40 @@ function showErrorToast(message) {
     fontSize: "14px",
     zIndex: "300",
     animation: "fadeIn 0.2s ease",
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    maxWidth: "480px",
   });
+
+  const msgSpan = document.createElement("span");
+  msgSpan.textContent = message;
+  msgSpan.style.flex = "1";
+  toast.appendChild(msgSpan);
+
+  if (actionLabel && actionFn) {
+    const btn = document.createElement("button");
+    btn.textContent = actionLabel;
+    Object.assign(btn.style, {
+      padding: "6px 14px",
+      background: "#fff",
+      color: "var(--primary)",
+      border: "none",
+      borderRadius: "16px",
+      fontSize: "12px",
+      fontWeight: "700",
+      cursor: "pointer",
+      whiteSpace: "nowrap",
+    });
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      toast.remove();
+      actionFn();
+    });
+    toast.appendChild(btn);
+  }
+
   document.body.appendChild(toast);
 
-  setTimeout(() => toast.remove(), 3000);
+  setTimeout(() => toast.remove(), 5000);
 }

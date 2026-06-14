@@ -23,7 +23,7 @@
 ### Added
 - Project scaffold (Manifest V3, service worker, content script, tab UI)
 - YouTube playlist import via URL or search
-- Netflix-style carousels with L/R arrows and drag-to-scroll
+- Cinematic carousels with L/R arrows and drag-to-scroll
 - Hero carousel with crossfade, auto-advance (10s), and preview overlay (20s)
 - Series progress tracking with watched/unwatched episode state
 - Filter chips (All / Watching / Completed / New Episodes)

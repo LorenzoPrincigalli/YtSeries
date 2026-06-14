@@ -29,7 +29,7 @@
 }
 
 .series-card:hover .card-thumbnail {
-  box-shadow: 0 0 0 2px var(--primary), 0 16px 48px -8px rgba(0,0,0,0.5);
+  box-shadow: 0 0 0 2px var(--primary), var(--card-elevated);
 }
 
 .card-play-overlay {
@@ -63,7 +63,7 @@
   align-items: center;
   justify-content: center;
   transition: transform 0.2s, filter 0.2s;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  box-shadow: var(--card-shadow);
 }
 
 .card-play-btn:hover {

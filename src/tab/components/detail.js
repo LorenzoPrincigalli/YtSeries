@@ -129,9 +129,9 @@ class DetailPage {
     const btn = document.createElement('button')
     btn.className = 'btn-primary'
     btn.textContent = t('watch_now')
-    btn.onclick = () => {
+    btn.addEventListener('click', () => {
       window.open(`https://www.youtube.com/watch?v=${video.id}&list=${series.playlistId}`, '_blank', 'noopener')
-    }
+    })
     info.appendChild(btn)
 
     body.appendChild(info)
@@ -369,7 +369,7 @@ class DetailPage {
     img.onerror = function () { this.src = '' }
     card.appendChild(img)
 
-    // Progress bar overlay (Netflix-style)
+    // Progress bar overlay
     if (video.progress > 0 && !video.watched) {
       const progressOverlay = document.createElement('div')
       progressOverlay.className = 'episode-progress-overlay'
@@ -521,12 +521,9 @@ class DetailPage {
     }
   }
 
-  _createRelatedCard(playlist) {
+  _buildPlaylistCard(playlist) {
     const card = document.createElement('div')
     card.className = 'related-card'
-    card.addEventListener('click', () => {
-      if (this.callbacks.onAddSeries) this.callbacks.onAddSeries(playlist.playlistId)
-    })
 
     const img = document.createElement('img')
     img.className = 'related-card-thumb'
@@ -547,6 +544,24 @@ class DetailPage {
     count.textContent = `${playlist.videoCount || '?'} ${vidLabel}`
     card.appendChild(count)
 
+    return card
+  }
+
+  _createRelatedCard(playlist) {
+    const card = this._buildPlaylistCard(playlist)
+    card.addEventListener('click', () => {
+      if (this.callbacks.onAddSeries) this.callbacks.onAddSeries(playlist.playlistId)
+    })
+    return card
+  }
+
+  _createChannelCard(playlist) {
+    const card = this._buildPlaylistCard(playlist)
+    card.addEventListener('click', () => {
+      const overlay = document.getElementById('channelModal')
+      if (overlay) overlay.remove()
+      window.dispatchEvent(new CustomEvent('yt-series-add', { detail: { playlistId: playlist.playlistId } }))
+    })
     return card
   }
 
@@ -600,13 +615,13 @@ class DetailPage {
     })
     document.body.appendChild(overlay)
 
-    cancelBtn.onclick = () => overlay.remove()
-    confirmBtn.onclick = async () => {
+    cancelBtn.addEventListener('click', () => overlay.remove())
+    confirmBtn.addEventListener('click', async () => {
       overlay.remove()
       this.close()
       this.callbacks.onBack()
       window.dispatchEvent(new CustomEvent('yt-series-delete', { detail: { playlistId: series.playlistId } }))
-    }
+    })
   }
 
   async _openChannelModal(channelId, channelTitle, excludePlaylistId, onRefresh) {
@@ -653,7 +668,7 @@ class DetailPage {
     document.body.appendChild(overlay)
 
     if (this._channelCache[channelId]) {
-      this._renderChannelPlaylists(overlay, this._channelCache[channelId], excludePlaylistId, onRefresh)
+      this._renderChannelPlaylists(overlay, this._channelCache[channelId])
       return
     }
 
@@ -665,7 +680,7 @@ class DetailPage {
 
       if (response.success && response.playlists) {
         this._channelCache[channelId] = response.playlists
-        this._renderChannelPlaylists(overlay, response.playlists, excludePlaylistId, onRefresh)
+        this._renderChannelPlaylists(overlay, response.playlists)
       } else {
         const loader = overlay.querySelector('.more-loading')
         if (loader) loader.textContent = t('no_related_found')
@@ -676,13 +691,17 @@ class DetailPage {
     }
   }
 
-  _renderChannelPlaylists(overlay, playlists, excludePlaylistId, onRefresh) {
+  _renderChannelPlaylists(overlay, playlists) {
     const body = overlay.querySelector('.modal-body')
     if (!body) return
     body.innerHTML = ''
 
     if (playlists.length === 0) {
-      body.innerHTML = `<div class="more-loading">${t('no_related_found')}</div>`
+      body.innerHTML = '';
+      const div = document.createElement('div');
+      div.className = 'more-loading';
+      div.textContent = t('no_related_found');
+      body.appendChild(div);
       return
     }
 
@@ -690,41 +709,10 @@ class DetailPage {
     grid.className = 'channel-grid'
 
     for (const pl of playlists) {
-      grid.appendChild(this._createChannelCard(pl, onRefresh))
+      grid.appendChild(this._createChannelCard(pl))
     }
 
     body.appendChild(grid)
-  }
-
-  _createChannelCard(playlist, onRefresh) {
-    const card = document.createElement('div')
-    card.className = 'related-card'
-    card.addEventListener('click', () => {
-      const overlay = document.getElementById('channelModal')
-      if (overlay) overlay.remove()
-      window.dispatchEvent(new CustomEvent('yt-series-add', { detail: { playlistId: playlist.playlistId } }))
-    })
-
-    const img = document.createElement('img')
-    img.className = 'related-card-thumb'
-    img.src = playlist.thumbnail || ''
-    img.alt = playlist.title
-    img.loading = 'lazy'
-    img.onerror = function () { this.src = '' }
-    card.appendChild(img)
-
-    const title = document.createElement('div')
-    title.className = 'related-card-title'
-    title.textContent = playlist.title
-    card.appendChild(title)
-
-    const count = document.createElement('div')
-    count.className = 'related-card-count'
-    const vidLabel = playlist.videoCount !== 1 ? t('videos') : t('video')
-    count.textContent = `${playlist.videoCount || '?'} ${vidLabel}`
-    card.appendChild(count)
-
-    return card
   }
 
   _formatDuration(seconds) {

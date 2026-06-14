@@ -25,6 +25,8 @@ async function loadFirebaseConfig() {
         projectId,
         authDomain: authDomain || `${projectId}.firebaseapp.com`
       }
+    } else {
+      console.warn('[YT Series] FirebaseConfig: could not parse firebase.config.js — check format')
     }
   } catch (_) {
     // optional firebase.config.js not present

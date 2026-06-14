@@ -27,6 +27,14 @@ body {
   color: var(--text);
 }
 
+.search-header-hint {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-top: 4px;
+  animation: fadeIn 0.4s ease;
+}
+
 .search-empty {
   text-align: center;
   color: var(--text-muted);

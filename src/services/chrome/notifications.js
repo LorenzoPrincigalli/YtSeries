@@ -10,15 +10,6 @@ class NotificationService {
     }
   }
 
-  async clear(id) {
-    try {
-      await chrome.notifications.clear(id)
-    } catch (err) {
-      logger.error('NotificationService.clear failed:', err)
-      throw { code: 'NOTIFICATION_CLEAR_ERROR', message: 'Failed to clear notification', context: err }
-    }
-  }
-
   onClick(callback) {
     chrome.notifications.onClicked.addListener(callback)
   }

@@ -1,5 +1,8 @@
 import { t } from "../../shared/i18n.js";
 
+const SVG_CAROUSEL_LEFT = '<svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>';
+const SVG_CAROUSEL_RIGHT = '<svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>';
+
 class HomePage {
   constructor() {
     this.isPro = false;
@@ -177,13 +180,11 @@ class HomePage {
 
     const btnLeft = document.createElement("button");
     btnLeft.className = "carousel-btn carousel-btn-left";
-    btnLeft.innerHTML =
-      '<svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>';
+    btnLeft.innerHTML = SVG_CAROUSEL_LEFT;
 
     const btnRight = document.createElement("button");
     btnRight.className = "carousel-btn carousel-btn-right";
-    btnRight.innerHTML =
-      '<svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>';
+    btnRight.innerHTML = SVG_CAROUSEL_RIGHT;
 
     const carouselWrapper = document.createElement("div");
     carouselWrapper.className = "carousel-wrapper";
@@ -259,13 +260,11 @@ class HomePage {
 
     const btnLeft = document.createElement("button");
     btnLeft.className = "carousel-btn carousel-btn-left";
-    btnLeft.innerHTML =
-      '<svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>';
+    btnLeft.innerHTML = SVG_CAROUSEL_LEFT;
 
     const btnRight = document.createElement("button");
     btnRight.className = "carousel-btn carousel-btn-right";
-    btnRight.innerHTML =
-      '<svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>';
+    btnRight.innerHTML = SVG_CAROUSEL_RIGHT;
 
     const carouselWrapper = document.createElement("div");
     carouselWrapper.className = "carousel-wrapper";
@@ -426,10 +425,18 @@ class HomePage {
             }
             playlistContainer.appendChild(grid);
           } else {
-            playlistContainer.innerHTML = `<p class="search-empty">${t("no_playlists_found")}</p>`;
+            playlistContainer.innerHTML = '';
+            const p = document.createElement('p');
+            p.className = 'search-empty';
+            p.textContent = t('no_playlists_found');
+            playlistContainer.appendChild(p);
           }
         } catch (err) {
-          playlistContainer.innerHTML = `<p class="search-empty">${t("load_error")}</p>`;
+          playlistContainer.innerHTML = '';
+          const p = document.createElement('p');
+          p.className = 'search-empty';
+          p.textContent = t('load_error');
+          playlistContainer.appendChild(p);
         }
         expandBtn.textContent = t("hide");
         expandBtn.disabled = false;
@@ -548,7 +555,7 @@ class HomePage {
       : `${series.videos.length} ${epLabel}`;
     info.appendChild(subtitleEl);
 
-    // Netflix-style hover: show next episode thumbnail + title
+    // Hover: show next episode thumbnail + title
     const nextEp = (() => {
       if (series.completed || series.videos.length === 0) return null;
       const unwatched = series.videos.find((v) => !v.watched);

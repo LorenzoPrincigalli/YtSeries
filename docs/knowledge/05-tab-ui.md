@@ -1,112 +1,63 @@
-# Tab UI (dashboard)
+# Tab UI — Dashboard
 
-Main UI: `src/tab/index.html` + `src/tab/app.js` + `src/tab/main.css`.
+The main UI lives in `src/tab/` and renders the full dashboard.
 
-## Bootstrap (`app.js`)
+## File structure
 
-On `DOMContentLoaded`:
-
-1. `translateUI()` — `data-i18n` attributes via `t()`
-2. `bindUIEvents()`
-3. `listenBroadcasts()` — `STATE_UPDATED`
-4. `loadState()` — `STATE_GET`
-5. `applyTheme()`, `initIconTheme()`
-
-Global module-level `state` mirrors background store (not the `store` singleton).
+| File | Purpose |
+|------|---------|
+| `index.html` | Shell: header, modals (settings, add playlist, FAQ, changelog, bug report), footer |
+| `app.js` | App logic: state, rendering, events, theme, modals, search |
+| `variables.css` | CSS custom properties (themes, spacing, z-index, shadows) |
+| `base.css` | Body, empty states, loading skeleton, search header |
+| `header.css` | Fixed header with logo, nav, search, Pro button |
+| `hero.css` | Hero carousel with crossfade |
+| `cards.css` | Series cards with hover effects, badges, progress |
+| `carousel.css` | Carousel rows with L/R arrows |
+| `episodes.css` | Episode list in detail view |
+| `components.css` | Buttons, toggles, badges, license UI, upsell cards, free-tier banner |
+| `modals.css` | All modals: settings, detail, confirm, FAQ, changelog |
+| `footer.css` | Footer bar |
+| `responsive.css` | Mobile/tablet breakpoints |
 
 ## Components
 
-| File | Class | Role |
-|------|-------|------|
-| `components/home.js` | `HomePage` | Hero, carousels, search results, hover previews |
-| `components/detail.js` | `DetailPage` | Series modal: episodes, sort, bulk watch, related playlists |
-| `components/modal.js` | `ModalManager` | Generic modals + `confirm()` |
+| Component | File |
+|-----------|------|
+| `HomePage` | `components/home.js` — hero carousel, series rows, search results |
+| `DetailPage` | `components/detail.js` — series detail with episode list |
+| `ModalManager` | `components/modal.js` — open/close/confirm modals |
 
-`app.js` orchestrates: filters, search debounce, settings panel, license UI, routing between home and detail.
+## Themes
 
-## Messaging from tab
+Four themes: Classic Red, Ocean Blue, Forest Green, Light ("Tema chiaro").
 
-```javascript
-async function sendMessage(type, payload) {
-  return chrome.runtime.sendMessage({ type, payload })
-}
-```
+- `applyTheme()` in `app.js` sets all CSS custom properties including dark/light variants
+- Toolbar icon follows selected theme (dark/light variant)
+- Popup also supports all themes via `applyPopupTheme()`
 
-Most actions use this helper. **Exception:** `detail.js` may call `chrome.runtime.sendMessage` directly for `FETCH_CHANNEL_PLAYLISTS`.
+## Search
 
-## Custom DOM events
+- **Local filtering**: filters displayed series in real-time while typing (no API call)
+- **YouTube search**: triggered on Enter key
+- **Hint**: "Press Enter to search" appears below search title after 2s of typing
+- **Rate limit**: 3s cooldown between YouTube API calls; previous results preserved during cooldown
 
-| Event | Detail | Handler |
-|-------|--------|---------|
-| `yt-series-add` | `{ playlistId }` | `app.js` → `PLAYLIST_ADD` |
-| `yt-series-delete` | `{ playlistId }` | `app.js` → `SERIES_DELETE` |
+## Settings panels
 
-Dispatched from detail UI when adding related playlists.
+| Panel | i18n key | Notes |
+|-------|----------|-------|
+| Theme | `theme` | 4 options, translated |
+| Language | `language` | System / EN / IT |
+| Overlays | `settings_overlay` | Next Episode overlay toggle |
+| License Key | `license_key` | Pro activation |
+| Cloud Sync | `sync_title` | Firebase sign-in |
+| Reset Data | `settings_reset` | Clear + backup/restore JSON |
+| Dev Tools | `settings_dev` | Hidden when EXTENSION_ID is set |
+| Notifications | `auto_refresh` | "New Episode Notifications" toggle (Pro only, hidden for free) |
 
-## Filters and views
+## Free tier banner
 
-- `currentFilter`: `all` | `watching` | `completed` | `new`
-- “New This Week” / `newEpisodesCount` badges: gated on `state.license.isPro` in UI (see license doc for enforcement mismatch)
-- Recommended row: channel-based discovery (Pro-related logic in `app.js`)
-
-## Detail modal
-
-`detailPage.render(series, callbacks)`:
-
-- `onWatch(playlistId, videoId)` → `handleWatchEpisode` → `EPISODE_WATCH`
-- `onRefresh`, `onCompleteToggle`, `onAddSeries`, `onBack`
-- `isPro` passed for new-episode highlight (7-day window)
-
-Multi-select “mark watched” should call `onWatch` per video (not localStorage hacks).
-
-**Note:** Clicking an episode card opens the YouTube video directly without marking as watched. Use the checkbox to mark as watched.
-
-## Settings modal
-
-Settings use a sidebar layout with tabs for different sections:
-
-- Theme
-- Language
-- Next Episode Overlay
-- License Key (includes Auto-Refresh as Pro sub-section)
-- Cloud Sync
-- Reset Data
-- Dev Tools
-
-Only one section is visible at a time. Tabs are managed via JavaScript that toggles `.active` class on `.settings-tab` and `.settings-section-content`.
-
-## i18n
-
-- `src/shared/i18n.js` — `en` / `it` tables, `t(key, { param })`
-- HTML: `data-i18n="key"` attributes
-- `setLanguage()` when settings.language ≠ `system`
-- After language change: call `translateUI()` again
-
-## Theming
-
-- `THEME_COLORS` in constants — CSS variables applied in `applyTheme()`
-- Toolbar icon: `SET_ICON_THEME` with `{ suffix: '_light' | '' }` based on page theme detection
-
-## Security (UI)
-
-- Prefer `document.createElement` + `textContent` for user/API strings
-- `innerHTML` acceptable for **static** SVG arrows and trusted templates
-- Search/empty states using `t()` inside `innerHTML` are lower risk but DOM APIs are preferred for new code
-
-## Hover previews (`home.js`)
-
-Embeds YouTube iframe on card hover — requires CSP `frame-src` for youtube domains.
-
-## Deep links (gap)
-
-Background/popup open URLs like:
-
-- `index.html?series={playlistId}`
-- `index.html?settings=1`
-
-**`app.js` does not read query params** — notification and popup deep links do not auto-open detail/settings. See [10-known-issues.md](10-known-issues.md).
-
-## Related
-
-- Messages: [02-message-protocol.md](02-message-protocol.md)
-- Pro UI: [07-freemium-license.md](07-freemium-license.md)
+- Appears on main dashboard (all filter, no search)
+- Once per day, dismissible with X button
+- Shows "Free plan (X/3)" or "Limit reached — Get Pro"

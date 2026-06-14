@@ -1,76 +1,49 @@
-# Freemium and license
+# Freemium & Licensing
 
-## Tiers
+> Last updated: 14 June 2026
 
-| Feature | Free | Pro |
-|---------|------|-----|
-| Max series | 3 (`FREE_LIMITS.MAX_SERIES`) | Unlimited |
-| Auto-refresh alarm | No | Yes (if `settings.autoRefresh`) |
-| New episode badges / “New” filter row | UI hidden or limited | Yes |
-| New episode highlight in detail (7 days) | No | Yes |
+## Model
 
-Enforcement for add/refresh: `store.canAddSeries()` and `store.isPro()` in **background**.
+| Feature | Free | Pro (EUR 4.99 one-time) |
+|---------|------|--------------------------|
+| Series | Max 3 | Unlimited |
+| Episode refresh (open series) | Yes | Yes |
+| Auto-refresh 24h (background) | No | Yes |
+| New episode notifications | No | Yes |
+| "New This Week" section | No | Yes |
+| Themes (4) | Yes | Yes |
+| Cloud sync (Firebase) | Optional | Optional |
+| Next Episode overlay on YouTube | Yes | Yes |
 
-## Critical: `store.isPro()` vs `license.isPro`
+Purchase via Lemon Squeezy: `PRO_CHECKOUT.URL` in `src/shared/constants.js`
 
-| Check | Where | Logic |
-|-------|-------|-------|
-| `license.isPro` | Tab, popup UI | Persisted flag from last verify |
-| `store.isPro()` | Background enforcement | Requires `isPro`, `key`, and `verifiedAt` within **24 hours** |
+## License verification
 
-**UI can show “Pro” while background blocks Pro actions** if `verifiedAt` is older than 24h until user re-verifies.
+`src/services/license.js` — `LicenseService` class:
+- POSTs to `https://api.lemonsqueezy.com/v1/licenses/validate`
+- Validates `store_id` against `LICENSE_STORE_ID`
+- Caches result for `LICENSE_CACHE_DAYS` (1 day)
+- Fallback to cache on network error
 
-When changing Pro features, consider aligning UI with `store.isPro()` or triggering re-verify on tab load.
+## Pro status enforcement
 
-## Activation paths
+- `Store.isPro()` checks license validity (24h re-verify window)
+- `Store.canAddSeries()` blocks new series when free limit reached
+- Background service worker handles `LICENSE_VERIFY` and `LICENSE_ACTIVATE` events
+- License data stored in `chrome.storage.sync` with checksum
 
-1. **Settings → Activate** — tab sends `LICENSE_VERIFY` with `{ key }`
-2. **`activate.html`** on GitHub Pages — `chrome.runtime.sendMessage(EXTENSION_ID, { type: 'ACTIVATE_LICENSE', key })`
-3. Checkout — `PRO_CHECKOUT.URL` (no auto-activation)
+## Upsell touchpoints
 
-### External activation requirements
+| Touchpoint | Where | Free user sees |
+|------------|-------|---------------|
+| Dashboard banner | Bottom of home | "Free plan (X/3)" — once per day, dismissible with X |
+| New Episodes tab | Dashboard | Upsell card: "Pro feature — Upgrade to unlock" |
+| Limit reached | Add series modal | Inline error message (no popup) |
+| YouTube Add button | Content script | Button disables showing limit message |
+| Post-completion | Toast | "Series completed! Want more? Get Pro" |
+| Settings | Settings modal | License key input + "Get Pro" button |
+| Popup | Extension popup | Feature list: unlimited, notifications, New This Week |
 
-- `EXTENSION_ID` in `src/shared/constants.js` (empty until Chrome Web Store publish)
-- `manifest.json` → `externally_connectable.matches`
-- `activate.html` must use same extension ID
+## DEV_TOGGLE_PRO
 
-## Verify flow (background)
-
-1. Rate limiter check (`_rateLimiter` in local storage, exponential backoff)
-2. `licenseService.verify(key)` → Lemon Squeezy API
-3. Valid → `setLicense({ key, isPro: true, verifiedAt: Date.now() })`, save, broadcast
-4. Invalid → clear license, clear `autoRefresh` alarm, broadcast
-
-## Re-verification
-
-| Trigger | Behavior |
-|---------|----------|
-| `init()` / `reverifyLicense()` | If Pro and `verifiedAt` older than `LICENSE_CACHE_DAYS` (1 day), re-validate; invalid → strip Pro |
-| `licenseHeartbeat` alarm | Daily → `reverifyLicense()` |
-| `store.isPro()` | Hard 24h window on `verifiedAt` for runtime checks |
-
-## Tamper protection
-
-On load, license checksum mismatch → reset to free, increment `_tamperCount`.
-
-Do not remove `_checksum` logic when editing license persistence.
-
-## License service cache
-
-`license.js` caches successful validation in memory for network failures (up to `LICENSE_CACHE_DAYS`).
-
-## UI references
-
-- `app.js`: license badge, pro settings section, buy button, `homePage.setPro(state.license.isPro)`
-- `popup.js`: Pro badge, buy button visibility
-
-## Agent notes
-
-- Use `LIMIT_REACHED` when testing free tier add
-- After license changes, confirm `broadcastStateUpdate()` fired
-- Do not commit real license keys in docs or code
-
-## Related
-
-- [02-message-protocol.md](02-message-protocol.md) — `LICENSE_VERIFY`, `ACTIVATE_LICENSE`
-- [10-known-issues.md](10-known-issues.md) — `EXTENSION_ID` empty, UI/enforcement gap
+Auto-disables when `EXTENSION_ID` is set (production builds). The Dev tab in settings is hidden.

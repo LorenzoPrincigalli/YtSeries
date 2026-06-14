@@ -84,7 +84,8 @@ class FirebaseAuthService {
           requestUri,
           returnSecureToken: true,
           returnIdpCredential: true
-        })
+        }),
+        signal: AbortSignal.timeout(15000)
       }
     )
 
@@ -143,7 +144,8 @@ class FirebaseAuthService {
         body: new URLSearchParams({
           grant_type: 'refresh_token',
           refresh_token: refreshToken
-        })
+        }),
+        signal: AbortSignal.timeout(15000)
       }
     )
 

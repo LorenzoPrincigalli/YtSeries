@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "YT Series",
   "version": "1.1.0",
-  "description": "Trasforma le playlist YouTube in serie TV tracciabili con interfaccia in stile Netflix",
+  "description": "Transform YouTube playlists into a TV-series tracker with a cinematic interface",
   "permissions": [
     "storage",
     "alarms",
@@ -12,11 +12,18 @@
   ],
   "oauth2": {
     "client_id": "1052836687022-2rebg9qq23n14m4reqt5hv7ckfbd64tn.apps.googleusercontent.com",
-    "scopes": ["openid", "email", "profile"]
+    "scopes": [
+      "openid",
+      "email",
+      "profile"
+    ]
   },
   "host_permissions": [
     "https://www.youtube.com/*",
     "https://www.googleapis.com/*",
+    "https://identitytoolkit.googleapis.com/*",
+    "https://securetoken.googleapis.com/*",
+    "https://firestore.googleapis.com/*",
     "https://api.lemonsqueezy.com/*",
     "https://shy-snowflake-0680.lollo-princigalli.workers.dev/*"
   ],
@@ -28,12 +35,18 @@
     "type": "module"
   },
   "externally_connectable": {
-    "matches": ["https://lorenzoprincigalli.github.io/*"]
+    "matches": [
+      "https://lorenzoprincigalli.github.io/*"
+    ]
   },
   "content_scripts": [
     {
-      "matches": ["https://www.youtube.com/*"],
-      "js": ["src/content/index.js"]
+      "matches": [
+        "https://www.youtube.com/*"
+      ],
+      "js": [
+        "src/content/index.js"
+      ]
     }
   ],
   "commands": {
@@ -60,8 +73,13 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["icons/*.png"],
-      "matches": ["https://www.youtube.com/*"]
+      "resources": [
+        "icons/*.png"
+      ],
+      "matches": [
+        "https://www.youtube.com/*"
+      ]
     }
-  ]
+  ],
+  "short_name": "YT Series"
 }

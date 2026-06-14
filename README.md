@@ -1,23 +1,33 @@
 # YT Series
 
-Transform YouTube playlists into a TV-series tracker with Netflix-style UI.
+Transform YouTube playlists into a TV-series tracker with a cinematic dashboard.
 
 ## Features
 
-- **Import playlists** via URL or YouTube search
+- **Import playlists** via URL or search YouTube (press Enter to search)
 - **Track progress** — auto-detect video watching with debounced saves
-- **Netflix-style carousels** — hero banner with crossfade, L/R arrows, drag-to-scroll
-- **Next Episode overlay** — Netflix-style "Watch Next" popup at 30s from the end
-- **Sort episodes** by date, watched status, or default order
-- **Filter** by All / Watching / Completed / New Episodes
-- **New This Week** — series with videos published in the current week
-- **Recommended** — discover playlists from your saved channels
+- **Cinematic carousels** — hero banner with crossfade, L/R arrows, drag-to-scroll
+- **Next Episode overlay** — "Watch Next" popup when a video is about to end
+- **Sort episodes** by date, watched status, or default playlist order
+- **Filter** by All / In Progress / Completed / New Episodes
+- **"New This Week"** — Pro-only section showing series with fresh content
+- **Hover preview** — peek at any video without leaving the page
 - **Sidebar integration** — YT Series link injected into YouTube's sidebar
 - **"Add to Series" button** — injected directly into YouTube playlist pages
+- **4 themes** — Classic Red, Ocean Blue, Forest Green, Light
 - **i18n** — English and Italiano (full coverage)
-- **Themes** — Classic Red, Ocean Blue, Forest Green
-- **Freemium** (Lemon Squeezy) — Pro unlocks auto-refresh, unlimited series
 - **Cloud sync** (optional) — Firebase-backed cross-device progress sync
+- **Keyboard shortcut** — Ctrl+Shift+Y
+- **Popup dashboard** — series count, unwatched, and new episode stats
+
+## Pricing
+
+| Plan | Price | Features |
+|------|-------|----------|
+| **Free** | €0 | Up to 3 series, auto-refresh on open, 4 themes, cloud sync |
+| **Pro** | €4.99 one-time | Unlimited series, new episode notifications (24h), "New This Week" section |
+
+Purchase via Lemon Squeezy. One-time payment — no subscription.
 
 ## Install
 
@@ -27,12 +37,12 @@ Transform YouTube playlists into a TV-series tracker with Netflix-style UI.
 
 ## Setup
 
-1. Run `npm install` to install dev dependencies
-2. Run `npm run setup` — interactive wizard to create `config.js` and `firebase.config.js` from examples
-3. Run `npm run icons` to generate extension icons from SVG source
+1. Run `npm install`
+2. Run `npm run setup` — creates `config.js` and `firebase.config.js`
+3. Run `npm run icons` — generates extension icons from SVG
 4. Load the unpacked extension in Chrome
 
-> In production, the extension uses a Cloudflare Worker proxy for YouTube API calls, so no API key is shipped to users. Local development can use a direct API key via `config.js`.
+> In production, the extension uses a Cloudflare Worker proxy for YouTube API calls. No API key is shipped to users.
 
 ## Stack
 
@@ -40,82 +50,28 @@ Transform YouTube playlists into a TV-series tracker with Netflix-style UI.
 |-------|-----------|
 | Extension platform | Chrome Manifest V3 |
 | Language | Vanilla JavaScript (ES modules) |
-| UI | Vanilla DOM (no framework), CSS Custom Properties |
-| YouTube API | Cloudflare Worker proxy + YouTube Data API v3 (3-layer caching: edge + KV) |
+| UI | Vanilla DOM, CSS Custom Properties |
+| YouTube API | Cloudflare Worker proxy + YouTube Data API v3 |
 | Licensing | Lemon Squeezy |
 | Sync (optional) | Firebase Auth + Firestore via REST |
-| Test runner | Vitest (81 tests) |
+| Test runner | Vitest (86 tests) |
 | Icons | Sharp (SVG → PNG) |
-| Dev automation | Playwright (screenshots, debug) |
 
-## Code quality
-
-A full [codebase analysis](docs/2026-05-29_1930/07-Final-Report.md) was conducted covering security, performance, architecture, and edge cases. Key results:
-
-- **Security posture:** 1.7/10 → 6/10 after fixes (API key removed from bundle, Dev Pro Toggle stripped, CSP hardened)
-- **81 tests passing** — store, YouTube service, Firestore wire format, sync logic, i18n
-- **Content script reliability** — listener leaks fixed (visibility, MutationObserver, fullscreen)
-- **i18n** — all content script strings now use TRANSLATIONS (EN/IT) instead of hardcoded Italian
-- **YouTube API quota** — 100K→1K units/day via 3-layer Worker caching (edge + KV). Search merged from 2 calls (200u) to 1 call (100u)
-- **Known gaps:** server-side license gating needed for production, content script ES module imports require a bundler, LemonSqueezy validate missing store_id
-
-### Worker caching strategy
-
-```
-Request → caches.default (edge, 0ms) → KV (global, ~5ms) → YouTube API (~500ms)
-```
-
-| Endpoint | Edge TTL | KV TTL |
-|---|---|---|
-| search (100u) | 1h | 24h |
-| playlists (1u) | 1h | 6h |
-| playlistItems (1u) | 2min | — |
-| videos (1u) | 7 days | — |
-
-See [docs/caching-plan.md](docs/caching-plan.md) for full design.
-
-## Developer experience
-
-The project includes AI agent skills (`.agents/skills/`):
-
-- `greploop` — iterative codebase exploration via grep
-- `check-pr` — PR review with `gh` CLI
-- `senior-engineer` — architecture and refactoring planning
-
-`gh` CLI is required for PR-related skills. Install it from [cli.github.com](https://cli.github.com/) and authenticate with `gh auth login`.
-
-## Testing
+## Tests
 
 ```bash
 npm test
 ```
 
-Unit tests cover: store mutations, YouTube URL parsing and duration parsing, Firestore REST encoder/decoder, sync merge logic, i18n translation lookups.
+86 tests across 5 test files: store, YouTube service, Firestore wire format, sync logic, i18n.
 
-## Assets
+## Pre-publish
 
-| Directory | Contents |
-|-----------|----------|
-| `src/assets/icons/` | SVG source files for extension icons |
-| `src/assets/store/` | Chrome Web Store materials (screenshots guide, privacy policy) |
-| `src/assets/scripts/` | Build tools (`generate-icons.cjs`, mock data, Playwright scripts) |
+See `PUBLISH-CHECKLIST.md` for blockers and required steps before Chrome Web Store submission.
 
-## Publishing to Chrome Web Store
+## Dev Tools
 
-1. Run `npm run icons` to regenerate all PNG icons
-2. Take screenshots following `src/assets/store/screenshots.md`
-3. Set `EXTENSION_ID` in `src/shared/constants.js` to the assigned CWS ID
-4. Host `src/assets/store/privacy-policy.html` on a public URL (GitHub Pages, etc.)
-5. Submit via [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole) ($5 registration fee)
-6. Set up Lemon Squeezy product for Pro license keys
-
-## Agent / contributor docs
-
-Structured knowledge for AI agents and maintainers:
-
-- **[docs/knowledge/README.md](docs/knowledge/README.md)** — index, reading order, task → file map
-
-Covers architecture, message protocol, data model, Pro licensing, and common pitfalls.
+Dev tools (Pro toggle, demo data loader) are available when `EXTENSION_ID` is empty. They auto-disable in production builds.
 
 ## License
 

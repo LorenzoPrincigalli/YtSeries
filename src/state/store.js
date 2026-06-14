@@ -32,7 +32,7 @@ class Store {
       series: {},
       settings: {
         theme: 'classic-red',
-        autoRefresh: false,
+        autoRefresh: true,
         lastRefreshCheck: 0,
         nextEpisodeOverlay: true
       },
@@ -42,7 +42,6 @@ class Store {
         verifiedAt: null
       }
     }
-    this._listeners = new Map()
   }
 
   getState() {
@@ -102,7 +101,7 @@ class Store {
       if (syncData[STORAGE_KEYS.LICENSE]) {
         const stored = syncData[STORAGE_KEYS.LICENSE]
         const expectedChecksum = Store._computeLicenseChecksum(stored)
-        if (stored._checksum && stored._checksum !== expectedChecksum) {
+        if (!stored._checksum || stored._checksum !== expectedChecksum) {
           logger.warn('Store.loadFromStorage: license checksum mismatch — resetting to free.')
           this._state.license = { key: null, isPro: false, verifiedAt: null }
         } else {
@@ -195,14 +194,12 @@ class Store {
         }
       })
     }
-    this._emitChange()
   }
 
   toggleSeriesComplete(playlistId) {
     const series = this._state.series[playlistId]
     if (!series) return
     series.completed = !series.completed
-    this._emitChange()
   }
 
   findPlaylistByVideoId(videoId) {
@@ -237,7 +234,6 @@ class Store {
 
   deleteSeries(playlistId) {
     delete this._state.series[playlistId]
-    this._emitChange()
   }
 
   markEpisodeWatched(playlistId, videoId) {
@@ -257,7 +253,6 @@ class Store {
     const nextIndex = series.videos.findIndex(v => !v.watched)
     series.lastEpisodeIndex = nextIndex >= 0 ? nextIndex : series.videos.length - 1
 
-    this._emitChange()
   }
 
   markEpisodeUnwatched(playlistId, videoId) {
@@ -277,7 +272,6 @@ class Store {
     const nextIndex = series.videos.findIndex(v => !v.watched)
     series.lastEpisodeIndex = nextIndex >= 0 ? nextIndex : series.videos.length - 1
 
-    this._emitChange()
   }
 
   updateEpisodeProgress(playlistId, videoId, progress, currentTime = 0, duration = 0) {
@@ -304,40 +298,14 @@ class Store {
     // Removed auto-mark to prevent false positives
     // Videos are only marked as watched via the 'ended' event or manual action
 
-    this._emitChange()
   }
 
   updateSettings(settings) {
     this._state.settings = { ...this._state.settings, ...settings }
-    this._emitChange()
   }
 
   setLicense(licenseData) {
     this._state.license = { ...this._state.license, ...licenseData }
-    this._emitChange()
-  }
-
-  setApiKey(key) {
-    this._state.settings.apiKey = key
-    this._emitChange()
-  }
-
-  subscribe(key, callback) {
-    this._listeners.set(key, callback)
-  }
-
-  unsubscribe(key) {
-    this._listeners.delete(key)
-  }
-
-  _emitChange() {
-    for (const callback of this._listeners.values()) {
-      try {
-        callback(this._state)
-      } catch (err) {
-        logger.error('Store listener error:', err)
-      }
-    }
   }
 }
 

@@ -32,7 +32,7 @@
   <p>All data is stored locally in your browser using Chrome's <code>storage.local</code> and <code>storage.sync</code> APIs:</p>
   <ul>
     <li><strong>Series data:</strong> playlist IDs, titles, thumbnails, channel info, video metadata, and your watched/progress state for each episode</li>
-    <li><strong>Settings:</strong> theme preference, language, auto-refresh toggle, last refresh timestamp</li>
+    <li><strong>Settings:</strong> theme preference, language, new episode notification toggle, last refresh timestamp</li>
     <li><strong>License info:</strong> if you purchase a Pro license, the license key and verification status</li>
   </ul>
   <p>By default, the Extension does not collect your name or email. Optional Cloud Sync (see below) uses your Google account only when you sign in.</p>
@@ -73,7 +73,7 @@
   <h2>Permissions Justification</h2>
   <ul>
     <li><strong>storage</strong> – needed to save series, settings, and license data locally</li>
-    <li><strong>alarms</strong> – needed for Pro auto-refresh (periodic background checks for new episodes)</li>
+    <li><strong>alarms</strong> – needed for periodic background checks for new episodes</li>
     <li><strong>notifications</strong> – needed to alert you when new episodes are found</li>
     <li><strong>tabs</strong> – needed to open the Extension's tab interface</li>
     <li><strong>identity</strong> – needed for optional Google sign-in (Cloud Sync)</li>

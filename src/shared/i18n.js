@@ -4,7 +4,9 @@ const STRINGS = {
   en: {
     // Home
     'continue_watching': 'Continue Watching',
+    'in_progress': 'In Progress',
     'new_episodes': 'New Episodes',
+    'new_episodes_pro_only': 'New This Week section and notifications are Pro features. Upgrade to unlock.',
     'this_week': 'New This Week',
     'my_series': 'My Series',
     'episodes': 'episodes',
@@ -34,6 +36,7 @@ const STRINGS = {
 
     // UI
     'search_placeholder': 'Search series...',
+    'search_hint': 'Press Enter to search',
     'add_series': 'Add Series',
     'add_via_link': '+ Add via Link',
     'home': 'Home',
@@ -51,10 +54,28 @@ const STRINGS = {
     'enter_url': 'Please enter a playlist URL',
     'limit_reached': 'Free limit reached (max 3 series). Upgrade to Pro for unlimited series.',
     'add_failed': 'Failed to add playlist. Check the URL and try again.',
+    'playlist_already_added': 'This playlist is already in your series.',
     'search_playlists': 'Search YouTube for public playlists.',
     'search_playlist_placeholder': 'Search playlists...',
     'search_btn': 'Search',
     'recommended': 'More from Your Channels',
+
+    // Upsell / Pro
+    'free_tier_banner': 'Free plan ({count}/{limit} series)',
+    'completed_upsell': 'Series completed! Want to track more? Unlock unlimited series with Pro.',
+    'popup_onetime': 'One-time payment — no subscription',
+
+    // Settings sections
+    'settings_overlay': 'Overlays',
+    'settings_reset': 'Reset Data',
+    'settings_dev': 'Dev Tools',
+    'overlay_desc': 'Show "Watch Next" button on YouTube when episode is ending',
+    'overlay_toggle': 'Enable overlay',
+    'reset_desc': 'Clear all your series and settings data.',
+    'reset_btn': 'Reset all data',
+    'reset_backup': 'Backup or restore your series data as a JSON file.',
+    'export_json': 'Export JSON',
+    'import_json': 'Import JSON',
 
     // Settings modal
     'settings_title': 'Settings',
@@ -62,14 +83,15 @@ const STRINGS = {
     'theme_classic_red': 'Classic Red',
     'theme_ocean_blue': 'Ocean Blue',
     'theme_forest': 'Forest Green',
+    'theme_light': 'Light',
     'language': 'Language',
     'language_system': 'System',
     'language_en': 'English',
     'language_it': 'Italiano',
-    'auto_refresh': 'Auto-Refresh',
-    'auto_refresh_desc': 'Check for new episodes every 24h',
+    'auto_refresh': 'New Episode Notifications',
+    'auto_refresh_desc': 'Get notified when new episodes are released (Pro only)',
     'license_key': 'License Key',
-    'license_desc': 'Unlock unlimited series and auto-refresh.',
+    'license_desc': 'Unlock unlimited series and new episode notifications.',
     'plan_free': 'Free Plan',
     'plan_pro': 'Pro Plan',
     'free_series_limit': 'Up to 3 series',
@@ -81,7 +103,7 @@ const STRINGS = {
     'license_failed': 'Failed to verify license. Check your connection.',
     'buy_pro': 'Get Pro — €4.99',
     'get_pro': 'Get Pro',
-    'buy_pro_desc': 'Unlimited series, auto-refresh, and new episode notifications.',
+    'buy_pro_desc': 'Unlimited series, new episode notifications, and New This Week section.',
     'sync_title': 'Cloud Sync',
     'sync_desc': 'Sync your series progress across devices with your Google account.',
     'sync_login': 'Sign in with Google',
@@ -135,11 +157,11 @@ const STRINGS = {
     'faq_what_is': 'What is YT Series?',
     'faq_what_is_a': 'YT Series transforms YouTube playlists into trackable TV series. Add a playlist and track which episodes you\'ve watched.',
     'faq_limits': 'Are there any limits?',
-    'faq_limits_a': 'The free version supports up to 3 series. Upgrade to Pro (€4.99 one-time) for unlimited series and auto-refresh.',
+    'faq_limits_a': 'The free version supports up to 3 series. Upgrade to Pro (€4.99 one-time) for unlimited series, new episode notifications, and the New This Week section.',
     'faq_data': 'Where is my data stored?',
     'faq_data_a': 'Series progress is stored locally. If you enable Cloud Sync, progress and series metadata are stored in your Firebase account (Google sign-in). Settings and license stay in Chrome sync storage.',
-    'faq_auto': 'How does auto-refresh work?',
-    'faq_auto_a': 'Pro users can enable auto-refresh to check for new episodes every 24 hours. Changes are notified via the extension badge.',
+    'faq_auto': 'How do new episode notifications work?',
+    'faq_auto_a': 'Pro users can enable "New Episode Notifications" in Settings. The extension checks every 24 hours and sends a notification when new episodes are found.',
     'faq_license': 'How do I activate my license?',
     'faq_license_a': 'After purchase, you\'ll receive a license key via email. Enter it in Settings → License Key to unlock Pro.',
 
@@ -159,12 +181,19 @@ const STRINGS = {
     'bug_placeholder': 'What went wrong? What were you doing?',
     'bug_send': 'Send Report',
     'bug_also_github': 'Or report on GitHub',
-    'bug_empty': 'Please describe the issue.'
+    'bug_empty': 'Please describe the issue.',
+    'no_data_to_export': 'No series data to export.',
+    'invalid_import_format': 'Invalid JSON file. Please select a valid backup file.',
+    'import_confirm': 'Import {count} series? This will overwrite existing data.',
+    'import_success': 'Import successful! Reloading...',
+    'import_error': 'Import failed. Check the file format.'
   },
 
   it: {
     'continue_watching': 'Continua a guardare',
+    'in_progress': 'In corso',
     'new_episodes': 'Nuovi episodi',
+    'new_episodes_pro_only': 'La sezione Novità della settimana e le notifiche sono funzioni Pro. Aggiorna per sbloccarle.',
     'this_week': 'Novità della settimana',
     'my_series': 'Le mie serie',
     'episodes': 'episodi',
@@ -192,6 +221,7 @@ const STRINGS = {
     'sort_watched': 'Visti prima',
 
     'search_placeholder': 'Cerca serie...',
+    'search_hint': 'Premi Invio per cercare',
     'add_series': 'Aggiungi serie',
     'add_via_link': '+ Aggiungi via link',
     'home': 'Home',
@@ -208,10 +238,28 @@ const STRINGS = {
     'enter_url': 'Inserisci un URL di playlist',
     'limit_reached': 'Limite gratuito raggiunto (max 3 serie). Passa a Pro per serie illimitate.',
     'add_failed': 'Impossibile aggiungere la playlist. Controlla l\'URL e riprova.',
+    'playlist_already_added': 'Questa playlist è già nella tua libreria.',
     'search_playlists': 'Cerca playlist pubbliche su YouTube.',
     'search_playlist_placeholder': 'Cerca playlist...',
     'search_btn': 'Cerca',
     'recommended': 'Altro dal tuo canale',
+
+    // Settings sections
+    'settings_overlay': 'Overlay',
+    'settings_reset': 'Ripristina dati',
+    'settings_dev': 'Strumenti di sviluppo',
+    'overlay_desc': 'Mostra il pulsante "Guarda Prossimo" su YouTube quando l\'episodio sta per finire',
+    'overlay_toggle': 'Attiva overlay',
+    'reset_desc': 'Cancella tutte le serie e impostazioni.',
+    'reset_btn': 'Ripristina tutti i dati',
+    'reset_backup': 'Backup o ripristino dei dati delle serie in formato JSON.',
+    'export_json': 'Esporta JSON',
+    'import_json': 'Importa JSON',
+
+    // Upsell / Pro
+    'free_tier_banner': 'Piano gratuito ({count}/{limit} serie)',
+    'completed_upsell': 'Serie completata! Vuoi tracciarne altre? Sblocca serie illimitate con Pro.',
+    'popup_onetime': 'Pagamento una tantum — nessun abbonamento',
 
     'settings_title': 'Impostazioni',
     'language': 'Lingua',
@@ -222,10 +270,11 @@ const STRINGS = {
     'theme_classic_red': 'Rosso Classico',
     'theme_ocean_blue': 'Blu Oceano',
     'theme_forest': 'Verde Foresta',
-    'auto_refresh': 'Aggiornamento automatico',
-    'auto_refresh_desc': 'Controlla nuovi episodi ogni 24 ore',
+    'theme_light': 'Tema chiaro',
+    'auto_refresh': 'Notifiche nuovi episodi',
+    'auto_refresh_desc': 'Ricevi una notifica quando escono nuovi episodi (solo Pro)',
     'license_key': 'Chiave licenza',
-    'license_desc': 'Sblocca serie illimitate e aggiornamento automatico.',
+    'license_desc': 'Sblocca serie illimitate e notifiche nuovi episodi.',
     'plan_free': 'Piano gratuito',
     'plan_pro': 'Piano Pro',
     'free_series_limit': 'Fino a 3 serie',
@@ -237,7 +286,7 @@ const STRINGS = {
     'license_failed': 'Impossibile verificare la licenza. Controlla la connessione.',
     'buy_pro': 'Ottieni Pro — €4.99',
     'get_pro': 'Ottieni Pro',
-    'buy_pro_desc': 'Serie illimitate, aggiornamento automatico e notifiche di nuovi episodi.',
+    'buy_pro_desc': 'Serie illimitate, notifiche nuovi episodi e sezione Novità della settimana.',
     'sync_title': 'Sincronizzazione cloud',
     'sync_desc': 'Sincronizza il progresso delle serie tra dispositivi con il tuo account Google.',
     'sync_login': 'Accedi con Google',
@@ -290,11 +339,11 @@ const STRINGS = {
     'faq_what_is': 'Cos\'è YT Series?',
     'faq_what_is_a': 'YT Series trasforma le playlist YouTube in serie TV tracciabili. Aggiungi una playlist e tieni traccia degli episodi visti.',
     'faq_limits': 'Ci sono limiti?',
-    'faq_limits_a': 'La versione gratuita supporta fino a 3 serie. Passa a Pro (€4.99 una tantum) per serie illimitate e aggiornamento automatico.',
+    'faq_limits_a': 'La versione gratuita supporta fino a 3 serie. Passa a Pro (€4.99 una tantum) per serie illimitate, notifiche nuovi episodi e sezione Novità della settimana.',
     'faq_data': 'Dove vengono salvati i miei dati?',
     'faq_data_a': 'Il progresso delle serie è salvato in locale. Se attivi la sincronizzazione cloud, progresso e metadati delle serie sono salvati nel tuo account Firebase (accesso Google). Impostazioni e licenza restano in Chrome sync.',
-    'faq_auto': 'Come funziona l\'aggiornamento automatico?',
-    'faq_auto_a': 'Gli utenti Pro possono attivare l\'aggiornamento automatico per controllare nuovi episodi ogni 24 ore. Le novità sono notificate tramite il badge dell\'estensione.',
+    'faq_auto': 'Come funzionano le notifiche nuovi episodi?',
+    'faq_auto_a': 'Gli utenti Pro possono attivare "Notifiche nuovi episodi" nelle Impostazioni. L\'estensione controlla ogni 24 ore e invia una notifica quando trova nuovi episodi.',
     'faq_license': 'Come attivo la licenza?',
     'faq_license_a': 'Dopo l\'acquisto riceverai una chiave licenza via email. Inseriscila in Impostazioni → Chiave licenza per sbloccare Pro.',
 
@@ -314,7 +363,12 @@ const STRINGS = {
     'bug_placeholder': 'Cosa è andato storto? Cosa stavi facendo?',
     'bug_send': 'Invia segnalazione',
     'bug_also_github': 'Oppure segnala su GitHub',
-    'bug_empty': 'Descrivi il problema.'
+    'bug_empty': 'Descrivi il problema.',
+    'no_data_to_export': 'Nessun dato da esportare.',
+    'invalid_import_format': 'File JSON non valido. Seleziona un backup valido.',
+    'import_confirm': 'Importare {count} serie? I dati esistenti verranno sovrascritti.',
+    'import_success': 'Import riuscito! Ricaricamento...',
+    'import_error': 'Import fallito. Controlla il formato del file.'
   }
 }
 
@@ -328,6 +382,13 @@ function currentLang() {
   return STRINGS[nav] ? nav : 'en'
 }
 
+/**
+ * Returns translated string with params substituted by plain text replacement.
+ * WARNING: result MUST be placed into textContent or createElement, NEVER into innerHTML.
+ * @param {string} key Translation key
+ * @param {object} [params={}] Key-value pairs for {placeholder} substitution (text-only, no HTML)
+ * @returns {string}
+ */
 export function t(key, params = {}) {
   const lang = currentLang()
   let str = STRINGS[lang][key]

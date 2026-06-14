@@ -216,9 +216,7 @@
             >
               Language
             </button>
-            <button class="settings-tab" data-section="overlay">
-              Overlays
-            </button>
+            <button class="settings-tab" data-section="overlay" data-i18n="settings_overlay">Overlays</button>
             <button
               class="settings-tab"
               data-section="license"
@@ -233,10 +231,8 @@
             >
               Cloud Sync
             </button>
-            <button class="settings-tab" data-section="reset">
-              Reset Data
-            </button>
-            <button class="settings-tab" data-section="dev">Dev Tools</button>
+            <button class="settings-tab" data-section="reset" data-i18n="settings_reset">Reset Data</button>
+            <button class="settings-tab" data-section="dev" data-i18n="settings_dev">Dev Tools</button>
           </div>
           <div class="settings-content">
             <div class="settings-section-content active" data-section="theme">
@@ -261,14 +257,12 @@
               </div>
             </div>
             <div class="settings-section-content" data-section="overlay">
-              <h3>Next Episode Overlay</h3>
-              <p class="settings-desc">
-                Show "Watch Next" button on YouTube when episode is ending
-              </p>
+              <h3 data-i18n="settings_overlay">Overlays</h3>
+              <p class="settings-desc" data-i18n="overlay_desc">Show "Watch Next" button on YouTube when episode is ending</p>
               <label class="toggle-label">
                 <input type="checkbox" id="nextEpisodeOverlayToggle" />
                 <span class="toggle-slider"></span>
-                <span class="toggle-text">Enable overlay</span>
+                <span class="toggle-text" data-i18n="overlay_toggle">Enable overlay</span>
               </label>
             </div>
             <div class="settings-section-content" data-section="license">
@@ -309,7 +303,7 @@
                   Get Pro — €4.99
                 </button>
                 <p class="buy-pro-desc" data-i18n="buy_pro_desc">
-                  Unlimited series, auto-refresh, and new episode notifications.
+                  Unlimited series, new episode notifications, and New This Week section.
                 </p>
               </div>
 
@@ -323,9 +317,9 @@
                   Check for new episodes every 24h (Pro feature)
                 </p>
                 <label class="toggle-label">
-                  <input type="checkbox" id="autoRefreshToggle" />
+                  <input type="checkbox" id="autoRefreshToggle" checked />
                   <span class="toggle-slider"></span>
-                  <span class="toggle-text">Enable auto-refresh</span>
+                  <span class="toggle-text" data-i18n="auto_refresh_desc">Get notified when new episodes are released (Pro only)</span>
                 </label>
               </div>
             </div>
@@ -369,12 +363,28 @@
               <p id="syncMessage" class="hidden"></p>
             </div>
             <div class="settings-section-content" data-section="reset">
-              <h3>Reset Data</h3>
-              <p class="settings-desc">
-                Clear all your series and settings data.
+              <h3 data-i18n="settings_reset">Reset Data</h3>
+              <p class="settings-desc" data-i18n="reset_desc">Clear all your series and settings data.</p>
+              <button id="resetStorageBtn" class="btn-secondary danger-btn" data-i18n="reset_btn">Reset all data</button>
+              <hr style="border-color:var(--border);margin:16px 0">
+              <p class="settings-desc" data-i18n="reset_backup">Backup or restore your series data as a JSON file.</p>
+              <div style="display:flex;gap:8px">
+                <button id="exportDataBtn" class="btn-secondary" data-i18n="export_json">Export JSON</button>
+                <button id="importDataBtn" class="btn-secondary" data-i18n="import_json">Import JSON</button>
+                <input type="file" id="importFileInput" accept=".json" hidden>
+              </div>
+            </div>
+
+            <div class="settings-section-content" data-section="dev">
+              <h3 data-i18n="settings_dev">Dev Tools</h3>
+              <p class="settings-desc" id="devProStatus">
+                Pro status: Free
               </p>
-              <button id="resetStorageBtn" class="btn-secondary danger-btn">
-                Reset all data
+              <button id="devToggleProBtn" class="btn-secondary">
+                Toggle Pro (simulate)
+              </button>
+              <button id="loadDemoBtn" class="btn-secondary" style="margin-top:8px">
+                Load demo data
               </button>
             </div>
           </div>
@@ -489,7 +499,7 @@
               </button>
               <div class="faq-answer" data-i18n="faq_limits_a">
                 The free version supports up to 3 series. Upgrade to Pro (€4.99
-                one-time) for unlimited series and auto-refresh.
+                one-time) for unlimited series, new episode notifications, and the New This Week section.
               </div>
             </div>
             <div class="faq-item">
@@ -497,16 +507,15 @@
                 Where is my data stored?
               </button>
               <div class="faq-answer" data-i18n="faq_data_a">
-                All your data is stored locally in your browser using Chrome
-                Storage API. Nothing is sent to our servers.
+                Series progress is stored locally. If you enable Cloud Sync, progress and series metadata are stored in your Firebase account (Google sign-in). Settings and license stay in Chrome sync storage.
               </div>
             </div>
             <div class="faq-item">
               <button class="faq-question" data-i18n="faq_auto">
-                How does auto-refresh work?
+                How do new episode notifications work?
               </button>
               <div class="faq-answer" data-i18n="faq_auto_a">
-                Pro users can enable auto-refresh to check for new episodes
+                Pro users can enable New Episode Notifications in Settings. The extension checks for new episodes
                 every 24 hours. Changes are notified via the extension badge.
               </div>
             </div>

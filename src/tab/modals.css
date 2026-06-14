@@ -210,7 +210,7 @@
 
 .modal-detail .modal-close:hover {
   background: rgba(0,0,0,0.6);
-  border-color: #fff;
+  border-color: var(--text-on-primary, #fff);
 }
 
 .modal-detail-body {

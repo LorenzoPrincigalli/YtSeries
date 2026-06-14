@@ -38,13 +38,12 @@ const TRANSLATIONS = {
   }
 }
 
-function showToast(message, durationMs = 4000) {
+function showToast(message, durationMs = 4000, actionLabel, actionUrl) {
   const existing = document.querySelector('.yt-series-toast')
   if (existing) existing.remove()
 
   const toast = document.createElement('div')
   toast.className = 'yt-series-toast'
-  toast.textContent = message
   Object.assign(toast.style, {
     position: 'fixed',
     bottom: '24px',
@@ -57,10 +56,40 @@ function showToast(message, durationMs = 4000) {
     fontSize: '14px',
     zIndex: '999999',
     fontFamily: 'Roboto, Arial, sans-serif',
-    pointerEvents: 'none',
+    pointerEvents: 'auto',
     opacity: '0',
-    transition: 'opacity 0.3s ease'
+    transition: 'opacity 0.3s ease',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    maxWidth: '520px',
   })
+
+  const msgSpan = document.createElement('span')
+  msgSpan.textContent = message
+  msgSpan.style.flex = '1'
+  toast.appendChild(msgSpan)
+
+  if (actionLabel && actionUrl) {
+    const btn = document.createElement('a')
+    btn.textContent = actionLabel
+    btn.href = actionUrl
+    btn.target = '_blank'
+    btn.rel = 'noopener'
+    Object.assign(btn.style, {
+      padding: '6px 14px',
+      background: '#fff',
+      color: '#000',
+      borderRadius: '16px',
+      fontSize: '12px',
+      fontWeight: '700',
+      textDecoration: 'none',
+      whiteSpace: 'nowrap',
+      cursor: 'pointer',
+    })
+    toast.appendChild(btn)
+  }
+
   document.body.appendChild(toast)
 
   requestAnimationFrame(() => { toast.style.opacity = '1' })
@@ -203,7 +232,7 @@ function setupVideoEndDetection(videoId, playlistId) {
         clearInterval(videoDetectionInterval)
         videoDetectionInterval = null
 
-        // Monitoraggio progresso con throttling e debouncing (Netflix-style)
+        // Monitoraggio progresso con throttling e debouncing
         if (progressInterval) clearInterval(progressInterval)
         progressInterval = setInterval(() => {
           try {
@@ -241,7 +270,7 @@ function setupVideoEndDetection(videoId, playlistId) {
                 }
               }, 3000) // 3 secondi di debouncing
             }
-          } catch (err) { console.error('[YT Series] progress error:', err) }
+          } catch (err) { console.warn('[YT Series] progress error:', err.message) }
         }, 5000) // check ogni 5 secondi
 
         const onEnded = () => {
@@ -702,9 +731,10 @@ function injectAddToSeriesButton() {
             button.textContent = t.viewOnYtSeries
             button.style.background = '#e8e8e8'
           } else if (addResponse && addResponse.error === 'LIMIT_REACHED') {
-            showToast(t.limitReached)
-            button.textContent = t.addToSeries
-            button.disabled = false
+            button.textContent = t.limitReached
+            button.style.background = '#f1f1f1'
+            button.style.color = '#888'
+            button.disabled = true
           } else if (addResponse && addResponse.error === 'CONTEXT_INVALIDATED') {
             showToast(t.extensionUnavailable)
             button.textContent = t.addToSeries

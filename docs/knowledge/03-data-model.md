@@ -50,7 +50,7 @@ Storage keys are defined in `src/shared/constants.js` → `STORAGE_KEYS`.
 | `watched` | boolean | Default false; set only via `ended` event or manual action |
 | `progress` | number | Optional progress (0-100) |
 | `watchedAt` | number | Timestamp when marked watched |
-| `resumeTime` | number | Seconds; precise resume point (Netflix-style) |
+| `resumeTime` | number | Seconds; precise resume point |
 | `totalWatchedTime` | number | Seconds; total time actually watched (calculated via delta) |
 | `lastWatchedAt` | number | Timestamp of last watch session |
 

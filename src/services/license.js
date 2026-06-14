@@ -1,4 +1,4 @@
-import { LICENSE_CACHE_DAYS } from '../shared/constants.js'
+import { LICENSE_CACHE_DAYS, LICENSE_STORE_ID } from '../shared/constants.js'
 import { logger } from '../shared/logger.js'
 
 class LicenseService {
@@ -29,6 +29,9 @@ class LicenseService {
       const data = await response.json()
 
       if (data.valid) {
+        if (!data.meta || typeof data.meta.store_id !== 'number' || data.meta.store_id !== LICENSE_STORE_ID) {
+          return { valid: false, reason: 'STORE_MISMATCH' }
+        }
         this.cachedResult = { valid: true, key: key.trim() }
         this.cachedAt = Date.now()
         return { valid: true }
