@@ -12,13 +12,31 @@ class LicenseService {
       return { valid: false, reason: 'EMPTY_KEY' }
     }
 
+    const trimmedKey = key.trim()
+
+    // Try Worker proxy first (cached, faster)
+    try {
+      const workerUrl = API.LICENSE_VERIFY + '?key=' + encodeURIComponent(trimmedKey)
+      const workerResp = await fetch(workerUrl, { signal: AbortSignal.timeout(8000) })
+      if (workerResp.ok) {
+        const data = await workerResp.json()
+        if (data.valid) {
+          this.cachedResult = { valid: true, key: trimmedKey }
+          this.cachedAt = Date.now()
+          return { valid: true }
+        }
+        return { valid: false, reason: data.reason || 'INVALID_KEY' }
+      }
+    } catch (err) {
+      logger.warn('LicenseService: Worker verify failed, falling back to Lemon Squeezy:', err.message)
+    }
+
+    // Fallback: direct Lemon Squeezy API
     try {
       const response = await fetch('https://api.lemonsqueezy.com/v1/licenses/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          license_key: key.trim()
-        }),
+        body: JSON.stringify({ license_key: trimmedKey }),
         signal: AbortSignal.timeout(15000)
       })
 
@@ -32,7 +50,7 @@ class LicenseService {
         if (!data.meta || typeof data.meta.store_id !== 'number' || data.meta.store_id !== LICENSE_STORE_ID) {
           return { valid: false, reason: 'STORE_MISMATCH' }
         }
-        this.cachedResult = { valid: true, key: key.trim() }
+        this.cachedResult = { valid: true, key: trimmedKey }
         this.cachedAt = Date.now()
         return { valid: true }
       }

@@ -14,7 +14,8 @@ const SYNC_PUSH_DEBOUNCE_MS = 3000
 
 const API = {
   YOUTUBE_BASE: 'https://www.googleapis.com/youtube/v3',
-  WORKER_BASE: 'https://shy-snowflake-0680.lollo-princigalli.workers.dev'
+  WORKER_BASE: 'https://shy-snowflake-0680.lollo-princigalli.workers.dev',
+  LICENSE_VERIFY: 'https://shy-snowflake-0680.lollo-princigalli.workers.dev/verify-license'
 }
 
 const FREE_LIMITS = {
