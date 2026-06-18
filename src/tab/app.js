@@ -332,10 +332,13 @@ function renderChangelog() {
       div.appendChild(date);
     }
 
-    if (entry.items && entry.items.length > 0) {
+    const lang = (state?.settings?.language || "system") === "it" ? "it" : "en";
+    const itemsKey = lang === "it" ? "items_it" : "items";
+    const entryItems = entry[itemsKey] || entry.items;
+    if (entryItems && entryItems.length > 0) {
       const list = document.createElement("ul");
       list.className = "changelog-items";
-      for (const item of entry.items) {
+      for (const item of entryItems) {
         const li = document.createElement("li");
         li.textContent = item;
         list.appendChild(li);

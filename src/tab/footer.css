@@ -80,7 +80,7 @@
 }
 
 .faq-item.open .faq-question::after {
-  content: '\u2212';
+  content: '−';
 }
 
 .faq-answer {
