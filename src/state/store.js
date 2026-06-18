@@ -1,32 +1,7 @@
-import { STORAGE_KEYS, FREE_LIMITS } from '../shared/constants.js'
+import { STORAGE_KEYS } from '../shared/constants.js'
 import { logger } from '../shared/logger.js'
 
 class Store {
-  static _buildSecret() {
-    const a = [121, 116, 115, 101, 114, 105, 101, 115]
-    const b = [95, 108, 105, 99, 95]
-    const c = [50, 48, 50, 52]
-    const d = [95, 120, 75, 57, 109, 80, 50, 118, 76]
-    return [...a, ...b, ...c, ...d].map(c => String.fromCharCode(c)).join('')
-  }
-
-  static _djb2(str) {
-    let hash = 5381
-    for (let i = 0; i < str.length; i++) {
-      hash = ((hash << 5) + hash + str.charCodeAt(i)) & 0xFFFFFFFF
-    }
-    return hash.toString(36)
-  }
-
-  static _computeLicenseChecksum(license) {
-    const payload = JSON.stringify({ key: license.key, isPro: license.isPro })
-    const secret = this._buildSecret()
-    let xor = 0
-    for (let i = 0; i < payload.length; i++) {
-      xor ^= payload.charCodeAt(i) ^ secret.charCodeAt(i % secret.length)
-    }
-    return this._djb2(payload + xor.toString(36))
-  }
   constructor() {
     this._state = {
       series: {},
@@ -37,9 +12,7 @@ class Store {
         nextEpisodeOverlay: true
       },
       license: {
-        key: null,
-        isPro: false,
-        verifiedAt: null
+        isPro: true
       }
     }
   }
@@ -80,16 +53,11 @@ class Store {
   }
 
   isPro() {
-    const lic = this._state.license
-    if (!lic || !lic.isPro || !lic.key) return false
-    const verifiedAt = lic.verifiedAt || 0
-    if (Date.now() - verifiedAt > 86400000) return false
     return true
   }
 
   canAddSeries() {
-    if (this.isPro()) return true
-    return Object.keys(this._state.series).length < FREE_LIMITS.MAX_SERIES
+    return true
   }
 
   async loadFromStorage(storageService) {
@@ -99,14 +67,7 @@ class Store {
         this._state.settings = { ...this._state.settings, ...syncData[STORAGE_KEYS.SETTINGS] }
       }
       if (syncData[STORAGE_KEYS.LICENSE]) {
-        const stored = syncData[STORAGE_KEYS.LICENSE]
-        const expectedChecksum = Store._computeLicenseChecksum(stored)
-        if (!stored._checksum || stored._checksum !== expectedChecksum) {
-          logger.warn('Store.loadFromStorage: license checksum mismatch — resetting to free.')
-          this._state.license = { key: null, isPro: false, verifiedAt: null }
-        } else {
-          this._state.license = { ...this._state.license, key: stored.key, isPro: stored.isPro, verifiedAt: stored.verifiedAt }
-        }
+        // ignore stored license data — always Pro
       }
     } catch (err) {
       logger.error('Store.loadFromStorage: sync read failed:', err)
@@ -127,11 +88,8 @@ class Store {
   async saveToStorage(storageService) {
     let syncOk = true
 
-    for (const key of [STORAGE_KEYS.SETTINGS, STORAGE_KEYS.LICENSE]) {
-      let val = this._state[key]
-      if (key === STORAGE_KEYS.LICENSE) {
-        val = { ...val, _checksum: Store._computeLicenseChecksum(val) }
-      }
+    for (const key of [STORAGE_KEYS.SETTINGS]) {
+      const val = this._state[key]
       const size = new TextEncoder().encode(JSON.stringify(val)).length
       if (size > 4096) {
         logger.warn(`Store.saveToStorage: ${key} is ${size} bytes, cannot sync. Skipping save for this key.`)
@@ -304,9 +262,6 @@ class Store {
     this._state.settings = { ...this._state.settings, ...settings }
   }
 
-  setLicense(licenseData) {
-    this._state.license = { ...this._state.license, ...licenseData }
-  }
 }
 
 const store = new Store()

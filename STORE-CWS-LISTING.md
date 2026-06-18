@@ -4,31 +4,33 @@
 YT Series
 
 ## Short Description (132 chars max)
-Transform YouTube playlists into a trackable TV series with a cinematic dashboard. Track progress, mark episodes watched, never lose your place.
+Track YouTube playlists like a TV series. Cinematic dashboard with progress, resume, hover previews, and optional cloud sync.
 
 ## Full Description
 
-YT Series turns any YouTube playlist into a Netflix-style TV series tracker. Add a playlist, and the extension gives you a beautiful cinematic dashboard where you can track your watching progress, mark episodes as watched, and pick up right where you left off.
+YT Series turns any YouTube playlist into a Netflix-style TV series tracker. Add a playlist via URL or search, and the extension gives you a beautiful cinematic dashboard where you watch, track, and pick up right where you left off.
 
 **Features:**
-- Import any YouTube playlist via URL or search
-- Cinematic dashboard with hero carousel and series cards
-- Auto-detect video watching and save progress
-- "Next Episode" overlay on YouTube when a video is ending
-- Four themes: Classic Red, Ocean Blue, Forest Green, Light
-- Sort and filter episodes by date, watched status, and more
-- Sidebar integration on YouTube for quick access
+- Import any YouTube playlist via URL or YouTube search
+- Cinematic dashboard with hero carousel, series cards, and hover previews
+- Auto-detect progress: tracks watch time and saves precise resume points
+- "Next Episode" overlay on YouTube 30s before a video ends
 - "Add to Series" button directly on YouTube playlist pages
-- Cloud sync across devices (optional, via Google sign-in)
+- Sidebar integration on YouTube for one-click dashboard access
+- Hover to preview any episode without leaving the page
+- Sort and filter episodes by publish date, watched status, and more
+- Discover more series from the same channel
+- Four themes: Classic Red, Ocean Blue, Forest Green, Light (with dark variants)
+- Keyboard shortcut: Ctrl+Shift+Y to open the dashboard
+- Backup and restore your data as JSON
+- Cloud sync across devices (optional, via Google sign-in with Firebase)
 - English and Italian language support
 
-**Pro (EUR 4.99 one-time):**
-- Unlimited series (free: up to 3)
-- New episode notifications every 24h
-- "New This Week" section on the dashboard
+**Support the project:**
+YT Series is completely free with all features unlocked — no limits, no subscriptions. If you find it useful, consider supporting development on Buy Me a Coffee: https://buymeacoffee.com/ytseriessun
 
 **Privacy:**
-Your data stays in your browser by default. Optional cloud sync uses your Google account with Firebase and per-user security rules. We never sell or share your data. See privacy policy for details.
+Your data stays in your browser by default. Optional cloud sync uses your Google account with Firebase and per-user security rules. We never sell or share your data.
 
 ## Category
 Productivity
@@ -37,11 +39,11 @@ Productivity
 English, Italian
 
 ## Screenshots
-1. Home dashboard with hero carousel
-2. Series carousels
-3. Series detail with episode list
-4. Filtered view
-5. Settings panel
+1. Home dashboard with hero carousel and New This Week
+2. Series carousels with hover preview
+3. Series detail with episode list and sort options
+4. Filtered view with search results
+5. Settings panel with themes, language, and support options
 
 ## Promo Images
 - Small promo tile (440x280)
@@ -51,7 +53,7 @@ English, Italian
 https://github.com/LorenzoPrincigalli/YtSeries
 
 ## Privacy Policy URL
-[Host privacy-policy.html and provide URL]
+https://lorenzoprincigalli.github.io/YtSeries/privacy-policy.html
 
 ## Support Email
-[Provide your email]
+YTSeries.Support@gmail.com

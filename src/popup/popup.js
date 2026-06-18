@@ -1,8 +1,7 @@
 // NOTE: Popup cannot import ES modules (MV3 restriction).
-// THEME_COLORS and CHECKOUT_URL are intentionally duplicated from src/shared/constants.js.
-// Keep them in sync manually when constants change.
+// Duplicate minimal constants here. Keep in sync with src/shared/constants.js.
 
-const CHECKOUT_URL = 'https://ytseries.lemonsqueezy.com/checkout/buy/e9fee22a-1883-4076-b0db-22e34323b961'
+const SUPPORT_URL = 'https://buymeacoffee.com/ytseriessun'
 
 const THEME_COLORS = {
   'classic-red': {
@@ -80,9 +79,9 @@ document.getElementById('openSettings').addEventListener('click', () => {
   window.close()
 })
 
-document.getElementById('buyProBtn').addEventListener('click', () => {
-  if (CHECKOUT_URL) {
-    chrome.tabs.create({ url: CHECKOUT_URL })
+document.getElementById('supportBtn').addEventListener('click', () => {
+  if (SUPPORT_URL) {
+    chrome.tabs.create({ url: SUPPORT_URL })
     window.close()
   }
 })
@@ -138,17 +137,11 @@ try {
       for (const v of videos) {
         if (!v.watched) unwatched++
       }
-      if (state.license?.isPro && s.newEpisodesCount) newEpisodes += s.newEpisodesCount
+      if (s.newEpisodesCount) newEpisodes += s.newEpisodesCount
     }
 
     document.getElementById('seriesCount').textContent = seriesList.length
     document.getElementById('unwatchedCount').textContent = unwatched
     document.getElementById('newCount').textContent = newEpisodes || 0
-
-    if (state.license?.isPro) {
-      document.getElementById('proBadge').textContent = 'Pro'
-    } else if (CHECKOUT_URL) {
-      document.getElementById('proSection').style.display = 'block'
-    }
   })
 } catch (_) {}

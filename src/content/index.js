@@ -19,7 +19,6 @@ const TRANSLATIONS = {
     addToSeries: 'Add to Series',
     viewOnYtSeries: 'View on YT Series',
     adding: 'Adding...',
-    limitReached: 'Free series limit reached. Upgrade to Pro for unlimited series.',
     extensionUnavailable: 'Extension not available. Reload the page.',
     unknownError: 'Unknown error',
     couldNotAdd: 'Could not add series'
@@ -31,7 +30,6 @@ const TRANSLATIONS = {
     addToSeries: 'Aggiungi a Serie',
     viewOnYtSeries: 'Vedi su YT Series',
     adding: 'Aggiunta in corso...',
-    limitReached: 'Hai raggiunto il limite di serie gratuite. Passa a Pro per serie illimitate.',
     extensionUnavailable: 'Estensione non disponibile. Ricarica la pagina.',
     unknownError: 'Errore sconosciuto',
     couldNotAdd: 'Impossibile aggiungere la serie'
@@ -730,11 +728,6 @@ function injectAddToSeriesButton() {
           if (addResponse && addResponse.success) {
             button.textContent = t.viewOnYtSeries
             button.style.background = '#e8e8e8'
-          } else if (addResponse && addResponse.error === 'LIMIT_REACHED') {
-            button.textContent = t.limitReached
-            button.style.background = '#f1f1f1'
-            button.style.color = '#888'
-            button.disabled = true
           } else if (addResponse && addResponse.error === 'CONTEXT_INVALIDATED') {
             showToast(t.extensionUnavailable)
             button.textContent = t.addToSeries

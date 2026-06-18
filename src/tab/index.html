@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     <title>YT Series</title>
+    <link rel="icon" type="image/png" href="../../icons/icon48_light.png" />
     <link rel="stylesheet" href="variables.css" />
     <link rel="stylesheet" href="reset.css" />
     <link rel="stylesheet" href="base.css" />
@@ -21,7 +22,7 @@
     <div id="app">
       <header id="header">
         <div class="header-left">
-          <h1 class="logo">YT Series</h1>
+          <img class="header-logo-icon" src="../../icons/icon_full_128.png" alt="YT Series" width="120" height="120" />
           <nav class="nav-links">
             <a
               href="#"
@@ -83,23 +84,19 @@
           </div>
           <button
             id="headerProBtn"
-            class="header-pro-btn hidden"
-            title="Upgrade to Pro"
+            class="header-pro-btn"
+            title="Support YT Series"
           >
             <svg
-              class="header-pro-star"
               viewBox="0 0 16 16"
               width="14"
               height="14"
+              fill="currentColor"
             >
-              <path
-                d="M8 1l1.5 5h5l-4 3 1.5 5L8 11l-4 3 1.5-5-4-3h5z"
-                fill="currentColor"
-              />
+              <path d="M3.5 7.5a.5.5 0 0 1 .5.5v5a.5.5 0 0 1-.5.5H2a.5.5 0 0 1-.5-.5V8a.5.5 0 0 1 .5-.5h1.5ZM7.5 1a.5.5 0 0 1 .5.5v2.6l2.1-2.1a.5.5 0 0 1 .7.7l-2.1 2.1H11a.5.5 0 0 1 .5.5v1.5a.5.5 0 0 1-.5.5H8.7l2.1 2.1a.5.5 0 0 1-.7.7L8 7.4V10a.5.5 0 0 1-.5.5H6a.5.5 0 0 1-.5-.5V8.7l-2.1 2.1a.5.5 0 0 1-.7-.7L4.6 8H2.5A.5.5 0 0 1 2 7.5V6a.5.5 0 0 1 .5-.5h2.1L2.4 3.4a.5.5 0 0 1 .7-.7L5.5 4.6V2.5A.5.5 0 0 1 6 2h1.5Z"/>
             </svg>
-            Get Pro
+            Support ☕
           </button>
-          <span id="headerProBadge" class="header-pro-badge hidden">Pro</span>
           <button id="settingsBtn" class="icon-btn" title="Settings">
             &#9881;
           </button>
@@ -217,12 +214,8 @@
               Language
             </button>
             <button class="settings-tab" data-section="overlay" data-i18n="settings_overlay">Overlays</button>
-            <button
-              class="settings-tab"
-              data-section="license"
-              data-i18n="license_key"
-            >
-              License Key
+            <button class="settings-tab" data-section="support" data-i18n="support_title">
+              Support
             </button>
             <button
               class="settings-tab"
@@ -265,61 +258,26 @@
                 <span class="toggle-text" data-i18n="overlay_toggle">Enable overlay</span>
               </label>
             </div>
-            <div class="settings-section-content" data-section="license">
-              <div class="license-plan-card" id="licensePlanCard">
-                <div class="license-plan-header">
-                  <span class="pro-badge" id="licenseBadge">FREE</span>
-                  <span id="licensePlanName" class="license-plan-name"
-                    >Free Plan</span
-                  >
-                </div>
-                <p class="license-plan-desc" id="licensePlanDesc">
-                  Up to 3 series
+            <div class="settings-section-content" data-section="support">
+              <div class="support-card">
+                <h3 data-i18n="support_title">Support YT Series</h3>
+                <p class="settings-desc" data-i18n="support_desc">
+                  If you find YT Series useful, consider supporting its development with a small donation.
                 </p>
-                <p
-                  class="license-status"
-                  id="licenseStatus"
-                  data-i18n="enter_license"
-                >
-                  Enter your license key to unlock Pro
-                </p>
+                <a id="buyProBtn" class="btn-primary support-btn" href="https://buymeacoffee.com/ytseriessun" target="_blank" rel="noopener">
+                  Support ☕
+                </a>
               </div>
 
-              <div class="license-input-group">
-                <input
-                  type="text"
-                  id="licenseKeyInput"
-                  placeholder="Enter license key"
-                />
-                <button id="verifyLicenseBtn" class="btn-primary">
-                  Activate
-                </button>
-              </div>
-              <div id="licenseMessage" class="hidden"></div>
-
-              <div id="buyProSection" class="buy-pro-section">
-                <div class="divider"><span data-i18n="or">or</span></div>
-                <button id="buyProBtn" class="btn-primary buy-pro-btn">
-                  Get Pro — €4.99
-                </button>
-                <p class="buy-pro-desc" data-i18n="buy_pro_desc">
-                  Unlimited series, new episode notifications, and New This Week section.
-                </p>
-              </div>
-
-              <div id="licenseActiveInfo" class="hidden">
-                <p class="license-active-key" id="licenseActiveKey"></p>
-              </div>
-
-              <div id="proSettings" class="pro-separator">
-                <h3 data-i18n="auto_refresh">Auto-Refresh</h3>
+              <div class="pro-separator">
+                <h3 data-i18n="auto_refresh">New Episode Notifications</h3>
                 <p class="settings-desc">
-                  Check for new episodes every 24h (Pro feature)
+                  Check for new episodes every 24h.
                 </p>
                 <label class="toggle-label">
                   <input type="checkbox" id="autoRefreshToggle" checked />
                   <span class="toggle-slider"></span>
-                  <span class="toggle-text" data-i18n="auto_refresh_desc">Get notified when new episodes are released (Pro only)</span>
+                  <span class="toggle-text" data-i18n="auto_refresh_desc">Get notified when new episodes are released.</span>
                 </label>
               </div>
             </div>
@@ -377,13 +335,7 @@
 
             <div class="settings-section-content" data-section="dev">
               <h3 data-i18n="settings_dev">Dev Tools</h3>
-              <p class="settings-desc" id="devProStatus">
-                Pro status: Free
-              </p>
-              <button id="devToggleProBtn" class="btn-secondary">
-                Toggle Pro (simulate)
-              </button>
-              <button id="loadDemoBtn" class="btn-secondary" style="margin-top:8px">
+              <button id="loadDemoBtn" class="btn-secondary">
                 Load demo data
               </button>
             </div>
@@ -498,8 +450,7 @@
                 Are there any limits?
               </button>
               <div class="faq-answer" data-i18n="faq_limits_a">
-                The free version supports up to 3 series. Upgrade to Pro (€4.99
-                one-time) for unlimited series, new episode notifications, and the New This Week section.
+                No! YT Series is completely free with unlimited series, episode notifications, and the New This Week section.
               </div>
             </div>
             <div class="faq-item">
@@ -507,7 +458,7 @@
                 Where is my data stored?
               </button>
               <div class="faq-answer" data-i18n="faq_data_a">
-                Series progress is stored locally. If you enable Cloud Sync, progress and series metadata are stored in your Firebase account (Google sign-in). Settings and license stay in Chrome sync storage.
+                Series progress is stored locally. If you enable Cloud Sync, progress and series metadata are stored in your Firebase account (Google sign-in). Settings stay in Chrome sync storage.
               </div>
             </div>
             <div class="faq-item">
@@ -515,19 +466,11 @@
                 How do new episode notifications work?
               </button>
               <div class="faq-answer" data-i18n="faq_auto_a">
-                Pro users can enable New Episode Notifications in Settings. The extension checks for new episodes
+                Enable "New Episode Notifications" in Settings. The extension checks for new episodes
                 every 24 hours. Changes are notified via the extension badge.
               </div>
             </div>
-            <div class="faq-item">
-              <button class="faq-question" data-i18n="faq_license">
-                How do I activate my license?
-              </button>
-              <div class="faq-answer" data-i18n="faq_license_a">
-                After purchase, you'll receive a license key via email. Enter it
-                in Settings → License Key to unlock Pro.
-              </div>
-            </div>
+
           </div>
         </div>
         <div class="modal-footer">
@@ -541,7 +484,7 @@
     <footer id="footer">
       <div class="footer-inner">
         <span class="footer-copyright" data-i18n="footer_copyright"
-          >YT Series — Free browser extension</span
+          >YT Series — Free and open browser extension</span
         >
         <nav class="footer-links">
           <a href="#" id="footerChangelogLink" data-i18n="footer_changelog"

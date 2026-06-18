@@ -21,12 +21,10 @@
   gap: 32px;
 }
 
-.logo {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--primary);
-  letter-spacing: -0.5px;
-  cursor: default;
+.header-logo-icon {
+  width: 120px;
+  height: 120px;
+  flex-shrink: 0;
 }
 
 .nav-links {
@@ -126,19 +124,4 @@
   color: #fff;
 }
 
-.header-pro-star {
-  flex-shrink: 0;
-}
 
-.header-pro-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 10px;
-  border-radius: 20px;
-  background: var(--success);
-  color: var(--text-on-primary, #fff);
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}

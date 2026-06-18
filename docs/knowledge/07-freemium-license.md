@@ -1,49 +1,45 @@
-# Freemium & Licensing
+# Donation Model & Legacy Licensing
 
-> Last updated: 14 June 2026
+> Last updated: 16 June 2026
 
-## Model
+## Current model
 
-| Feature | Free | Pro (EUR 4.99 one-time) |
-|---------|------|--------------------------|
-| Series | Max 3 | Unlimited |
-| Episode refresh (open series) | Yes | Yes |
-| Auto-refresh 24h (background) | No | Yes |
-| New episode notifications | No | Yes |
-| "New This Week" section | No | Yes |
-| Themes (4) | Yes | Yes |
-| Cloud sync (Firebase) | Optional | Optional |
-| Next Episode overlay on YouTube | Yes | Yes |
+**Donation-only — fully free for everyone.**
 
-Purchase via Lemon Squeezy: `PRO_CHECKOUT.URL` in `src/shared/constants.js`
+No license keys, no feature gating, no upsells.
+Voluntary support via [Buy Me a Coffee](https://buymeacoffee.com/ytseriessun).
 
-## License verification
+| Feature | Status |
+|---------|--------|
+| Series | Unlimited |
+| Episode refresh (open series) | Yes |
+| Auto-refresh 24h (background) | Yes |
+| New episode notifications | Yes |
+| "New This Week" section | Yes |
+| Themes (4) | Yes |
+| Cloud sync (Firebase) | Optional |
+| Next Episode overlay on YouTube | Yes |
 
-`src/services/license.js` — `LicenseService` class:
-- POSTs to `https://api.lemonsqueezy.com/v1/licenses/validate`
-- Validates `store_id` against `LICENSE_STORE_ID`
-- Caches result for `LICENSE_CACHE_DAYS` (1 day)
-- Fallback to cache on network error
+Support button appears in: dashboard settings, popup, and post-completion toast.
 
-## Pro status enforcement
+## Legacy license infrastructure (dead code)
 
-- `Store.isPro()` checks license validity (24h re-verify window)
-- `Store.canAddSeries()` blocks new series when free limit reached
-- Background service worker handles `LICENSE_VERIFY` and `LICENSE_ACTIVATE` events
-- License data stored in `chrome.storage.sync` with checksum
+The old Lemon Squeezy freemium model was removed but **kept as dead code stubs** for potential future reactivation if a suitable Merchant of Record is found.
 
-## Upsell touchpoints
+| Artifact | Status |
+|----------|--------|
+| `src/services/license.js` | Stub — `verify()` always returns `{ valid: false }` |
+| `src/shared/events.js` | `LICENSE_VERIFY`, `ACTIVATE_LICENSE`, `DEV_TOGGLE_PRO` removed |
+| `src/shared/constants.js` | `PRO_CHECKOUT`, `LICENSE_STORE_ID`, `API.LICENSE_VERIFY` removed |
+| `src/state/store.js` | `isPro()` → true, `canAddSeries()` → true, `setLicense()` removed |
+| `src/background/index.js` | All license handlers and `isPro()` checks removed |
+| `activate.html` | Preserved but unused (can be removed post-publish) |
+| `cloudflare-worker/index.js` | Cleaned up — LS validation removed, now pure YouTube API proxy |
+| Privacy policies | Still reference LS — update before publish |
 
-| Touchpoint | Where | Free user sees |
-|------------|-------|---------------|
-| Dashboard banner | Bottom of home | "Free plan (X/3)" — once per day, dismissible with X |
-| New Episodes tab | Dashboard | Upsell card: "Pro feature — Upgrade to unlock" |
-| Limit reached | Add series modal | Inline error message (no popup) |
-| YouTube Add button | Content script | Button disables showing limit message |
-| Post-completion | Toast | "Series completed! Want more? Get Pro" |
-| Settings | Settings modal | License key input + "Get Pro" button |
-| Popup | Extension popup | Feature list: unlimited, notifications, New This Week |
+## Reactivation plan (if ever needed)
 
-## DEV_TOGGLE_PRO
-
-Auto-disables when `EXTENSION_ID` is set (production builds). The Dev tab in settings is hidden.
+1. Choose a Merchant of Record that accepts the product (LS rejected us on risk scoring, not policy)
+2. Restore license infrastructure from git history or rewrite
+3. Re-implement feature gating in `store.js`
+4. Update `PUBLISH-CHECKLIST.md` blockers

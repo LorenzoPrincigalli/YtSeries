@@ -1,5 +1,14 @@
 const CHANGELOG = [
   {
+    version: '1.1.1',
+    date: '2026-06-16',
+    items: [
+      'Donation-only model: passati da Lemon Squeezy a Buy Me a Coffee',
+      'Tutte le funzionalità sbloccate per tutti (nessun limite, nessuna licenza)',
+      'Rimosso upsell, verifica licenze e gating Pro dall\'interfaccia'
+    ]
+  },
+  {
     version: '1.1.0',
     date: '2026-05-26',
     items: [

@@ -1,8 +1,7 @@
 // YT Series — Cloudflare Worker
-// YouTube API proxy with 3-layer caching + license validation
+// YouTube API proxy with 3-layer caching
 
 const YOUTUBE_BASE = 'https://www.googleapis.com/youtube/v3'
-const LEMON_SQUEEZY_VALIDATE = 'https://api.lemonsqueezy.com/v1/licenses/validate'
 
 const EDGE_TTL = {
   search: 3600, playlists: 3600, playlistItems: 120, videos: 604800
@@ -10,7 +9,6 @@ const EDGE_TTL = {
 const KV_TTL = {
   search: 86400, playlists: 21600
 }
-const LICENSE_CACHE_TTL = 86400 // 24h
 
 function getEndpointType(pathname) {
   if (pathname.includes('/search')) return 'search'
@@ -44,46 +42,11 @@ function makeKvKey(endpointType, request) {
   return endpointType + ':' + clean.pathname + clean.search
 }
 
-// License validation — cached in KV for 24h
-async function verifyLicense(licenseKey, env, storeId) {
-  if (!licenseKey || licenseKey.length < 8) return { valid: false, reason: 'EMPTY_KEY' }
-
-  // Check KV cache first
-  if (env.CACHE_KV) {
-    try {
-      const cached = await env.CACHE_KV.get('license:' + licenseKey)
-      if (cached) return JSON.parse(cached)
-    } catch (_) {}
-  }
-
-  // Validate with Lemon Squeezy
-  try {
-    const resp = await fetch(LEMON_SQUEEZY_VALIDATE, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ license_key: licenseKey })
-    })
-    const data = await resp.json()
-    const valid = data.valid && (!storeId || data.meta?.store_id === storeId)
-    const result = { valid, reason: valid ? 'OK' : 'INVALID' }
-
-    // Cache in KV for 24h
-    if (env.CACHE_KV) {
-      await env.CACHE_KV.put('license:' + licenseKey, JSON.stringify(result), { expirationTtl: LICENSE_CACHE_TTL }).catch(() => {})
-    }
-
-    return result
-  } catch (err) {
-    return { valid: false, reason: 'API_ERROR' }
-  }
-}
-
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url)
     const path = url.pathname + url.search
     const API_KEY = env.YT_API_KEY
-    const STORE_ID = env.LEMON_STORE_ID ? parseInt(env.LEMON_STORE_ID) : 0
 
     if (!API_KEY) {
       return new Response(JSON.stringify({ error: 'Server misconfigured' }), {
@@ -98,7 +61,7 @@ export default {
         headers: {
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, X-License-Key'
+          'Access-Control-Allow-Headers': 'Content-Type'
         }
       })
     }
@@ -106,20 +69,6 @@ export default {
     // Health check
     if (path === '/') {
       return new Response(JSON.stringify({ status: 'ok', service: 'YT Series API Proxy' }), {
-        status: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-      })
-    }
-
-    // License verification endpoint
-    if (path.startsWith('/verify-license')) {
-      const key = url.searchParams.get('key')
-      if (!key) {
-        return new Response(JSON.stringify({ valid: false, reason: 'MISSING_KEY' }), {
-          status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-        })
-      }
-      const result = await verifyLicense(key, env, STORE_ID)
-      return new Response(JSON.stringify(result), {
         status: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }

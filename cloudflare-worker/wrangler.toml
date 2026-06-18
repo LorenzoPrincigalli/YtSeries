@@ -5,6 +5,3 @@ compatibility_date = "2026-05-27"
 [[kv_namespaces]]
 binding = "CACHE_KV"
 id = "d23a00e598044e9495fb84b879335d90"
-
-[vars]
-LEMON_STORE_ID = ""  # Set your Lemon Squeezy store ID

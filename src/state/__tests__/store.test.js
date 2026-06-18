@@ -22,7 +22,7 @@ describe('store', () => {
       lastRefreshCheck: 0,
       nextEpisodeOverlay: true
     }
-    store._state.license = { key: null, isPro: false, verifiedAt: null }
+    store._state.license = { isPro: true }
     store._listeners = new Map()
   })
 
@@ -231,8 +231,7 @@ describe('store', () => {
       expect(store.canAddSeries()).toBe(true)
     })
 
-    it('allows adding for pro users', () => {
-      store.setLicense({ key: 'pro-key', isPro: true, verifiedAt: Date.now() })
+    it('allows adding without limit', () => {
       store.addSeries({
         playlistId: 'PL1', title: 'S', channelTitle: 'C', channelId: 'UC',
         videoCount: 1, videos: [{ id: 'v1', title: 'V1' }]

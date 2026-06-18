@@ -1,12 +1,11 @@
 import { EVENTS } from '../shared/events.js'
 import { logger } from '../shared/logger.js'
-import { LICENSE_CACHE_DAYS, AUTO_REFRESH_INTERVAL_MINUTES, API, STORAGE_KEYS, EXTENSION_ID } from '../shared/constants.js'
+import { AUTO_REFRESH_INTERVAL_MINUTES, API, STORAGE_KEYS, EXTENSION_ID } from '../shared/constants.js'
 import { storageService } from '../services/chrome/storage.js'
 import { tabService } from '../services/chrome/tabs.js'
 import { alarmService } from '../services/chrome/alarms.js'
 import { notificationService } from '../services/chrome/notifications.js'
 import { youTubeApiService } from '../services/youtube.js'
-import { licenseService } from '../services/license.js'
 import { store } from '../state/store.js'
 import {
   initSync,
@@ -21,70 +20,6 @@ import {
 
 let initialized = false
 let initPromise = null
-
-const LICENSE_REVERIFY_MS = LICENSE_CACHE_DAYS * 24 * 60 * 60 * 1000
-
-const licenseRateLimiter = {
-  _state: { attempts: 0, lastAttempt: 0 },
-  cooldownMs: 5000,
-  maxAttempts: 5,
-  _queue: Promise.resolve(),
-  async _load() {
-    try {
-      const data = await chrome.storage.local.get('_rateLimiter')
-      if (data._rateLimiter) this._state = data._rateLimiter
-    } catch (_) {}
-  },
-  async _save() {
-    try { await chrome.storage.local.set({ _rateLimiter: this._state }) } catch (_) {}
-  },
-  async check() {
-    await this._load()
-    const now = Date.now()
-    if (this._state.attempts >= this.maxAttempts) {
-      const elapsed = now - this._state.lastAttempt
-      const backoff = this.cooldownMs * Math.pow(2, Math.min(this._state.attempts - this.maxAttempts, 6))
-      if (elapsed < backoff) {
-        return { allowed: false, retryAfter: backoff - elapsed }
-      }
-    }
-    return { allowed: true }
-  },
-  async recordFailure() {
-    this._queue = this._queue.then(async () => {
-      await this._load()
-      this._state.attempts++
-      this._state.lastAttempt = Date.now()
-      await this._save()
-    })
-    await this._queue
-  },
-  async reset() {
-    this._state = { attempts: 0, lastAttempt: 0 }
-    await this._save()
-  }
-}
-
-async function reverifyLicense() {
-  const license = store.getLicense()
-  if (!license || !license.isPro || !license.key) return
-  if (license.key === 'dev-mode') return
-
-  const verifiedAt = license.verifiedAt || 0
-  if (Date.now() - verifiedAt < LICENSE_REVERIFY_MS) return
-
-  try {
-    const result = await licenseService.verify(license.key)
-    if (!result.valid) {
-      store.setLicense({ key: null, isPro: false, verifiedAt: null })
-      await store.saveToStorage(storageService)
-      broadcastStateUpdate()
-      logger.warn('License re-verification failed, Pro disabled')
-    }
-  } catch (err) {
-    logger.warn('License re-verification network error, keeping current state:', err)
-  }
-}
 
 async function ensureInit() {
   if (initialized) return
@@ -190,8 +125,6 @@ async function handleSetIconTheme(payload) {
 async function init() {
   await store.loadFromStorage(storageService)
 
-  await reverifyLicense()
-
   if (!API.WORKER_BASE) {
     const settings = store.getSettings()
     if (settings.apiKey) {
@@ -204,18 +137,12 @@ async function init() {
     logger.info('Using Cloudflare Worker proxy, API key not needed in extension')
   }
 
-  if (store.isPro() && store.getSettings().autoRefresh) {
+  if (store.getSettings().autoRefresh) {
     try {
       await alarmService.create('autoRefresh', AUTO_REFRESH_INTERVAL_MINUTES)
     } catch (err) {
       logger.warn('Failed to create alarm:', err)
     }
-  }
-
-  try {
-    await alarmService.create('licenseHeartbeat', 1440)
-  } catch (err) {
-    logger.warn('Failed to create license heartbeat alarm:', err)
   }
 
   await initSync(store, storageService, youTubeApiService, syncOnStateChanged)
@@ -233,39 +160,6 @@ chrome.action.onClicked.addListener(async () => {
 
 chrome.runtime.onSuspend.addListener(() => {
   logger.info('Background script suspending')
-})
-
-chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => {
-  if (message.type !== EVENTS.ACTIVATE_LICENSE) {
-    sendResponse({ success: false, error: 'UNKNOWN_TYPE' })
-    return
-  }
-
-  if (!message.key || typeof message.key !== 'string' || !message.key.trim()) {
-    sendResponse({ success: false, error: 'MISSING_KEY' })
-    return
-  }
-
-  ensureInit().then(async () => {
-    const rateCheck = await licenseRateLimiter.check()
-    if (!rateCheck.allowed) {
-      return { success: false, error: 'RATE_LIMITED', message: `Too many attempts. Retry in ${Math.ceil(rateCheck.retryAfter / 1000)}s` }
-    }
-    const result = await licenseService.verify(message.key.trim())
-    if (result.valid) {
-      await licenseRateLimiter.reset()
-      store.setLicense({ key: message.key, isPro: true, verifiedAt: Date.now() })
-      await store.saveToStorage(storageService)
-      broadcastStateUpdate()
-      return { success: true, valid: true }
-    }
-    await licenseRateLimiter.recordFailure()
-    return { success: true, valid: false }
-  }).then(r => sendResponse(r)).catch(async (err) => {
-    await licenseRateLimiter.recordFailure()
-    sendResponse({ success: false, error: 'VERIFY_FAILED', message: err.message })
-  })
-  return true
 })
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -291,8 +185,6 @@ alarmService.onAlarm(async (alarm) => {
   await ensureInit()
   if (alarm.name === 'autoRefresh') {
     await autoRefresh()
-  } else if (alarm.name === 'licenseHeartbeat') {
-    await reverifyLicense()
   }
 })
 
@@ -382,9 +274,6 @@ async function handleMessage(message) {
     case EVENTS.SETTINGS_UPDATE:
       return handleSettingsUpdate(message.payload)
 
-    case EVENTS.LICENSE_VERIFY:
-      return handleLicenseVerify(message.payload)
-
     case EVENTS.STORAGE_RESET:
       return handleStorageReset()
 
@@ -408,9 +297,6 @@ async function handleMessage(message) {
     case EVENTS.LOAD_DEMO_DATA:
       return handleLoadDemoData()
 
-    case EVENTS.DEV_TOGGLE_PRO:
-      return handleDevTogglePro()
-
     case EVENTS.IMPORT_SERIES:
       return handleImportSeries(message.payload)
 
@@ -423,10 +309,6 @@ async function handleMessage(message) {
 async function handlePlaylistAdd(payload) {
   if (!payload || typeof payload.url !== 'string' || !payload.url.trim()) {
     return { success: false, error: 'MISSING_URL', message: 'Playlist URL is required' }
-  }
-
-  if (!store.canAddSeries()) {
-    return { success: false, error: 'LIMIT_REACHED', message: 'Free limit reached. Upgrade to Pro for unlimited series.' }
   }
 
   const data = await youTubeApiService.fetchPlaylist(payload.url.trim())
@@ -468,10 +350,6 @@ async function handleSeriesRefresh(payload) {
     return { success: false, error: 'MISSING_ID', message: 'Playlist ID is required' }
   }
 
-  if (!store.playlistExists(payload.playlistId) && !store.canAddSeries()) {
-    return { success: false, error: 'LIMIT_REACHED', message: 'Free limit reached. Upgrade to Pro for unlimited series.' }
-  }
-
   const data = await youTubeApiService.refreshPlaylist(payload.playlistId.trim())
   store.addSeries(data)
   await store.saveToStorage(storageService)
@@ -498,9 +376,6 @@ async function handleEpisodeWatch(payload) {
 
   const series = store.getSeriesById(playlistId)
   if (!series) {
-    if (!store.canAddSeries()) {
-      return { success: false, error: 'SERIES_NOT_FOUND', message: 'Upgrade to Pro to add this series and track episodes.' }
-    }
     return { success: false, error: 'SERIES_NOT_FOUND', message: 'Series not saved. Add it first.' }
   }
 
@@ -597,7 +472,7 @@ async function handleSettingsUpdate(payload) {
   store.updateSettings(sanitized)
   await store.saveToStorage(storageService)
 
-  if (store.isPro() && sanitized.autoRefresh && !oldSettings.autoRefresh) {
+  if (sanitized.autoRefresh && !oldSettings.autoRefresh) {
     await alarmService.create('autoRefresh', AUTO_REFRESH_INTERVAL_MINUTES)
   } else if (sanitized.autoRefresh === false && oldSettings.autoRefresh) {
     await alarmService.clear('autoRefresh')
@@ -605,34 +480,6 @@ async function handleSettingsUpdate(payload) {
 
   broadcastStateUpdate()
   return { success: true, settings: store.getSettings() }
-}
-
-async function handleLicenseVerify(payload) {
-  if (!payload || typeof payload.key !== 'string' || !payload.key.trim()) {
-    return { success: false, error: 'MISSING_KEY', message: 'License key is required' }
-  }
-
-  const rateCheck = await licenseRateLimiter.check()
-  if (!rateCheck.allowed) {
-    return { success: false, error: 'RATE_LIMITED', message: `Too many attempts. Retry in ${Math.ceil(rateCheck.retryAfter / 1000)}s` }
-  }
-
-  const result = await licenseService.verify(payload.key.trim())
-
-  if (result.valid) {
-    await licenseRateLimiter.reset()
-    store.setLicense({ key: payload.key, isPro: true, verifiedAt: Date.now() })
-    await store.saveToStorage(storageService)
-    broadcastStateUpdate()
-  } else {
-    await licenseRateLimiter.recordFailure()
-    store.setLicense({ key: null, isPro: false, verifiedAt: null })
-    await store.saveToStorage(storageService)
-    try { await alarmService.clear('autoRefresh') } catch (_) {}
-    broadcastStateUpdate()
-  }
-
-  return { success: true, valid: result.valid, reason: result.reason }
 }
 
 async function handleStorageReset() {
@@ -645,7 +492,7 @@ async function handleStorageReset() {
     store._state = {
       series: {},
       settings: { theme: 'classic-red', autoRefresh: true, lastRefreshCheck: 0 },
-      license: { key: null, isPro: false, verifiedAt: null }
+      license: { isPro: true }
     }
     broadcastStateUpdate()
     return { success: true, syncStatus: getSyncStatus() }
@@ -656,8 +503,7 @@ async function handleStorageReset() {
 }
 
 async function autoRefresh() {
-  await reverifyLicense()
-  if (!store.isPro() || !store.getSettings().autoRefresh) return
+  if (!store.getSettings().autoRefresh) return
 
   const seriesList = store.getSeries()
   let hasNewEpisodes = false
@@ -822,22 +668,6 @@ async function handleLoadDemoData() {
     logger.error('Failed to load demo data:', err)
     return { success: false, error: err.message }
   }
-}
-
-async function handleDevTogglePro() {
-  if (EXTENSION_ID) {
-    return { success: false, error: 'NOT_IN_DEV_MODE', message: 'Dev tools unavailable in production builds' }
-  }
-  const lic = store.getLicense()
-  if (lic.isPro) {
-    store.setLicense({ key: null, isPro: false, verifiedAt: null })
-    try { await alarmService.clear('autoRefresh') } catch (_) {}
-  } else {
-    store.setLicense({ key: 'dev-mode', isPro: true, verifiedAt: Date.now() })
-  }
-  await store.saveToStorage(storageService)
-  broadcastStateUpdate()
-  return { success: true, isPro: store.isPro() }
 }
 
 async function handleImportSeries(payload) {

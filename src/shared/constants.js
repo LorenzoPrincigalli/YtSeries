@@ -14,8 +14,7 @@ const SYNC_PUSH_DEBOUNCE_MS = 3000
 
 const API = {
   YOUTUBE_BASE: 'https://www.googleapis.com/youtube/v3',
-  WORKER_BASE: 'https://shy-snowflake-0680.lollo-princigalli.workers.dev',
-  LICENSE_VERIFY: 'https://shy-snowflake-0680.lollo-princigalli.workers.dev/verify-license'
+  WORKER_BASE: 'https://shy-snowflake-0680.lollo-princigalli.workers.dev'
 }
 
 const FREE_LIMITS = {
@@ -97,13 +96,9 @@ const LICENSE_CACHE_DAYS = 1
 const AUTO_REFRESH_INTERVAL_MINUTES = 1440
 const YOUTUBE_API_MAX_RESULTS = 50
 
-const PRO_CHECKOUT = {
-  URL: 'https://ytseries.lemonsqueezy.com/checkout/buy/e9fee22a-1883-4076-b0db-22e34323b961'
-}
-
 const GITHUB_URL = 'https://github.com/LorenzoPrincigalli/YtSeries'
 
-const LICENSE_STORE_ID = 0 // Replace with numeric store ID from Lemon Squeezy dashboard
+const SUPPORT_URL = 'https://buymeacoffee.com/ytseriessun'
 
 const EXTENSION_ID = '' // Set after publishing to Chrome Web Store
 
@@ -117,8 +112,7 @@ export {
   LICENSE_CACHE_DAYS,
   AUTO_REFRESH_INTERVAL_MINUTES,
   YOUTUBE_API_MAX_RESULTS,
-  PRO_CHECKOUT,
-  LICENSE_STORE_ID,
   EXTENSION_ID,
-  GITHUB_URL
+  GITHUB_URL,
+  SUPPORT_URL
 }

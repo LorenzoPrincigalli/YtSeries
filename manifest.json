@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "YT Series",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Transform YouTube playlists into a TV-series tracker with a cinematic interface",
   "permissions": [
     "storage",
@@ -24,11 +24,10 @@
     "https://identitytoolkit.googleapis.com/*",
     "https://securetoken.googleapis.com/*",
     "https://firestore.googleapis.com/*",
-    "https://api.lemonsqueezy.com/*",
     "https://shy-snowflake-0680.lollo-princigalli.workers.dev/*"
   ],
   "content_security_policy": {
-    "extension_pages": "default-src 'self'; script-src 'self'; connect-src 'self' https://shy-snowflake-0680.lollo-princigalli.workers.dev https://www.googleapis.com https://api.lemonsqueezy.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com; img-src 'self' https: data:; frame-src https://www.youtube.com https://www.youtube-nocookie.com; style-src 'self' 'unsafe-inline'"
+    "extension_pages": "default-src 'self'; script-src 'self'; connect-src 'self' https://shy-snowflake-0680.lollo-princigalli.workers.dev https://www.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com; img-src 'self' https: data:; frame-src https://www.youtube.com https://www.youtube-nocookie.com; style-src 'self' 'unsafe-inline'"
   },
   "background": {
     "service_worker": "src/background/index.js",
@@ -61,15 +60,15 @@
     "default_title": "YT Series",
     "default_popup": "src/popup/popup.html",
     "default_icon": {
-      "16": "icons/icon16.png",
-      "48": "icons/icon48.png",
-      "128": "icons/icon128.png"
+      "16": "icons/icon16_light.png",
+      "48": "icons/icon48_light.png",
+      "128": "icons/icon128_light.png"
     }
   },
   "icons": {
-    "16": "icons/icon16.png",
-    "48": "icons/icon48.png",
-    "128": "icons/icon128.png"
+    "16": "icons/icon16_light.png",
+    "48": "icons/icon48_light.png",
+    "128": "icons/icon128_light.png"
   },
   "web_accessible_resources": [
     {

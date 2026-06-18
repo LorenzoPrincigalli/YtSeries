@@ -33,7 +33,7 @@
   <ul>
     <li><strong>Series data:</strong> playlist IDs, titles, thumbnails, channel info, video metadata, and your watched/progress state for each episode</li>
     <li><strong>Settings:</strong> theme preference, language, auto-refresh toggle, last refresh timestamp</li>
-    <li><strong>License info:</strong> if you purchase a Pro license, the license key and verification status</li>
+
   </ul>
   <p>By default, the Extension does not collect your name or email. Optional Cloud Sync (see below) uses your Google account only when you sign in.</p>
 
@@ -41,21 +41,17 @@
   <p>If you choose <strong>Sign in with Google</strong> in Settings, the Extension syncs series progress and minimal playlist metadata to <strong>Google Firebase Firestore</strong> (EU region when configured as <code>europe-west</code>). Data is stored under your Firebase user ID and protected by security rules so only you can read or write your documents.</p>
   <ul>
     <li><strong>Synced:</strong> playlist IDs, titles, thumbnails, channel names, episode watch progress</li>
-    <li><strong>Not synced to Firebase:</strong> Pro license keys (remain in Chrome <code>storage.sync</code>), theme/language settings (Chrome sync), full YouTube video catalogs (refetched from YouTube API on each device)</li>
+    <li><strong>Not synced to Firebase:</strong> theme/language settings (Chrome sync), full YouTube video catalogs (refetched from YouTube API on each device)</li>
   </ul>
   <p>You can sign out at any time. Resetting all data in Settings also removes your remote series documents and signs you out.</p>
 
   <h3>YouTube Data API</h3>
   <p>When you add a playlist or search YouTube, the Extension sends requests to the <strong>YouTube Data API v3</strong> using your API key. These requests fetch public playlist metadata, video lists, and search results. No authentication is used—only public data is accessed.</p>
 
-  <h3>Lemon Squeezy</h3>
-  <p>If you purchase a Pro license, the license key is verified via <strong>Lemon Squeezy's API</strong>. The key itself is stored locally. No payment data is handled by the Extension—purchases are processed entirely by Lemon Squeezy.</p>
-
   <h2>Data Transmission</h2>
   <p>The Extension communicates externally only with:</p>
   <ul>
     <li><code>www.googleapis.com</code> – YouTube Data API requests</li>
-    <li><code>api.lemonsqueezy.com</code> – License key verification (Pro users only)</li>
     <li><code>shy-snowflake-0680.lollo-princigalli.workers.dev</code> – YouTube API proxy (transparent relay, no data logged or stored)</li>
     <li><code>identitytoolkit.googleapis.com</code>, <code>securetoken.googleapis.com</code>, <code>firestore.googleapis.com</code> – Cloud Sync only, when you are signed in</li>
   </ul>
@@ -72,21 +68,19 @@
 
   <h2>Permissions Justification</h2>
   <ul>
-    <li><strong>storage</strong> – needed to save series, settings, and license data locally</li>
+    <li><strong>storage</strong> – needed to save series and settings data locally</li>
     <li><strong>alarms</strong> – needed for periodic background checks for new episodes</li>
     <li><strong>notifications</strong> – needed to alert you when new episodes are found</li>
     <li><strong>tabs</strong> – needed to open the Extension's tab interface</li>
     <li><strong>identity</strong> – needed for optional Google sign-in (Cloud Sync)</li>
     <li><strong>youtube.com</strong> – needed to inject the sidebar shortcut on YouTube pages</li>
     <li><strong>googleapis.com</strong> – needed for YouTube Data API requests</li>
-    <li><strong>lemonsqueezy.com</strong> – needed for Pro license verification</li>
     <li><strong>shy-snowflake-0680.lollo-princigalli.workers.dev</strong> – needed to relay YouTube API requests without exposing your API key</li>
   </ul>
 
   <h2>Third-Party Services</h2>
   <ul>
     <li><strong>YouTube Data API v3</strong> – subject to <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy</a></li>
-    <li><strong>Lemon Squeezy</strong> – subject to <a href="https://www.lemonsqueezy.com/privacy" target="_blank" rel="noopener">Lemon Squeezy Privacy Policy</a></li>
     <li><strong>Cloudflare Workers</strong> – transparent API relay, subject to <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener">Cloudflare Privacy Policy</a></li>
     <li><strong>Google Firebase</strong> – optional Cloud Sync storage and authentication, subject to <a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener">Firebase Privacy</a> and <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy</a></li>
   </ul>

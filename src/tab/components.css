@@ -167,29 +167,13 @@ select option {
 }
 
 /* badges */
-.pro-badge {
-  display: inline-block;
-  padding: 2px var(--space-sm);
-  border-radius: var(--radius-sm);
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  vertical-align: middle;
-  margin-left: var(--space-sm);
+.pro-separator {
+  margin-top: var(--space-lg);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--border);
 }
 
-.pro-badge-pro {
-  background: var(--success);
-  color: #fff;
-}
-
-.pro-badge-free {
-  background: var(--border);
-  color: var(--text-muted);
-}
-
-/* license plan card */
-.license-plan-card {
+.support-card {
   background: var(--card-bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -197,67 +181,13 @@ select option {
   margin-bottom: 14px;
 }
 
-.license-plan-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 8px;
-}
-
-.license-plan-name {
+.support-btn {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 10px 24px;
   font-size: 14px;
   font-weight: 600;
-  color: var(--text);
-}
-
-.license-plan-desc {
-  font-size: 12px;
-  color: var(--text-muted);
-  margin: 0 0 6px 0;
-}
-
-.license-status {
-  font-size: 12px;
-  color: var(--text-muted);
-  margin: 0;
-}
-
-.license-active-key {
-  font-size: 11px;
-  color: var(--text-muted);
-  word-break: break-all;
-  font-family: monospace;
-  margin-top: 4px;
-}
-
-.license-input-group {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-
-.license-input-group input {
-  flex: 1;
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--input-bg);
-  color: var(--text);
-  font-size: 13px;
-  font-family: var(--font-primary);
-}
-
-.license-input-group input:focus {
-  outline: none;
-  border-color: var(--primary);
-}
-
-/* buy pro */
-.buy-pro-btn {
-  width: 100%;
-  padding: 10px;
-  font-size: 14px;
-  font-weight: 600;
+  text-decoration: none;
   background: linear-gradient(135deg, var(--success), #27ae60);
   border: none;
   border-radius: var(--radius);
@@ -267,38 +197,9 @@ select option {
   font-family: var(--font-primary);
 }
 
-.buy-pro-btn:hover {
+.support-btn:hover {
   opacity: 0.9;
-}
-
-.buy-pro-desc {
-  margin-top: 10px;
-  font-size: 12px;
-  color: var(--text-muted);
-  line-height: 1.4;
-}
-
-.divider {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 12px 0;
-  color: var(--text-muted);
-  font-size: 12px;
-}
-
-.divider::before,
-.divider::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  background: var(--border);
-}
-
-.pro-separator {
-  margin-top: var(--space-lg);
-  padding-top: var(--space-lg);
-  border-top: 1px solid var(--border);
+  color: #fff;
 }
 
 /* loading — skeleton shimmer */
@@ -596,77 +497,7 @@ body::before {
   font-size: 13px;
 }
 
-.buy-pro-section {
-  margin-top: 12px;
-}
 
-/* upsell card (Pro upgrade prompt in "New Episodes" tab) */
-.upsell-card {
-  background: linear-gradient(135deg, var(--card-bg), rgba(var(--primary-rgb), 0.06));
-  border: 1px solid rgba(var(--primary-rgb), 0.25);
-  border-radius: var(--radius-lg);
-  padding: 36px var(--space-xl);
-  text-align: center;
-  max-width: 480px;
-  margin: 20px auto;
-}
-
-.upsell-card .upsell-icon {
-  font-size: 36px;
-  margin-bottom: 12px;
-  opacity: 0.8;
-}
-
-.upsell-card p {
-  font-size: 15px;
-  color: var(--text);
-  margin-bottom: 8px;
-  line-height: 1.5;
-}
-
-.upsell-card .upsell-sub {
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-bottom: 16px;
-}
-
-.upsell-card .btn-primary {
-  padding: 12px 32px;
-  font-size: 15px;
-  font-weight: 600;
-}
-
-/* free tier banner (bottom of dashboard) */
-.free-tier-banner {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 14px var(--space-lg);
-  margin: var(--space-lg) 0;
-  background: linear-gradient(135deg, rgba(var(--primary-rgb), 0.08), transparent);
-  border: 1px solid rgba(var(--primary-rgb), 0.15);
-  border-radius: var(--radius);
-  font-size: 13px;
-  color: var(--text-muted);
-  position: relative;
-}
-
-.free-tier-banner .btn-primary {
-  padding: 6px 16px;
-  font-size: 12px;
-}
-
-.banner-close {
-  position: absolute;
-  bottom: 2px;
-  right: 6px;
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  font-size: 14px;
-  cursor: pointer;
-  padding: 2px 4px;
   line-height: 1;
   opacity: 0.4;
   transition: opacity 0.15s, color 0.15s;
@@ -732,25 +563,6 @@ body::before {
   filter: blur(8px);
   pointer-events: none;
   user-select: none;
-}
-
-/* series-completed upsell */
-.completed-upsell {
-  margin-top: var(--space-md);
-  padding: 16px 20px;
-  background: linear-gradient(135deg, rgba(var(--primary-rgb), 0.08), transparent);
-  border: 1px solid rgba(var(--primary-rgb), 0.2);
-  border-radius: var(--radius);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  font-size: 14px;
-}
-
-.completed-upsell-text {
-  color: var(--text);
-  line-height: 1.4;
 }
 
 /* detail more from channel */

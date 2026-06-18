@@ -1,6 +1,6 @@
 import { EVENTS } from "../shared/events.js";
 import { logger } from "../shared/logger.js";
-import { THEME_COLORS, PRO_CHECKOUT, EXTENSION_ID, GITHUB_URL } from "../shared/constants.js";
+import { THEME_COLORS, SUPPORT_URL, EXTENSION_ID, GITHUB_URL } from "../shared/constants.js";
 import { CHANGELOG } from "../shared/changelog.js";
 import { t, setLanguage } from "../shared/i18n.js";
 import { HomePage } from "./components/home.js";
@@ -26,7 +26,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   await loadState();
   applyTheme();
   updateToolbarIcon();
-  updateHeaderPro();
 
   // Apri settings se richiesto dal popup
   const params = new URLSearchParams(window.location.search);
@@ -70,8 +69,6 @@ window.addEventListener("yt-series-add", async (e) => {
   if (response.success && response.series && state) {
     state.series[response.series.playlistId] = response.series;
     render();
-  } else if (response?.error === "LIMIT_REACHED") {
-    // Banner in dashboard already shows the limit; no toast needed
   }
 });
 
@@ -124,14 +121,12 @@ function translateUI() {
     ["addPlaylistBtn", "textContent", "add_via_link"],
     ["addPlaylistConfirm", "textContent", "add_series"],
     ["addPlaylistCancel", "textContent", "cancel"],
-    ["verifyLicenseBtn", "textContent", "activate"],
-    ["licenseKeyInput", "placeholder", "enter_license"],
     ["playlistUrlInput", "placeholder", "playlist_url_placeholder"],
     ["addPlaylistModalTitle", "textContent", "add_series_title"],
     ["addPlaylistDesc", "textContent", "add_series_desc"],
     ["settingsModalTitle", "textContent", "settings_title"],
     ["autoRefreshToggle", "nextText", "auto_refresh_desc"],
-    ["licenseBadge", "textContent", "free"],
+
     ["bugReportText", "placeholder", "bug_placeholder"],
   ];
 
@@ -181,8 +176,6 @@ function translateUI() {
     "#settingsModal .modal-footer .btn-secondary",
   );
   if (closeBtn) closeBtn.textContent = t("close");
-
-  updateHeaderPro();
 }
 
 function initIconTheme() {
@@ -200,7 +193,7 @@ function updateToolbarIcon() {
 }
 
 function setToolbarIcon(isDark) {
-  const suffix = isDark ? "" : "_light";
+  const suffix = isDark ? "_light" : "";
   sendMessage(EVENTS.SET_ICON_THEME, { suffix }).catch(() => {});
 }
 
@@ -380,23 +373,9 @@ function bindUIEvents() {
   });
 
   document.getElementById("headerProBtn").addEventListener("click", () => {
-    modalManager.open("settingsModal");
-    populateSettingsForm();
-
-    document
-      .querySelectorAll(".settings-section-content")
-      .forEach((s) => s.classList.remove("active"));
-    document
-      .querySelectorAll(".settings-tab")
-      .forEach((t) => t.classList.remove("active"));
-    const licenseTab = document.querySelector(
-      '.settings-tab[data-section="license"]',
-    );
-    const licenseSection = document.querySelector(
-      '.settings-section-content[data-section="license"]',
-    );
-    if (licenseTab) licenseTab.classList.add("active");
-    if (licenseSection) licenseSection.classList.add("active");
+    if (SUPPORT_URL) {
+      window.open(SUPPORT_URL, "_blank");
+    }
   });
 
   // Settings tabs handling
@@ -437,15 +416,7 @@ function bindUIEvents() {
       if (e.key === "Enter") handleAddPlaylist();
     });
 
-  document
-    .getElementById("verifyLicenseBtn")
-    .addEventListener("click", handleVerifyLicense);
-  document
-    .getElementById("licenseKeyInput")
-    .addEventListener("keydown", (e) => {
-      if (e.key === "Enter") handleVerifyLicense();
-    });
-  document.getElementById("buyProBtn").addEventListener("click", handleBuyPro);
+
 
   document
     .getElementById("themeSelect")
@@ -633,7 +604,6 @@ function listenBroadcasts() {
       applyLanguageFromSettings();
       translateUI();
       populateSyncUI();
-      updateHeaderPro();
       render();
       if (detailPage.series) {
         const updated = state.series[detailPage.series.playlistId];
@@ -653,7 +623,6 @@ function _detailCallbacks() {
     onRefresh: handleRefreshSeries,
     onCompleteToggle: handleSeriesCompleteToggle,
     onAddSeries,
-    isPro: state.license.isPro,
   };
 }
 
@@ -662,7 +631,6 @@ function render() {
 }
 
 function renderHome() {
-  homePage.setPro(state.license.isPro);
   const main = document.getElementById("mainContent");
   main.innerHTML = "";
 
@@ -727,9 +695,7 @@ function renderHome() {
     const watched = s.videos.filter((v) => v.watched).length;
     return watched > 0 && watched < s.videos.length;
   });
-  const newSeries = state.license.isPro
-    ? filtered.filter((s) => s.newEpisodesCount > 0)
-    : [];
+  const newSeries = filtered.filter((s) => s.newEpisodesCount > 0);
 
   if (!currentSearch && currentFilter === "all") {
     const heroSeries = buildHeroSeries(seriesArray);
@@ -742,7 +708,7 @@ function renderHome() {
         ),
       );
     }
-    if (currentFilter === "all" && !currentSearch && state.license.isPro) {
+    if (currentFilter === "all" && !currentSearch) {
       const thisWeekSeries = getThisWeekSeries(seriesArray);
       if (thisWeekSeries.length > 0) {
         main.appendChild(
@@ -767,7 +733,7 @@ function renderHome() {
 
   if (
     newSeries.length > 0 &&
-    (currentFilter === "all" || currentFilter === "new")
+    currentFilter === "new"
   ) {
     main.appendChild(
       homePage.renderRow(
@@ -776,43 +742,7 @@ function renderHome() {
         onSeriesClick,
       ),
     );
-  } else if (currentFilter === "new" && !state.license.isPro) {
-    const upsell = document.createElement('div');
-    upsell.className = 'upsell-card';
-    upsell.innerHTML = `<div class="upsell-icon">🔔</div><p>${t('new_episodes_pro_only')}</p><p class="upsell-sub">${t('buy_pro_desc')}</p><button class="btn-primary" id="upsellProBtn">${t('get_pro')}</button>`;
-    main.appendChild(upsell);
-    setTimeout(() => {
-      const btn = document.getElementById('upsellProBtn');
-      if (btn) btn.onclick = () => handleBuyPro();
-    }, 0);
   }
-
-  // Free tier banner (first open per day, dismissible)
-  if (!state.license.isPro && seriesArray.length > 0 && currentFilter === "all" && !currentSearch) {
-    const today = new Date().toDateString();
-    const lastDismissed = localStorage.getItem('yt-series-banner-dismissed');
-    if (lastDismissed !== today) {
-      const banner = document.createElement('div');
-      banner.className = 'free-tier-banner';
-      const seriesCount = Object.keys(state.series).length;
-      const limit = 3;
-      const text = seriesCount >= limit
-        ? `${t('limit_reached')} `
-        : t('free_tier_banner', { count: seriesCount, limit: limit });
-      banner.innerHTML = `<span>${text}</span><button class="btn-primary" id="bannerProBtn">${t('get_pro')}</button><button class="banner-close" id="bannerCloseBtn" title="${t('close')}">✕</button>`;
-      main.appendChild(banner);
-      setTimeout(() => {
-        const proBtn = document.getElementById('bannerProBtn');
-        if (proBtn) proBtn.onclick = () => handleBuyPro();
-        const closeBtn = document.getElementById('bannerCloseBtn');
-        if (closeBtn) closeBtn.onclick = () => {
-          banner.remove();
-          localStorage.setItem('yt-series-banner-dismissed', today);
-        };
-      }, 0);
-    }
-  }
-
   if (
     currentFilter === "all" ||
     currentFilter === "watching" ||
@@ -1044,17 +974,6 @@ async function handleSeriesCompleteToggle(playlistId) {
       detailPage.render(series, _detailCallbacks());
     }
     render();
-
-    // Post-completion upsell: show after marking complete (for free users)
-    if (wasJustCompleted && !state.license.isPro) {
-      setTimeout(() => {
-        showErrorToast(
-          t("completed_upsell"),
-          t("get_pro"),
-          () => { if (PRO_CHECKOUT.URL) window.open(PRO_CHECKOUT.URL, "_blank"); }
-        );
-      }, 800);
-    }
   }
 }
 
@@ -1195,11 +1114,6 @@ async function handleAddPlaylist() {
     const response = await sendMessage(EVENTS.PLAYLIST_ADD, { url });
 
     if (!response.success) {
-      if (response.error === "LIMIT_REACHED") {
-        errorEl.textContent = t("limit_reached");
-        errorEl.classList.remove("hidden");
-        return;
-      }
       throw new Error(response.message || t("add_failed"));
     }
 
@@ -1218,107 +1132,13 @@ async function handleAddPlaylist() {
 }
 
 function handleBuyPro() {
-  if (PRO_CHECKOUT.URL) {
-    window.open(PRO_CHECKOUT.URL, "_blank");
-  } else {
-    const msgEl = document.getElementById("licenseMessage");
-    msgEl.textContent =
-      "Checkout URL not configured yet. Set PRO_CHECKOUT.URL in constants.js";
-    msgEl.style.color = "var(--primary)";
-    msgEl.classList.remove("hidden");
-  }
-}
-
-async function handleVerifyLicense() {
-  const input = document.getElementById("licenseKeyInput");
-  const msgEl = document.getElementById("licenseMessage");
-  const key = input.value.trim();
-
-  msgEl.classList.add("hidden");
-  document.getElementById("verifyLicenseBtn").disabled = true;
-
-  try {
-    const response = await sendMessage(EVENTS.LICENSE_VERIFY, { key });
-
-    if (response.valid) {
-      state.license.isPro = true;
-      state.license.key = key;
-      msgEl.textContent = t("license_activated");
-      msgEl.style.color = "#2ecc71";
-      msgEl.classList.remove("hidden");
-      populateSettingsForm();
-      render();
-    } else {
-      msgEl.textContent =
-        response.reason === "NETWORK_ERROR"
-          ? t("license_failed")
-          : t("license_invalid");
-      msgEl.style.color = "var(--primary)";
-      msgEl.classList.remove("hidden");
-    }
-  } catch (err) {
-    msgEl.textContent = t("license_failed");
-    msgEl.style.color = "var(--primary)";
-    msgEl.classList.remove("hidden");
-  } finally {
-    document.getElementById("verifyLicenseBtn").disabled = false;
-  }
-}
-
-function updateHeaderPro() {
-  const isPro = state?.license?.isPro;
-  const btn = document.getElementById("headerProBtn");
-  const badge = document.getElementById("headerProBadge");
-  if (isPro) {
-    btn?.classList.add("hidden");
-    badge?.classList.remove("hidden");
-  } else {
-    btn?.classList.remove("hidden");
-    badge?.classList.add("hidden");
-  }
-  // Aggiorna label e title in base alla lingua
-  if (btn) {
-    const textNodes = [...btn.childNodes].filter((c) => c.nodeType === 3);
-    const lastText = textNodes[textNodes.length - 1];
-    if (lastText) lastText.textContent = " " + t("get_pro");
-    btn.title = t("get_pro");
+  if (SUPPORT_URL) {
+    window.open(SUPPORT_URL, "_blank");
   }
 }
 
 function populateSettingsForm() {
   if (!state) return;
-
-  const isPro = state.license.isPro;
-
-  const badge = document.getElementById("licenseBadge");
-  badge.textContent = isPro ? t("pro") : t("free");
-  badge.className = `pro-badge ${isPro ? "pro-badge-pro" : "pro-badge-free"}`;
-  document.getElementById("licensePlanName").textContent = isPro
-    ? t("plan_pro")
-    : t("plan_free");
-  document.getElementById("licensePlanDesc").textContent = isPro
-    ? ""
-    : t("free_series_limit");
-  document.getElementById("licensePlanDesc").style.display = isPro
-    ? "none"
-    : "block";
-  const licenseStatus = document.getElementById("licenseStatus");
-  const licenseActiveInfo = document.getElementById("licenseActiveInfo");
-  const licenseActiveKey = document.getElementById("licenseActiveKey");
-
-  if (isPro) {
-    licenseStatus.textContent = t("license_status_active");
-    licenseStatus.style.color = "var(--success)";
-    const key = state.license.key || "";
-    licenseActiveKey.textContent = key;
-    licenseActiveInfo.classList.remove("hidden");
-  } else {
-    licenseStatus.textContent = t("enter_license");
-    licenseStatus.style.color = "";
-    licenseActiveInfo.classList.add("hidden");
-  }
-
-  document.getElementById("licenseKeyInput").value = state.license.key || "";
 
   if (state.settings) {
     document.getElementById("themeSelect").value =
@@ -1331,17 +1151,6 @@ function populateSettingsForm() {
       state.settings.autoRefresh || false;
   }
 
-  const proSettings = document.getElementById("proSettings");
-  proSettings.style.display = isPro ? "block" : "none";
-  const buySection = document.getElementById("buyProSection");
-  if (buySection) {
-    buySection.style.display = isPro ? "none" : "block";
-    document.getElementById("buyProBtn").textContent = t("buy_pro");
-  }
-  document.getElementById("licenseKeyInput").disabled = false;
-  document.getElementById("verifyLicenseBtn").disabled = false;
-
-  updateHeaderPro();
   populateSyncUI();
   populateDevTools();
 }
@@ -1358,26 +1167,6 @@ function populateDevTools() {
   const content = document.querySelector('.settings-section-content[data-section="dev"]');
   if (tab) tab.style.display = '';
   if (content) content.style.display = '';
-
-  const status = document.getElementById("devProStatus");
-  const btn = document.getElementById("devToggleProBtn");
-  if (!status || !btn) return;
-
-  const isPro = state?.license?.isPro || false;
-  status.textContent = `Pro status: ${isPro ? 'Pro (simulated)' : 'Free'}`;
-
-  btn.onclick = async () => {
-    btn.disabled = true;
-    btn.textContent = 'Toggling...';
-    try {
-      const response = await sendMessage(EVENTS.DEV_TOGGLE_PRO);
-      if (response.success) {
-        status.textContent = `Pro status: ${response.isPro ? 'Pro (simulated)' : 'Free'}`;
-      }
-    } catch (_) {}
-    btn.disabled = false;
-    btn.textContent = 'Toggle Pro (simulate)';
-  };
 
   // Load demo data button
   const demoBtn = document.getElementById("loadDemoBtn");
@@ -1549,6 +1338,12 @@ function applyTheme() {
   const colors = THEME_COLORS[themeName] || THEME_COLORS["classic-red"];
   const root = document.documentElement;
   const isDark = themeName !== "light";
+
+  // Header logo icon switches based on theme
+  const logoIcon = document.querySelector(".header-logo-icon");
+  if (logoIcon) {
+    logoIcon.src = isDark ? "../../icons/icon_full_128.png" : "../../icons/icon_full_128_light.png";
+  }
 
   root.style.setProperty("--bg", colors.bg);
   root.style.setProperty("--surface", colors.surface);
