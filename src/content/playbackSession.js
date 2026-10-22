@@ -32,6 +32,7 @@ export class PlaybackSession {
     this.tickTimer = null
     this.saveTimer = null
     this.lastSavedAt = 0
+    this.untracked = false // true once the background says this video is in no saved series
     this.onVisibility = () => (document.hidden ? this.pause() : this.poll())
   }
 
@@ -135,11 +136,15 @@ export class PlaybackSession {
   /** @param {number} progress @param {number} currentTime @param {number} duration */
   saveProgress(progress, currentTime, duration) {
     const video = this.video
-    if (this.disposed || !video || document.hidden || video.paused || video.ended || video.seeking || isAdPlaying()) return
+    if (this.untracked || this.disposed || !video || document.hidden || video.paused || video.ended || video.seeking || isAdPlaying()) return
     const now = Date.now()
     if (now - this.lastSavedAt < PROGRESS_MIN_INTERVAL_MS) return
     this.lastSavedAt = now
     this.messenger.send(EVENTS.EPISODE_PROGRESS, { videoId: this.videoId, playlistId: this.playlistId || '', progress, currentTime, duration })
+      .then(response => {
+        // Most videos people watch are not in a saved series: stop asking for this session.
+        if (response.error === 'VIDEO_NOT_FOUND') this.untracked = true
+      })
   }
 
   onEnded() {

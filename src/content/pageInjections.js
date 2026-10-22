@@ -4,19 +4,21 @@
 import { EVENTS } from '../shared/events.js'
 import { t } from '../shared/i18n.js'
 import { h } from '../shared/dom.js'
-import { SELECTORS, currentPageIds } from './youtubeDom.js'
+import { SELECTORS, currentPageIds, findVisible } from './youtubeDom.js'
 import { showToast } from './toast.js'
 
 const SIDEBAR_ID = 'yt-series-sidebar-section'
-const BUTTON_ID = 'yt-series-add-btn'
+const BUTTON_CLASS = 'yt-series-add-btn'
+
+/** @returns {HTMLButtonElement[]} */
+const allButtons = () => [...document.querySelectorAll(`.${BUTTON_CLASS}`)]
 
 export class PageInjections {
   /** @param {{ send: (type: string, payload?: any) => Promise<any> }} messenger */
   constructor(messenger) {
     this.messenger = messenger
-    this.buttonFor = null // playlist id the current button (or pending lookup) belongs to
-    this.buttonToken = 0  // invalidates lookups started for a previous playlist
-    this.pending = false
+    this.lookupToken = 0     // invalidates PLAYLIST_EXISTS lookups started for an older page state
+    this.pendingFor = null   // playlist id with a lookup in flight
   }
 
   openDashboard() {
@@ -36,54 +38,68 @@ export class PageInjections {
           h('span', { class: 'yt-series-label' }, 'YT Series')))), last)
   }
 
-  /** Drops the button when the user navigates to another playlist. */
+  /** Drops every injected button (navigation to another page/playlist). */
   resetButton() {
-    this.buttonFor = null
-    this.buttonToken++
-    this.pending = false
-    for (const button of document.querySelectorAll(`#${BUTTON_ID}`)) button.remove()
+    this.lookupToken++
+    this.pendingFor = null
+    for (const button of allButtons()) button.remove()
   }
 
+  /**
+   * Keeps exactly one button, inside the playlist header the user can see.
+   * YouTube keeps hidden/cached headers in the DOM and re-renders them, so
+   * stray copies (other playlist, hidden header) are removed on every pass.
+   */
   injectAddButton() {
     const { playlistId } = currentPageIds()
-    if (!playlistId) return
-    if (this.buttonFor === playlistId && (this.pending || document.getElementById(BUTTON_ID))) return
-    const container = document.querySelector(SELECTORS.playlistActions) || document.querySelector(SELECTORS.playlistHeader)
+    if (!playlistId) { this.resetButton(); return }
+    const container = findVisible(SELECTORS.playlistActions) || findVisible(SELECTORS.playlistHeader)
     if (!container) return
 
-    this.resetButton()
-    this.buttonFor = playlistId
-    const token = this.buttonToken
-    this.pending = true
+    const keep = allButtons().find(button => button.dataset.playlistId === playlistId && container.contains(button))
+    for (const button of allButtons()) if (button !== keep) button.remove()
+    if (keep || this.pendingFor === playlistId) return
+
+    const token = ++this.lookupToken
+    this.pendingFor = playlistId
     this.messenger.send(EVENTS.PLAYLIST_EXISTS, { playlistId }).then(response => {
-      if (token !== this.buttonToken) return
-      this.pending = false
-      if (currentPageIds().playlistId !== playlistId || document.getElementById(BUTTON_ID)) return
-      if (!container.isConnected) { this.buttonFor = null; return } // YouTube re-rendered; retry on next mutation
+      if (token !== this.lookupToken) return
+      this.pendingFor = null
+      if (currentPageIds().playlistId !== playlistId || !container.isConnected) return // retried on next mutation
+      for (const button of allButtons()) button.remove()
       container.append(this.createButton(playlistId, Boolean(response.success && response.exists)))
     })
   }
 
+  /**
+   * Reflects library changes made elsewhere (dashboard, another tab).
+   * @param {Record<string, unknown>} savedIds playlist ids present in the library
+   */
+  syncSavedState(savedIds) {
+    for (const button of allButtons()) this.render(button, Object.hasOwn(savedIds, button.dataset.playlistId || ''))
+  }
+
+  /** @param {HTMLButtonElement} button @param {boolean} saved */
+  render(button, saved) {
+    button.dataset.saved = String(saved)
+    button.classList.toggle('is-saved', saved)
+    button.textContent = saved ? t('content_view_on_yt_series') : t('content_add_to_series')
+  }
+
   /** @param {string} playlistId @param {boolean} saved */
   createButton(playlistId, saved) {
-    const button = h('button', { type: 'button', id: BUTTON_ID, class: ['yt-series-add-btn', saved && 'is-saved'], dataset: { playlistId } },
-      saved ? t('content_view_on_yt_series') : t('content_add_to_series'))
-    let isSaved = saved
+    const button = h('button', { type: 'button', id: 'yt-series-add-btn', class: BUTTON_CLASS, dataset: { playlistId } })
+    this.render(button, saved)
     button.addEventListener('click', async () => {
-      if (isSaved) { this.openDashboard(); return }
+      if (button.dataset.saved === 'true') { this.openDashboard(); return }
       button.disabled = true
       button.textContent = t('adding')
       const url = new URL('https://www.youtube.com/playlist')
       url.searchParams.set('list', playlistId)
       const response = await this.messenger.send(EVENTS.PLAYLIST_ADD, { url: url.href })
       button.disabled = false
-      if (response.success) {
-        isSaved = true
-        button.classList.add('is-saved')
-        button.textContent = t('content_view_on_yt_series')
-        return
-      }
-      button.textContent = t('content_add_to_series')
+      this.render(button, Boolean(response.success))
+      if (response.success) return
       const code = String(response.error || '').toLowerCase()
       const reason = t(`error_${code}`)
       showToast(response.error === 'CONTEXT_INVALIDATED'

@@ -67,8 +67,12 @@ function start() {
   chrome.runtime.onMessage.addListener((message, sender) => {
     if (sender?.id !== chrome.runtime.id || message?.type !== EVENTS.STATE_UPDATED) return
     applySettings(message.state?.settings)
+    const savedIds = message.state?.series
+    if (!savedIds) return
+    injections.syncSavedState(savedIds)
+    if (session) session.untracked = false // the video may belong to a series just added
     // The series was deleted elsewhere: stop offering its next episode.
-    if (currentPlaylistId && message.state?.series && !message.state.series[currentPlaylistId]) session?.overlay.hide()
+    if (currentPlaylistId && !savedIds[currentPlaylistId]) session?.overlay.hide()
   })
 
   // Settings at startup (previously only picked up on the first broadcast).

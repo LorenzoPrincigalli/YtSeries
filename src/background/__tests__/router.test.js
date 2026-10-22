@@ -130,6 +130,14 @@ describe('router', () => {
     expect(await dispatch({ type: EVENTS.CONTENT_SETTINGS_GET }, ctx, 'extension')).toMatchObject({ error: 'FORBIDDEN' })
   })
 
+  it('treats progress for an unsaved video as an expected outcome, not an error', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const response = await dispatch({ type: EVENTS.EPISODE_PROGRESS, payload: { videoId: 'notsaved', progress: 10, currentTime: 5, duration: 50 } }, ctx, 'content')
+    expect(response).toMatchObject({ success: false, error: 'VIDEO_NOT_FOUND' })
+    expect(consoleError).not.toHaveBeenCalled()
+    consoleError.mockRestore()
+  })
+
   it('rate-limits searches', async () => {
     expect((await dispatch({ type: EVENTS.PLAYLIST_SEARCH, payload: { query: 'a' } }, ctx)).success).toBe(true)
     expect(await dispatch({ type: EVENTS.PLAYLIST_SEARCH, payload: { query: 'b' } }, ctx)).toMatchObject({ error: 'RATE_LIMITED' })

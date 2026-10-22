@@ -10,9 +10,9 @@ Runs on `https://www.youtube.com/*` with `content.css`.
 |--------|----------------|
 | `index.js` | Bootstrap: settings (`CONTENT_SETTINGS_GET` at start, then broadcasts), SPA navigation (`yt-navigate-finish`), DOM observer throttled to one pass per frame |
 | `messaging.js` | `send()` that never throws; detects "Extension context invalidated" and shuts the integration down |
-| `playbackSession.js` | One object per (video, playlist): binds `<video>`, progress every 5 s (3 s debounce, ≥ 10 s between writes), `ended` → `EPISODE_WATCH`, triggers the overlay in the last 30 s; `dispose()` releases every timer/listener |
+| `playbackSession.js` | One object per (video, playlist): binds `<video>`, progress every 5 s (3 s debounce, ≥ 10 s between writes), `ended` → `EPISODE_WATCH`, triggers the overlay in the last 30 s; stops sending progress after `VIDEO_NOT_FOUND` (video in no saved series) until the library changes; `dispose()` releases every timer/listener |
 | `nextEpisodeOverlay.js` | "Watch next" card: lookup via `PLAYLIST_EXISTS` + `GET_NEXT_EPISODE`, stale-request tokens, Escape/close dismiss for the session, follows fullscreen/theater/mini modes |
-| `pageInjections.js` | Sidebar link and "Add to Series" button (playlist pages) with navigation tokens against stale callbacks |
+| `pageInjections.js` | Sidebar link and "Add to Series" button. YouTube keeps several playlist headers in the DOM (hidden/cached), so the button is placed only in the **visible** one (`findVisible`) and stray copies are removed on every pass; its label follows `STATE_UPDATED` live |
 | `youtubeDom.js` | **All YouTube selectors** — update here after a YouTube redesign |
 | `toast.js` | Small page notices |
 

@@ -22,6 +22,12 @@ const log = logger.child('router')
 const DEFAULT_CONTEXTS = ['extension']
 
 /**
+ * Normal answers to normal requests (e.g. progress for a video that is not in
+ * any saved series): returned to the caller, logged at debug, never as errors.
+ */
+const EXPECTED_OUTCOMES = new Set(['VIDEO_NOT_FOUND', 'SERIES_NOT_FOUND', 'PLAYLIST_NOT_FOUND', 'RATE_LIMITED', 'UNDO_EXPIRED'])
+
+/**
  * Serializes commands so concurrent messages never interleave a
  * read-modify-save cycle. A failed command never blocks the next one.
  */
@@ -60,7 +66,7 @@ function createRouter(routes, runCommand) {
       return await (route.mode === 'read' ? run() : runCommand(run))
     } catch (err) {
       const response = toErrorResponse(err)
-      const level = response.error === 'INVALID_PAYLOAD' ? 'warn' : 'error'
+      const level = EXPECTED_OUTCOMES.has(response.error) ? 'debug' : response.error === 'INVALID_PAYLOAD' ? 'warn' : 'error'
       log[level](`${message.type} failed`, err)
       return response
     }

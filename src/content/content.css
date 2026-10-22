@@ -1,6 +1,7 @@
 /* Styles injected into youtube.com (declared in manifest content_scripts.css).
    Every selector is namespaced (#yt-series-*, .yt-series-*) so nothing leaks
-   into YouTube's own UI. Colours follow YouTube's theme variables. */
+   into YouTube's own UI. Sidebar text inherits YouTube's own colour (its
+   --yt-spec-* variables are not defined at that point of the tree). */
 
 /* ── Sidebar link ─────────────────────────────────────────────────────── */
 #yt-series-section-title {
@@ -8,7 +9,7 @@
   padding: 6px 24px;
   font-size: 13px;
   font-weight: 500;
-  color: var(--yt-spec-text-primary, #f1f1f1);
+  color: inherit;
   opacity: 0.7;
 }
 #yt-series-link {
@@ -16,7 +17,7 @@
   align-items: center;
   height: 40px;
   padding: 0 24px;
-  color: var(--yt-spec-text-primary, #f1f1f1);
+  color: inherit;
   font-size: 14px;
   font-weight: 400;
   text-decoration: none;
@@ -24,7 +25,7 @@
   transition: background 0.15s;
 }
 #yt-series-link:hover,
-#yt-series-link:focus-visible { background: var(--yt-spec-badge-chip-background, rgba(255, 255, 255, 0.1)); }
+#yt-series-link:focus-visible { background: color-mix(in srgb, currentColor 10%, transparent); }
 #yt-series-link .yt-series-icon {
   display: inline-flex;
   align-items: center;
@@ -44,7 +45,7 @@
   align-items: center;
   gap: 8px;
   height: 36px;
-  margin: 8px 0;
+  margin: 8px 8px 8px 0; /* keeps a gap from YouTube's neighbouring buttons */
   padding: 0 16px;
   border: none;
   border-radius: 18px;

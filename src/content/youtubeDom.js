@@ -9,10 +9,20 @@ export const SELECTORS = {
   miniPlayer: '.ytp-miniplayer',
   guideSections: 'ytd-guide-section-renderer',
   playlistActions: '#playlist-action-menu #top-level-buttons-computed',
-  playlistHeader: '#page-manager > ytd-browse > yt-page-header-renderer > yt-page-header-view-model > div.ytPageHeaderViewModelScrollContainer',
+  // YouTube keeps more than one playlist header in the DOM (cached/alternate
+  // layouts); always use findVisible() with this selector.
+  playlistHeader: 'yt-page-header-view-model div.ytPageHeaderViewModelScrollContainer',
   blockingDialog: '[aria-modal="true"], ytd-consent-bump-v2-renderer',
   genreMeta: 'meta[itemprop="genre"]',
   playlistTitle: '#header .yt-dynamic-text-view-model'
+}
+
+/** First element matching `selector` that is actually rendered. @param {string} selector @returns {HTMLElement | null} */
+export function findVisible(selector) {
+  for (const el of document.querySelectorAll(selector)) {
+    if (el instanceof HTMLElement && el.getClientRects().length > 0) return el
+  }
+  return null
 }
 
 /** @returns {HTMLVideoElement | null} */

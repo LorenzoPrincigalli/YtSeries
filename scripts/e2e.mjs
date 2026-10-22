@@ -617,6 +617,42 @@ await step('sidebar link, add button and watch-on-ended work on YouTube', async 
   await yt.close()
 })
 
+await step('new YouTube layout: one button in the visible header, live label, readable sidebar', async () => {
+  // Current YouTube keeps a second, hidden playlist header in the DOM and a light page theme.
+  const layout = `<!doctype html><html><body style="color: rgb(15, 15, 15); background: #fff">
+    <div id="guide"><ytd-guide-section-renderer></ytd-guide-section-renderer><ytd-guide-section-renderer></ytd-guide-section-renderer></div>
+    <ytd-browse><yt-page-header-view-model style="display:none"><div class="ytPageHeaderViewModelScrollContainer"></div></yt-page-header-view-model></ytd-browse>
+    <ytd-browse><yt-page-header-view-model><div class="ytPageHeaderViewModelScrollContainer"><button>Play all</button></div></yt-page-header-view-model></ytd-browse>
+    </body></html>`
+  await context.route(url => new URL(url).searchParams.get('list') === 'PLlayout0001', route => route.fulfill({ status: 200, contentType: 'text/html', body: layout }))
+  const yt = await context.newPage()
+  watchErrors(yt, 'youtube-layout')
+  await yt.goto('https://www.youtube.com/playlist?list=PLlayout0001')
+  await yt.waitForSelector('.yt-series-add-btn')
+  await yt.waitForTimeout(500) // let a few observer passes run
+  const placement = await yt.evaluate(() => {
+    const buttons = [...document.querySelectorAll('.yt-series-add-btn')]
+    const visibleHeader = document.querySelectorAll('.ytPageHeaderViewModelScrollContainer')[1]
+    const link = document.getElementById('yt-series-link')
+    return {
+      count: buttons.length,
+      inVisibleHeader: visibleHeader.contains(buttons[0]),
+      marginRight: parseFloat(getComputedStyle(buttons[0]).marginRight),
+      linkColor: getComputedStyle(link).color,
+      bodyColor: getComputedStyle(document.body).color
+    }
+  })
+  assert(placement.count === 1, `${placement.count} add buttons`)
+  assert(placement.inVisibleHeader, 'button injected into the hidden header')
+  assert(placement.marginRight >= 8, 'button has no gap from neighbouring buttons')
+  assert(placement.linkColor === placement.bodyColor, `sidebar link colour ${placement.linkColor} ≠ page text ${placement.bodyColor}`)
+  assert(/Add to Series/.test(await yt.textContent('.yt-series-add-btn')), 'wrong initial label')
+  await send('PLAYLIST_ADD', { url: 'https://www.youtube.com/playlist?list=PLlayout0001' })
+  await yt.waitForFunction(() => /View on YT Series/.test(document.querySelector('.yt-series-add-btn').textContent), null, { timeout: 5000 })
+  assert(await yt.locator('.yt-series-add-btn').count() === 1, 'duplicate after library update')
+  await yt.close()
+})
+
 await step('no uncaught errors or console errors on any page', async () => {
   assert(!consoleErrors.length, consoleErrors.slice(0, 5).join(' | '))
 })
