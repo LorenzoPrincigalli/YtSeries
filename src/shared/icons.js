@@ -12,6 +12,7 @@ const ICONS = {
   play: { viewBox: '0 0 24 24', paths: ['M8 5v14l11-7z'] },
   folder: { viewBox: '0 0 24 24', attrs: STROKE, paths: ['M3.5 6.5A2.5 2.5 0 0 1 6 4h4l2 2h6a2.5 2.5 0 0 1 2.5 2.5v8A2.5 2.5 0 0 1 18 19H6a2.5 2.5 0 0 1-2.5-2.5z'] },
   trash: { viewBox: '0 0 24 24', attrs: STROKE, paths: ['M5 7h14m-9 0V5h4v2m-7 0 1 13h8l1-13m-6 3v7m4-7v7'] },
+  check: { viewBox: '0 0 16 16', attrs: { ...STROKE, 'stroke-width': '2.2' }, paths: ['M3.5 8.5l3 3 6-7'] },
   refresh: { viewBox: '0 0 24 24', attrs: STROKE, paths: ['M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7'] }
 }
 

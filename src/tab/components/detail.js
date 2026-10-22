@@ -199,7 +199,9 @@ export class DetailView {
           'aria-pressed': String(Boolean(video.watched)),
           'aria-label': video.watched ? t('mark_unwatched_named', { title: video.title }) : t('mark_watched_named', { title: video.title }),
           onClick: event => { event.stopPropagation(); actions.setEpisodeWatched(series.playlistId, video.id, !video.watched) }
-        }, video.watched ? `✓ ${t('watched')}` : `● ${t('unwatched')}`)))
+        },
+        h('span', { class: 'episode-status-icon', 'aria-hidden': 'true' }, svg('check')),
+        h('span', { class: 'episode-status-label' }, video.watched ? t('watched') : t('unwatched')))))
   }
 
   /** @param {any} series */
