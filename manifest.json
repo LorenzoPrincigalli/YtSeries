@@ -1,14 +1,15 @@
 {
   "manifest_version": 3,
   "name": "YT Series",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Transform YouTube playlists into a TV-series tracker with a cinematic interface",
   "permissions": [
     "storage",
     "alarms",
     "notifications",
     "tabs",
-    "identity"
+    "identity",
+    "scripting"
   ],
   "oauth2": {
     "client_id": "1052836687022-2rebg9qq23n14m4reqt5hv7ckfbd64tn.apps.googleusercontent.com",
@@ -27,16 +28,11 @@
     "https://shy-snowflake-0680.lollo-princigalli.workers.dev/*"
   ],
   "content_security_policy": {
-    "extension_pages": "default-src 'self'; script-src 'self'; connect-src 'self' https://shy-snowflake-0680.lollo-princigalli.workers.dev https://www.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com; img-src 'self' https: data:; frame-src https://www.youtube.com https://www.youtube-nocookie.com; style-src 'self' 'unsafe-inline'"
+    "extension_pages": "default-src 'self'; script-src 'self'; connect-src 'self' https://shy-snowflake-0680.lollo-princigalli.workers.dev https://www.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com; img-src 'self' https: data:; style-src 'self' 'unsafe-inline'"
   },
   "background": {
     "service_worker": "src/background/index.js",
     "type": "module"
-  },
-  "externally_connectable": {
-    "matches": [
-      "https://lorenzoprincigalli.github.io/*"
-    ]
   },
   "content_scripts": [
     {
@@ -45,7 +41,11 @@
       ],
       "js": [
         "src/content/index.js"
-      ]
+      ],
+      "css": [
+        "src/content/content.css"
+      ],
+      "run_at": "document_idle"
     }
   ],
   "commands": {

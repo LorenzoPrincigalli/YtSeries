@@ -35,3 +35,6 @@ build/
 
 # Playwright browser profile (contains logins, history, site data)
 pw-profile/
+
+# Firebase CLI project binding (local only, like firebase.config.js)
+.firebaserc

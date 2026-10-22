@@ -1,3 +1,4 @@
+import { AppError } from '../../shared/errors.js'
 import { logger } from '../../shared/logger.js'
 
 class NotificationService {
@@ -6,7 +7,7 @@ class NotificationService {
       await chrome.notifications.create(id, options)
     } catch (err) {
       logger.error('NotificationService.create failed:', err)
-      throw { code: 'NOTIFICATION_CREATE_ERROR', message: 'Failed to create notification', context: err }
+      throw new AppError('NOTIFICATION_CREATE_ERROR', 'Failed to create notification', { cause: err })
     }
   }
 

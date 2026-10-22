@@ -1,3 +1,4 @@
+import { AppError } from '../../shared/errors.js'
 import { getFirebaseConfig, isFirebaseConfigured } from './FirebaseConfig.js'
 import { SYNC_STORAGE_KEYS } from '../../shared/constants.js'
 import { logger } from '../../shared/logger.js'
@@ -5,6 +6,7 @@ import { logger } from '../../shared/logger.js'
 class FirebaseAuthService {
   constructor() {
     this._session = null
+    this._googleAccessToken = null
   }
 
   isConfigured() {
@@ -27,7 +29,7 @@ class FirebaseAuthService {
     return this._session?.email || null
   }
 
-  async tryRestoreSession() {
+  async tryRestoreSession({ refresh = true } = {}) {
     if (!this.isConfigured()) return null
 
     try {
@@ -38,11 +40,8 @@ class FirebaseAuthService {
         return null
       }
 
-      if (session.expiresAt && session.expiresAt > Date.now() + 60_000) {
-        this._session = session
-        return session
-      }
-
+      this._session = session
+      if (!refresh || (session.expiresAt && session.expiresAt > Date.now() + 60_000)) return session
       return this._refreshSession(session.refreshToken)
     } catch (err) {
       logger.warn('FirebaseAuth: restore failed:', err)
@@ -53,17 +52,17 @@ class FirebaseAuthService {
 
   async login() {
     if (!this.isConfigured()) {
-      throw { code: 'SYNC_NOT_CONFIGURED', message: 'Firebase is not configured' }
+      throw new AppError('SYNC_NOT_CONFIGURED', 'Firebase is not configured')
     }
 
     const googleToken = await new Promise((resolve, reject) => {
       chrome.identity.getAuthToken({ interactive: true }, (token) => {
         if (chrome.runtime.lastError) {
-          reject(new Error(chrome.runtime.lastError.message))
+          reject(new AppError('OAUTH_FAILED', chrome.runtime.lastError.message))
           return
         }
         if (!token) {
-          reject(new Error('No OAuth token returned'))
+          reject(new AppError('OAUTH_FAILED', 'No OAuth token returned'))
           return
         }
         resolve(token)
@@ -89,9 +88,9 @@ class FirebaseAuthService {
       }
     )
 
-    const data = await resp.json()
+    const data = await resp.json().catch(() => ({}))
     if (!resp.ok) {
-      throw { code: 'AUTH_FAILED', message: data.error?.message || 'Firebase sign-in failed' }
+      throw new AppError('AUTH_FAILED', data.error?.message || 'Firebase sign-in failed')
     }
 
     const session = {
@@ -102,19 +101,22 @@ class FirebaseAuthService {
       expiresAt: Date.now() + (parseInt(data.expiresIn, 10) || 3600) * 1000
     }
 
+    this._googleAccessToken = googleToken
     await this._persistSession(session)
     this._session = session
     return session
   }
 
   async logout() {
-    const token = this._session?.googleAccessToken
-    if (token) {
-      try {
-        await chrome.identity.removeCachedAuthToken({ token })
-      } catch (_) {}
+    try {
+      if (chrome.identity.clearAllCachedAuthTokens) await chrome.identity.clearAllCachedAuthTokens()
+      else if (this._googleAccessToken) await chrome.identity.removeCachedAuthToken({ token: this._googleAccessToken })
+    } catch (err) {
+      // Token revocation is best effort; local sign-out below must still happen.
+      logger.warn('FirebaseAuth: could not clear cached Google token:', err)
     }
 
+    this._googleAccessToken = null
     this._session = null
     await chrome.storage.local.remove(SYNC_STORAGE_KEYS.AUTH)
   }
@@ -135,6 +137,7 @@ class FirebaseAuthService {
   }
 
   async _refreshSession(refreshToken) {
+    const previous = this._session
     const { apiKey } = getFirebaseConfig()
     const resp = await fetch(
       `https://securetoken.googleapis.com/v1/token?key=${encodeURIComponent(apiKey)}`,
@@ -149,18 +152,26 @@ class FirebaseAuthService {
       }
     )
 
-    const data = await resp.json()
+    const data = await resp.json().catch(() => ({}))
     if (!resp.ok) {
-      logger.warn('FirebaseAuth: token refresh failed:', data.error?.message)
-      await this.logout()
-      return null
+      // 400 means the refresh token is revoked, expired or the user disabled:
+      // the session is really over. 429/5xx are transient — keep the session.
+      if (resp.status === 400) {
+        logger.warn('FirebaseAuth: refresh token rejected, signing out:', data.error?.message)
+        await this.logout()
+        return null
+      }
+      throw new AppError('AUTH_REFRESH_UNAVAILABLE', data.error?.message || `Token refresh failed (${resp.status})`, {
+        status: resp.status,
+        retryable: resp.status === 429 || resp.status >= 500
+      })
     }
 
     const session = {
       uid: data.user_id,
       idToken: data.id_token,
       refreshToken: data.refresh_token || refreshToken,
-      email: this._session?.email || null,
+      email: previous?.email || null,
       expiresAt: Date.now() + (parseInt(data.expires_in, 10) || 3600) * 1000
     }
 

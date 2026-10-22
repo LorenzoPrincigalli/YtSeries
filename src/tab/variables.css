@@ -37,15 +37,6 @@
 @font-face {
   font-family: 'Poppins';
   font-style: normal;
-  font-weight: 500;
-  font-display: swap;
-  src: url('fonts/poppins-500-latin-ext.woff2') format('woff2');
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
-}
-
-@font-face {
-  font-family: 'Poppins';
-  font-style: normal;
   font-weight: 600;
   font-display: swap;
   src: url('fonts/poppins-600-latin.woff2') format('woff2');
@@ -102,20 +93,33 @@
   --z-card-hover: 5;
   --z-modal: 200;
   --z-header: 100;
+  --z-dropdown: 250;
   --z-toast: 300;
+  --z-popover: 400;
+
+  /* Content drawn on top of artwork (thumbnails, hero) is theme-independent. */
+  --text-on-media: #ffffff;
+  --surface-on-media: #ffffff;
+  --text-on-surface-media: #000000;
+  --badge-new-bg: #b33600;
+  --badge-done-bg: #157a33;
 
   /* Transition */
   --transition: 0.2s ease;
   --transition-slow: 0.4s ease;
 
-  /* Neutral fallbacks (overridden by JS theme) */
+  /* Light palette is the default; [data-theme] blocks below override it.
+     Text colours meet WCAG AA (≥ 4.5:1) against their backgrounds. */
   --bg: #f8f6f3;
   --surface: #ffffff;
   --primary: #d40000;
   --primary-rgb: 212, 0, 0;
   --primary-hover: #b30000;
+  /* Filled controls with white text (≥ 4.5:1); --primary stays the accent. */
+  --primary-fill: #d40000;
+  --primary-fill-hover: #b30000;
   --text: #1a1a1a;
-  --text-muted: #888888;
+  --text-muted: #6b6b6b;
   --text-on-primary: #ffffff;
   --card-bg: #ffffff;
   --card-hover: #f0eeeb;
@@ -136,4 +140,83 @@
   --modal-close-bg: rgba(0,0,0,0.06);
   --modal-close-border: rgba(0,0,0,0.1);
   --modal-close-hover-bg: rgba(0,0,0,0.12);
+}
+
+/* ── Themes ─────────────────────────────────────────────────────────────
+   The single source of truth for theme colours (dashboard and popup).
+   JS only sets <html data-theme="…">. */
+
+:root[data-theme="classic-red"],
+:root[data-theme="ocean-blue"],
+:root[data-theme="forest"] {
+  color-scheme: dark;
+  --text-on-primary: #ffffff;
+  --hover-overlay: rgba(255, 255, 255, 0.04);
+  --hover-overlay-strong: rgba(255, 255, 255, 0.1);
+  --input-bg: rgba(0, 0, 0, 0.3);
+  --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --card-elevated: 0 8px 30px rgba(0, 0, 0, 0.5);
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-elevated: 0 8px 30px rgba(0, 0, 0, 0.5);
+  --modal-close-bg: rgba(255, 255, 255, 0.08);
+  --modal-close-border: rgba(255, 255, 255, 0.15);
+  --modal-close-hover-bg: rgba(255, 255, 255, 0.18);
+  --danger: #e50914;
+  --success: #2ecc71;
+  --warning: #f97316;
+}
+
+:root[data-theme="classic-red"] {
+  --bg: #0f0f0f;
+  --surface: #212121;
+  --primary: #ff0000;
+  --primary-rgb: 255, 0, 0;
+  --primary-hover: #cc0000;
+  --primary-fill: #cc0000;
+  --primary-fill-hover: #a80000;
+  --text: #f1f1f1;
+  --text-muted: #aaaaaa;
+  --card-bg: #1a1a1a;
+  --card-hover: #2a2a2a;
+  --border: #333333;
+  --modal-bg: #212121;
+  --border-light: rgba(255, 255, 255, 0.08);
+}
+
+:root[data-theme="ocean-blue"] {
+  --bg: #0a1628;
+  --surface: #0f1f3d;
+  --primary: #1e90ff;
+  --primary-rgb: 30, 144, 255;
+  --primary-hover: #187bda;
+  --primary-fill: #1565c0;
+  --primary-fill-hover: #0d4fa0;
+  --text: #e0e8f0;
+  --text-muted: #8796a8;
+  --card-bg: #152540;
+  --card-hover: #1a2f50;
+  --border: #1a3050;
+  --modal-bg: #0f1f3d;
+  --border-light: rgba(200, 220, 255, 0.08);
+}
+
+:root[data-theme="forest"] {
+  --bg: #0f1a0f;
+  --surface: #1a2a1a;
+  --primary: #2ecc71;
+  --primary-rgb: 46, 204, 113;
+  --primary-hover: #27ae60;
+  --primary-fill: #1e7e46;
+  --primary-fill-hover: #176238;
+  --text: #e0f0e0;
+  --text-muted: #84a484;
+  --card-bg: #1f301f;
+  --card-hover: #2a402a;
+  --border: #2a3a2a;
+  --modal-bg: #1a2a1a;
+  --border-light: rgba(180, 220, 180, 0.08);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
 }

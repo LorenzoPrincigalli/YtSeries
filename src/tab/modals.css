@@ -161,8 +161,8 @@
 }
 
 .settings-tab.active {
-  background: var(--primary);
-  color: white;
+  background: var(--primary-fill);
+  color: var(--text-on-primary);
 }
 
 .settings-content {
@@ -272,7 +272,7 @@
 }
 
 .detail-hero-channel:hover {
-  color: #fff;
+  color: var(--text-on-media);
 }
 
 .detail-hero-channel::after {

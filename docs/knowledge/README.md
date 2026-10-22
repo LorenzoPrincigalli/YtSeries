@@ -14,7 +14,7 @@ Structured documentation for Cursor agents and contributors working on this Chro
 | 2 | [01-architecture.md](01-architecture.md) | Before any cross-context change |
 | 3 | [02-message-protocol.md](02-message-protocol.md) | Adding or changing messages |
 | 4 | [03-data-model.md](03-data-model.md) | Storage, series shape, license |
-| 5 | [04-services-and-apis.md](04-services-and-apis.md) | YouTube API, worker, Lemon Squeezy |
+| 5 | [04-services-and-apis.md](04-services-and-apis.md) | YouTube API (resilience), Worker hardening |
 | 6 | [05-tab-ui.md](05-tab-ui.md) | Dashboard UI work |
 | 7 | [06-infrastructure.md](06-infrastructure.md) | Firebase sync, costs, CSP, secrets, service map |
 | 8 | [06-content-and-popup.md](06-content-and-popup.md) | YouTube page or popup changes |

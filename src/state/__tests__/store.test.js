@@ -278,6 +278,27 @@ describe('store', () => {
     })
   })
 
+  describe('resolvePlaylistForVideo', () => {
+    beforeEach(() => {
+      store.addSeries({
+        playlistId: 'PL1', title: 'S1', channelTitle: 'C', channelId: 'UC',
+        videoCount: 2, videos: [{ id: 'v1', title: 'V1' }, { id: 'v2', title: 'V2' }]
+      })
+    })
+
+    it('uses hint when video belongs to that playlist', () => {
+      expect(store.resolvePlaylistForVideo('v1', 'PL1')).toEqual({ playlistId: 'PL1', videoId: 'v1' })
+    })
+
+    it('falls back when playlist hint is wrong', () => {
+      expect(store.resolvePlaylistForVideo('v2', 'PLwrong')).toEqual({ playlistId: 'PL1', videoId: 'v2' })
+    })
+
+    it('resolves by video id when hint is empty', () => {
+      expect(store.resolvePlaylistForVideo('v1', '')).toEqual({ playlistId: 'PL1', videoId: 'v1' })
+    })
+  })
+
   describe('updateEpisodeProgress', () => {
     it('updates progress values', () => {
       store.addSeries({

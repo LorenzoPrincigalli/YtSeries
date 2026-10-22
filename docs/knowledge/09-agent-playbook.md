@@ -1,86 +1,41 @@
 # Agent playbook
 
-Practical rules and recipes for Cursor agents editing YTSeries.
-
 ## Do
 
-- Read [00-quick-start.md](00-quick-start.md) before multi-file edits
-- Route all state changes through `src/background/index.js` handlers
-- Call `saveToStorage()` then `broadcastStateUpdate()` after mutations
-- Match existing style: vanilla JS, `logger`, minimal comments
-- Use `t('key')` for new user-visible strings in tab (add `en` + `it` in `i18n.js`)
-- Prefer DOM APIs over `innerHTML` for dynamic API/YouTube text
-- Keep diffs small — one concern per change
-- Run `npm run icons` after SVG icon changes
+- Read [00-quick-start.md](00-quick-start.md) and [01-architecture.md](01-architecture.md) first.
+- Mutate state only in background handlers, through `commit(ctx, store => …)`.
+- Throw `AppError(code, message, { retryable })`; never throw plain objects or strings.
+- Build DOM with `h()`/`svg()`; dynamic CSS values via custom properties.
+- Add every user-visible string to `en` **and** `it` in `src/shared/i18n.js` (the coverage test fails otherwise).
+- Run `npm run check` before committing (lint, CSS lint, typecheck, tests, build, smoke + axe).
 
 ## Don't
 
-- Import extension modules from content script or popup without architectural change
-- Write to `chrome.storage` from tab/content/popup
-- Commit `src/shared/config.js` or API keys
-- Add a bundler or framework without explicit user request
-- Use `innerHTML` with unsanitized playlist/video titles
-- Assume `license.isPro` in UI equals background Pro enforcement
-- Edit `docs/knowledge/` for one-off analysis (use gitignored `docs/YYYY-MM-DD_HHmm/`)
+- Write to `chrome.storage` or `store._state` outside the service worker / store (lint-enforced for `store._state`).
+- Use `innerHTML`, inline `style=` attributes or `Object.assign(el.style, …)`.
+- Swallow errors (`catch {}` is a lint error): log, convert to a code, or surface to the user.
+- Expose a route to the content script unless the YouTube integration needs it.
+- Commit `src/shared/config.js`, `firebase.config.js` or any key.
 
-## File ownership (quick)
+## Recipe: add a message route
 
-| Change type | Primary files |
-|-------------|---------------|
-| New feature flag / limit | `constants.js`, `store.js`, `background/index.js`, tab UI |
-| New message | `events.js`, `background/index.js`, maybe content/popup strings |
-| YouTube parsing | `services/youtube.js` |
-| New UI screen | `tab/app.js`, `components/*`, `main.css`, `index.html` |
-| YouTube integration | `content/index.js` |
-| Strings | `shared/i18n.js`, HTML `data-i18n` |
-| Worker | `cloudflare-worker/index.js`, `constants.js`, `manifest.json` CSP |
+1. Add the constant to `src/shared/events.js`.
+2. In the relevant `src/background/handlers/*.js`: write `handler(ctx, payload)`, declare `schema` (and `mode: 'read'` / `contexts` if needed).
+3. Mutations go through `commit()`; return `{ success: true, … }` or throw `AppError`.
+4. Test in `src/background/__tests__/router.test.js` (in-memory storage + real `Store`).
+5. Call it from the UI via `actions.js` (`command()` / `request()`), map new error codes to `error_<code>` i18n keys if user-facing.
+6. Document in [02-message-protocol.md](02-message-protocol.md).
 
-## Recipe: add a message type
+## Recipe: add a dashboard feature
 
-1. Add to `src/shared/events.js`
-2. Case in `handleMessage()` in `background/index.js`
-3. Implement handler: validate payload → mutate store → save → broadcast
-4. If content/popup sends it: duplicate string constants
-5. Tab: `sendMessage()` + handle response; listen for `STATE_UPDATED` if needed
-6. Document in [02-message-protocol.md](02-message-protocol.md)
-
-## Recipe: add i18n string
-
-1. Add key to `STRINGS.en` and `STRINGS.it` in `src/shared/i18n.js`
-2. Use `t('key')` in JS or `data-i18n="key"` in HTML
-3. Call `translateUI()` if language can change at runtime
-
-## Recipe: add Pro-gated feature
-
-1. Enforce in background with `store.isPro()` (not UI-only)
-2. Return clear error code for free users if applicable
-3. Update tab UI visibility using same semantics where possible
-4. Document in [07-freemium-license.md](07-freemium-license.md)
+1. Pure logic → `seriesView.js` (+ test). 2. View/markup → `components/` or `views/`. 3. Events/wiring → `features/<name>.js` with an `init…()` called from `app.js`. 4. UI state → `core/store.js` `UiState`. 5. Styles → existing CSS file using tokens from `variables.css`.
 
 ## Recipe: fix YouTube DOM breakage
 
-1. Reproduce on `youtube.com/watch` and home
-2. Update selectors in `content/index.js`
-3. Test SPA navigation (click another video without full reload)
-4. Verify `EPISODE_WATCH` still fires with `list=` in URL
+Update selectors in `src/content/youtubeDom.js`, adjust the stub markup in `scripts/smoke.mjs` if needed, then test on a real watch page and playlist page.
 
 ## Pre-PR checklist
 
-- [ ] Extension reloads without service worker errors
-- [ ] Dashboard loads; `STATE_GET` works
-- [ ] If messages changed: content/popup strings synced
-- [ ] No secrets in diff
-- [ ] Knowledge docs updated if protocol/architecture changed
-- [ ] `tasks-build.md` item closed or noted in PR if applicable
-
-## Agent checklist (general)
-
-- [ ] Identified all contexts affected (BG / tab / content / popup)
-- [ ] Confirmed mutation path goes through background
-- [ ] Checked Pro/free enforcement in background, not only UI
-- [ ] Verified CSP if adding new `connect-src` or `frame-src`
-
-## Related
-
-- [10-known-issues.md](10-known-issues.md)
-- [README.md](README.md)
+- [ ] `npm run check` green
+- [ ] No secrets in the diff
+- [ ] Knowledge docs updated if routes, flows or structure changed

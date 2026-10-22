@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="classic-red">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -17,29 +17,33 @@
     <link rel="stylesheet" href="components.css" />
     <link rel="stylesheet" href="modals.css" />
     <link rel="stylesheet" href="footer.css" />
+    <link rel="stylesheet" href="ui-kit.css" />
+    <link rel="stylesheet" href="responsive.css" />
   </head>
   <body>
+    <a class="skip-link" href="#mainContent" data-i18n="skip_to_content">Skip to content</a>
     <div id="app">
       <header id="header">
         <div class="header-left">
           <img class="header-logo-icon" src="../../icons/icon_full_128.png" alt="YT Series" width="120" height="120" />
-          <nav class="nav-links">
+          <nav class="nav-links" aria-label="Main" data-i18n="main_navigation" data-i18n-attr="aria-label">
             <a
               href="#"
               class="nav-link active"
               data-view="home"
-              data-i18n="home"
             >
               <svg
                 class="nav-home-icon"
                 viewBox="0 0 24 24"
                 width="18"
                 height="18"
+                aria-hidden="true"
               >
                 <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
               </svg>
               <span data-i18n="home">Home</span>
             </a>
+            <a href="#" class="nav-link" data-view="saved" data-i18n="saved_section">Saved</a>
             <a
               href="#"
               class="nav-link"
@@ -66,12 +70,17 @@
         <div class="header-right">
           <div class="search-container">
             <input
-              type="text"
+              type="search"
               id="searchInput"
               placeholder="Search series..."
+              maxlength="200"
+              autocomplete="off"
+              data-i18n="search_placeholder"
+              data-i18n-attr="placeholder,aria-label"
             />
-            <button id="searchClear" class="search-clear hidden">
+            <button id="searchClear" type="button" class="search-clear hidden" data-i18n="clear_search" data-i18n-attr="aria-label">
               <svg
+                aria-hidden="true"
                 viewBox="0 0 16 16"
                 fill="none"
                 stroke="currentColor"
@@ -84,28 +93,36 @@
           </div>
           <button
             id="headerProBtn"
+            type="button"
             class="header-pro-btn"
             title="Support YT Series"
+            data-i18n="support_title"
+            data-i18n-attr="title"
           >
-            <svg
-              viewBox="0 0 16 16"
-              width="14"
-              height="14"
-              fill="currentColor"
-            >
-              <path d="M3.5 7.5a.5.5 0 0 1 .5.5v5a.5.5 0 0 1-.5.5H2a.5.5 0 0 1-.5-.5V8a.5.5 0 0 1 .5-.5h1.5ZM7.5 1a.5.5 0 0 1 .5.5v2.6l2.1-2.1a.5.5 0 0 1 .7.7l-2.1 2.1H11a.5.5 0 0 1 .5.5v1.5a.5.5 0 0 1-.5.5H8.7l2.1 2.1a.5.5 0 0 1-.7.7L8 7.4V10a.5.5 0 0 1-.5.5H6a.5.5 0 0 1-.5-.5V8.7l-2.1 2.1a.5.5 0 0 1-.7-.7L4.6 8H2.5A.5.5 0 0 1 2 7.5V6a.5.5 0 0 1 .5-.5h2.1L2.4 3.4a.5.5 0 0 1 .7-.7L5.5 4.6V2.5A.5.5 0 0 1 6 2h1.5Z"/>
-            </svg>
-            Support ☕
+            <span data-i18n="support_cta">Support ☕</span>
           </button>
-          <button id="settingsBtn" class="icon-btn" title="Settings">
-            &#9881;
+          <button id="settingsBtn" type="button" class="icon-btn" title="Settings" aria-label="Settings" data-i18n="settings" data-i18n-attr="title,aria-label">
+            <span aria-hidden="true">&#9881;</span>
           </button>
-          <button id="addPlaylistBtn" class="btn-primary">+ Add Series</button>
+          <div class="activity-menu-container">
+            <button id="activityBtn" type="button" class="icon-btn activity-btn" title="Recent activity" aria-label="Recent activity" aria-expanded="false" aria-controls="activityPanel" data-i18n="activity_title" data-i18n-attr="title">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <span id="activityBadge" class="activity-badge hidden" aria-hidden="true"></span>
+            </button>
+            <div id="activityPanel" class="activity-panel hidden" role="dialog" aria-labelledby="activityPanelTitle">
+              <div class="activity-panel-header">
+                <h2 id="activityPanelTitle" data-i18n="activity_title">Recent activity</h2>
+                <button id="activityPanelClose" class="activity-panel-close" type="button" aria-label="Close" data-i18n="close" data-i18n-attr="aria-label"><span aria-hidden="true">×</span></button>
+              </div>
+              <div id="activityPanelList" class="activity-panel-list"></div>
+            </div>
+          </div>
+          <button id="addPlaylistBtn" type="button" class="btn-primary" data-i18n="add_via_link">+ Add Series</button>
         </div>
       </header>
 
-      <main id="mainContent">
-        <div id="loadingScreen" class="loading-screen">
+      <main id="mainContent" tabindex="-1">
+        <div id="loadingScreen" class="loading-screen" role="status">
           <div class="skeleton-hero">
             <div class="skeleton"></div>
           </div>
@@ -134,7 +151,7 @@
               </div>
             </div>
           </div>
-          <p data-i18n="loading" aria-hidden="true">Loading your series...</p>
+          <p data-i18n="loading">Loading your series...</p>
         </div>
       </main>
     </div>
@@ -142,8 +159,8 @@
     <div id="addPlaylistModal" class="modal-overlay hidden">
       <div class="modal">
         <div class="modal-header">
-          <h2 id="addPlaylistModalTitle">Add Series</h2>
-          <button class="modal-close" data-modal="addPlaylistModal">
+          <h2 id="addPlaylistModalTitle" data-i18n="add_series_title">Add Series</h2>
+          <button type="button" class="modal-close" data-modal="addPlaylistModal" aria-label="Close" data-i18n="close" data-i18n-attr="aria-label">
             <svg
               viewBox="0 0 16 16"
               fill="none"
@@ -156,25 +173,32 @@
           </button>
         </div>
         <div class="modal-body">
-          <p class="modal-desc" id="addPlaylistDesc">
+          <p class="modal-desc" id="addPlaylistDesc" data-i18n="add_series_desc">
             Paste a YouTube playlist URL to add it as a series.
           </p>
           <input
-            type="text"
+            type="url"
             id="playlistUrlInput"
             placeholder="https://www.youtube.com/playlist?list=..."
+            maxlength="2048"
+            autocomplete="off"
+            autofocus
+            aria-describedby="addPlaylistDesc playlistError"
+            data-i18n="playlist_url_placeholder"
+            data-i18n-attr="placeholder,aria-label"
           />
-          <div id="playlistError" class="error-msg hidden"></div>
+          <div id="playlistError" class="error-msg hidden" role="alert"></div>
         </div>
         <div class="modal-footer">
           <button
             id="addPlaylistCancel"
+            type="button"
             class="btn-secondary"
-            data-modal="addPlaylistModal"
+            data-i18n="cancel"
           >
             Cancel
           </button>
-          <button id="addPlaylistConfirm" class="btn-primary">
+          <button id="addPlaylistConfirm" type="button" class="btn-primary" data-i18n="add_series">
             Add Series
           </button>
         </div>
@@ -184,8 +208,8 @@
     <div id="settingsModal" class="modal-overlay hidden">
       <div class="modal settings-modal">
         <div class="modal-header">
-          <h2 id="settingsModalTitle">Settings</h2>
-          <button class="modal-close" data-modal="settingsModal">
+          <h2 id="settingsModalTitle" data-i18n="settings_title">Settings</h2>
+          <button type="button" class="modal-close" data-modal="settingsModal" aria-label="Close" data-i18n="close" data-i18n-attr="aria-label">
             <svg
               viewBox="0 0 16 16"
               fill="none"
@@ -199,39 +223,39 @@
         </div>
         <div class="modal-body settings-layout">
           <div class="settings-sidebar">
-            <button
+            <button type="button"
               class="settings-tab active"
               data-section="theme"
               data-i18n="theme"
             >
               Theme
             </button>
-            <button
+            <button type="button"
               class="settings-tab"
               data-section="language"
               data-i18n="language"
             >
               Language
             </button>
-            <button class="settings-tab" data-section="overlay" data-i18n="settings_overlay">Overlays</button>
-            <button class="settings-tab" data-section="support" data-i18n="support_title">
+            <button type="button" class="settings-tab" data-section="overlay" data-i18n="settings_overlay">Overlays</button>
+            <button type="button" class="settings-tab" data-section="support" data-i18n="support_title">
               Support
             </button>
-            <button
+            <button type="button"
               class="settings-tab"
               data-section="sync"
               data-i18n="sync_title"
             >
               Cloud Sync
             </button>
-            <button class="settings-tab" data-section="reset" data-i18n="settings_reset">Reset Data</button>
-            <button class="settings-tab" data-section="dev" data-i18n="settings_dev">Dev Tools</button>
+            <button type="button" class="settings-tab" data-section="reset" data-i18n="settings_reset">Reset Data</button>
+            <button type="button" class="settings-tab" data-section="dev" data-i18n="settings_dev">Dev Tools</button>
           </div>
           <div class="settings-content">
             <div class="settings-section-content active" data-section="theme">
               <h3 data-i18n="theme">Theme</h3>
               <div class="select-wrapper">
-                <select id="themeSelect">
+                <select id="themeSelect" data-i18n="theme" data-i18n-attr="aria-label">
                   <option value="classic-red">Classic Red</option>
                   <option value="ocean-blue">Ocean Blue</option>
                   <option value="forest">Forest Green</option>
@@ -242,7 +266,7 @@
             <div class="settings-section-content" data-section="language">
               <h3 data-i18n="language">Language</h3>
               <div class="select-wrapper">
-                <select id="languageSelect">
+                <select id="languageSelect" data-i18n="language" data-i18n-attr="aria-label">
                   <option value="system">System</option>
                   <option value="en">English</option>
                   <option value="it">Italiano</option>
@@ -271,7 +295,7 @@
 
               <div class="pro-separator">
                 <h3 data-i18n="auto_refresh">New Episode Notifications</h3>
-                <p class="settings-desc">
+                <p class="settings-desc" data-i18n="auto_refresh_hint">
                   Check for new episodes every 24h.
                 </p>
                 <label class="toggle-label">
@@ -323,19 +347,21 @@
             <div class="settings-section-content" data-section="reset">
               <h3 data-i18n="settings_reset">Reset Data</h3>
               <p class="settings-desc" data-i18n="reset_desc">Clear all your series and settings data.</p>
-              <button id="resetStorageBtn" class="btn-secondary danger-btn" data-i18n="reset_btn">Reset all data</button>
-              <hr style="border-color:var(--border);margin:16px 0">
+              <button type="button" id="resetStorageBtn" class="btn-secondary danger-btn" data-i18n="reset_btn">Reset all data</button>
+              <hr class="settings-divider">
               <p class="settings-desc" data-i18n="reset_backup">Backup or restore your series data as a JSON file.</p>
-              <div style="display:flex;gap:8px">
-                <button id="exportDataBtn" class="btn-secondary" data-i18n="export_json">Export JSON</button>
-                <button id="importDataBtn" class="btn-secondary" data-i18n="import_json">Import JSON</button>
+              <div class="settings-actions-row">
+                <button type="button" id="exportDataBtn" class="btn-secondary" data-i18n="export_json">Export JSON</button>
+                <button type="button" id="importDataBtn" class="btn-secondary" data-i18n="import_json">Import JSON</button>
+                <button type="button" id="showBackupsBtn" class="btn-secondary" data-i18n="backup_history">Backups</button>
                 <input type="file" id="importFileInput" accept=".json" hidden>
               </div>
+              <div id="backupList" class="backup-list hidden"></div>
             </div>
 
             <div class="settings-section-content" data-section="dev">
               <h3 data-i18n="settings_dev">Dev Tools</h3>
-              <button id="loadDemoBtn" class="btn-secondary">
+              <button id="loadDemoBtn" type="button" class="btn-secondary" data-i18n="load_demo">
                 Load demo data
               </button>
             </div>
@@ -348,7 +374,7 @@
       <div class="modal">
         <div class="modal-header">
           <h2 id="bugReportTitle" data-i18n="bug_title">Report a Bug</h2>
-          <button class="modal-close" data-modal="bugReportModal">
+          <button type="button" class="modal-close" data-modal="bugReportModal" aria-label="Close" data-i18n="close" data-i18n-attr="aria-label">
             <svg
               viewBox="0 0 16 16"
               fill="none"
@@ -367,22 +393,28 @@
           <textarea
             id="bugReportText"
             rows="6"
+            maxlength="4000"
+            autofocus
+            aria-describedby="bugReportDesc"
             placeholder="What went wrong? What were you doing?"
+            data-i18n="bug_placeholder"
+            data-i18n-attr="placeholder,aria-label"
           ></textarea>
-          <div id="bugReportError" class="error-msg hidden"></div>
+          <p class="settings-desc" data-i18n="bug_diagnostics_note">Recent error messages and the extension version are attached so the issue can be reproduced.</p>
+          <div id="bugReportError" class="error-msg hidden" role="alert"></div>
           <a href="#" id="bugReportGithubLink" data-i18n="bug_also_github"
             >Or report on GitHub</a
           >
         </div>
         <div class="modal-footer">
-          <button
+          <button type="button"
             class="btn-secondary"
             data-modal="bugReportModal"
             data-i18n="cancel"
           >
             Cancel
           </button>
-          <button id="bugReportSend" class="btn-primary" data-i18n="bug_send">
+          <button type="button" id="bugReportSend" class="btn-primary" data-i18n="bug_send">
             Send Report
           </button>
         </div>
@@ -393,7 +425,7 @@
       <div class="modal">
         <div class="modal-header">
           <h2 data-i18n="changelog_title">What's New</h2>
-          <button class="modal-close" data-modal="changelogModal">
+          <button type="button" class="modal-close" data-modal="changelogModal" aria-label="Close" data-i18n="close" data-i18n-attr="aria-label">
             <svg
               viewBox="0 0 16 16"
               fill="none"
@@ -407,7 +439,7 @@
         </div>
         <div class="modal-body" id="changelogBody"></div>
         <div class="modal-footer">
-          <button
+          <button type="button"
             class="btn-secondary"
             data-modal="changelogModal"
             data-i18n="close"
@@ -422,7 +454,7 @@
       <div class="modal">
         <div class="modal-header">
           <h2 data-i18n="faq_title">Frequently Asked Questions</h2>
-          <button class="modal-close" data-modal="faqModal">
+          <button type="button" class="modal-close" data-modal="faqModal" aria-label="Close" data-i18n="close" data-i18n-attr="aria-label">
             <svg
               viewBox="0 0 16 16"
               fill="none"
@@ -437,7 +469,7 @@
         <div class="modal-body">
           <div class="faq-list">
             <div class="faq-item">
-              <button class="faq-question" data-i18n="faq_what_is">
+              <button type="button" class="faq-question" data-i18n="faq_what_is">
                 What is YT Series?
               </button>
               <div class="faq-answer" data-i18n="faq_what_is_a">
@@ -446,7 +478,7 @@
               </div>
             </div>
             <div class="faq-item">
-              <button class="faq-question" data-i18n="faq_limits">
+              <button type="button" class="faq-question" data-i18n="faq_limits">
                 Are there any limits?
               </button>
               <div class="faq-answer" data-i18n="faq_limits_a">
@@ -454,7 +486,7 @@
               </div>
             </div>
             <div class="faq-item">
-              <button class="faq-question" data-i18n="faq_data">
+              <button type="button" class="faq-question" data-i18n="faq_data">
                 Where is my data stored?
               </button>
               <div class="faq-answer" data-i18n="faq_data_a">
@@ -462,7 +494,7 @@
               </div>
             </div>
             <div class="faq-item">
-              <button class="faq-question" data-i18n="faq_auto">
+              <button type="button" class="faq-question" data-i18n="faq_auto">
                 How do new episode notifications work?
               </button>
               <div class="faq-answer" data-i18n="faq_auto_a">
@@ -474,7 +506,7 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn-secondary" data-modal="faqModal" data-i18n="close">
+          <button type="button" class="btn-secondary" data-modal="faqModal" data-i18n="close">
             Close
           </button>
         </div>

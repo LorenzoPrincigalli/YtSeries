@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.2.0] - 2026-10-23
+
+### Changed
+- Architecture: service worker split into a validated message router and domain handlers; dashboard rebuilt on a store-driven view layer; content script modularised; esbuild bundling to `dist/`
+- Resilience: typed errors, retry with backoff, circuit breaker for the YouTube API, transactional saves with rollback, UI error boundaries
+- Design system: themes in CSS tokens, AA contrast in all themes, redesigned watched toggle, accessible dialogs and keyboard navigation
+
+### Security
+- Cloudflare Worker: endpoint/parameter allowlist, Origin check, atomic per-client rate limit with salted-hash keys, sanitized upstream errors
+- Firestore rules validate document shape and size; content scripts restricted to the YouTube-integration messages
+- Removed unused YouTube iframe permission from the extension CSP; added `scripting` to refresh already-open YouTube tabs after updates
+
+### Fixed
+- Episode progress was not persisted; overlay/language settings ignored on YouTube until the first update
+- Duplicate or wrong "Add to Series" buttons on YouTube; unreadable sidebar link in YouTube's light theme
+- JSON export did nothing; recommendations stuck empty after a network error; settings dialog crash
+
+### Quality
+- Lint (JS + CSS), typecheck, 190+ unit tests, Playwright smoke and a 69-step end-to-end suite with accessibility audits
+
+
 ## [1.1.0] - 2026-05-26
 
 ### Added

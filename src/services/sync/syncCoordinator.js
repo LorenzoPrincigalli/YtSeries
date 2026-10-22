@@ -1,235 +1,214 @@
+import { AppError } from '../../shared/errors.js'
 import { loadFirebaseConfig, isFirebaseConfigured } from './FirebaseConfig.js'
 import { firebaseAuthService } from './FirebaseAuthService.js'
-import { FirebaseSyncService, seriesLocalUpdatedAt, mergeRemoteIntoSeries } from './FirebaseSyncService.js'
+import { FirebaseSyncService, mergeRemoteIntoSeries, seriesLocalUpdatedAt } from './FirebaseSyncService.js'
 import { SYNC_STORAGE_KEYS } from '../../shared/constants.js'
 import { logger } from '../../shared/logger.js'
 
 const firebaseSyncService = new FirebaseSyncService(firebaseAuthService)
+let _status = { configured: false, loggedIn: false, email: null, lastSyncAt: null, lastError: null, syncing: false, pendingChanges: 0 }
+let _statusChain = Promise.resolve()
+let _syncChain = Promise.resolve()
 
-let _status = {
-  configured: false,
-  loggedIn: false,
-  email: null,
-  lastSyncAt: null,
-  lastError: null,
-  syncing: false
-}
+const getSyncStatus = () => ({ ..._status })
 
-function getSyncStatus() {
-  return { ..._status }
-}
-
-async function _persistStatus() {
-  try {
-    await chrome.storage.local.set({ [SYNC_STORAGE_KEYS.STATUS]: _status })
-  } catch (_) {}
+function _persistStatus() {
+  const snapshot = { ..._status }
+  const write = _statusChain.then(() => chrome.storage.local.set({ [SYNC_STORAGE_KEYS.STATUS]: snapshot }))
+  _statusChain = write.catch(() => {})
+  return write.catch(() => {})
 }
 
 async function _loadStatus() {
-  try {
-    const data = await chrome.storage.local.get(SYNC_STORAGE_KEYS.STATUS)
-    if (data[SYNC_STORAGE_KEYS.STATUS]) {
-      _status = { ..._status, ...data[SYNC_STORAGE_KEYS.STATUS] }
-    }
-  } catch (_) {}
+  const data = await chrome.storage.local.get(SYNC_STORAGE_KEYS.STATUS)
+  if (data[SYNC_STORAGE_KEYS.STATUS]) _status = { ..._status, ...data[SYNC_STORAGE_KEYS.STATUS] }
 }
 
 function _updateStatus(partial) {
   _status = { ..._status, ...partial, configured: isFirebaseConfigured() }
-  _persistStatus()
+  void _persistStatus()
+}
+
+function _runSync(operation) {
+  const result = _syncChain.then(operation)
+  _syncChain = result.catch(() => {})
+  return result
+}
+
+async function _refreshQueueStatus() {
+  const uid = firebaseAuthService.getUid()
+  if (!uid) return _updateStatus({ pendingChanges: 0 })
+  const { pendingChanges } = await firebaseSyncService.getQueueSummary(uid)
+  _updateStatus({ pendingChanges })
+}
+
+async function _ownerUid() {
+  const data = await chrome.storage.local.get(SYNC_STORAGE_KEYS.OWNER)
+  return data[SYNC_STORAGE_KEYS.OWNER] || null
+}
+
+async function _assertOwner(store, allowAccountChange) {
+  const uid = firebaseAuthService.getUid()
+  const owner = await _ownerUid()
+  if (owner && owner !== uid && (Object.keys(store.getSeries()).length || store.getState().collectionRecords?.length || store.getState().collections?.length) && !allowAccountChange) {
+    await firebaseAuthService.logout()
+    _updateStatus({ loggedIn: false, email: null, lastError: 'This browser already contains data from another Google account.' })
+    throw new AppError('ACCOUNT_CHANGED', 'Confirm account change before merging this library')
+  }
+  await chrome.storage.local.set({ [SYNC_STORAGE_KEYS.OWNER]: uid })
 }
 
 async function initSync(store, storageService, youTubeApiService, onStateChanged) {
   await loadFirebaseConfig()
-  await _loadStatus()
-
+  try { await _loadStatus() } catch (error) { logger.warn('Could not load sync status:', error) }
   if (!isFirebaseConfigured()) {
-    _updateStatus({ configured: false, loggedIn: false, email: null })
+    _updateStatus({ configured: false, loggedIn: false, email: null, syncing: false })
     return
   }
-
-  await firebaseAuthService.tryRestoreSession()
-
-  if (firebaseAuthService.isLoggedIn()) {
-    _updateStatus({
-      configured: true,
-      loggedIn: true,
-      email: firebaseAuthService.getEmail()
-    })
-    try {
-      await pullAndMerge(store, storageService, youTubeApiService, onStateChanged)
-      await firebaseSyncService.processQueue(
-        id => store._getSeriesMutable(id),
-        () => {}
-      )
-      _updateStatus({ lastSyncAt: Date.now(), lastError: null })
-    } catch (err) {
-      logger.warn('Sync init pull failed:', err)
-      _updateStatus({ lastError: err.message || String(err) })
-    }
-  } else {
-    _updateStatus({ configured: true, loggedIn: false, email: null })
+  await firebaseAuthService.tryRestoreSession({ refresh: false })
+  if (!firebaseAuthService.isLoggedIn()) {
+    _updateStatus({ configured: true, loggedIn: false, email: null, syncing: false })
+    return
   }
+  _updateStatus({ configured: true, loggedIn: true, email: firebaseAuthService.getEmail(), lastError: null })
+  await _refreshQueueStatus()
+  void retrySync(store, storageService, youTubeApiService, onStateChanged)
 }
 
 async function pullAndMerge(store, storageService, youTubeApiService, onStateChanged) {
   const uid = firebaseAuthService.getUid()
-  if (!uid) return
+  if (!uid) return false
+  const pendingDeletes = await firebaseSyncService.getPendingDeletes(uid)
+  const remoteDocs = await firebaseSyncService.listRemoteSeries(uid)
+  const hydrate = []
+  const push = []
+  let changed = false
 
-  _updateStatus({ syncing: true })
+  for (const remote of remoteDocs) {
+    if (pendingDeletes.has(remote.playlistId)) continue
+    const local = store._getSeriesMutable(remote.playlistId)
+    if (remote.deleted) {
+      if (local && Number(remote.deletedAt || remote.updatedAt) >= seriesLocalUpdatedAt(local)) {
+        store.deleteSeries(remote.playlistId)
+        changed = true
+      } else if (local) push.push(remote.playlistId)
+      continue
+    }
+    const result = firebaseSyncService.mergeRemoteDocIntoStore(store, remote)
+    changed ||= result.changed
+    if (result.needsHydration) hydrate.push(remote.playlistId)
+    if (result.pushLocal) push.push(remote.playlistId)
+  }
+
+  for (const playlistId of hydrate) {
+    try {
+      const fresh = await youTubeApiService.refreshPlaylist(playlistId)
+      store.addSeries(fresh, { markDirty: false })
+      const remote = remoteDocs.find(doc => doc.playlistId === playlistId)
+      const mutable = store._getSeriesMutable(playlistId)
+      if (mutable && remote) mergeRemoteIntoSeries(mutable, remote)
+      changed = true
+    } catch (error) {
+      logger.warn('Sync hydration failed:', playlistId, error)
+    }
+  }
+
+  for (const playlistId of new Set(push)) await firebaseSyncService.enqueuePush(playlistId)
+  if (changed) {
+    await store.saveToStorage(storageService)
+    onStateChanged?.()
+  }
+  return changed
+}
+
+async function _retrySync(store, storageService, youTubeApiService, onStateChanged, options = {}) {
+  if (!firebaseAuthService.isLoggedIn()) return { success: false, error: 'NOT_LOGGED_IN' }
+  _updateStatus({ syncing: true, lastError: null })
   try {
-    const remoteDocs = await firebaseSyncService.listRemoteSeries(uid)
-    const toPush = []
-    const toHydrate = []
-
-    for (const doc of remoteDocs) {
-      const result = firebaseSyncService.mergeRemoteDocIntoStore(store, doc)
-      if (result.pushLocal) toPush.push(result.playlistId)
-      if (result.needsHydration) toHydrate.push(result.playlistId)
-    }
-
-    for (const playlistId of toHydrate) {
-      try {
-        const fresh = await youTubeApiService.refreshPlaylist(playlistId)
-        store.addSeries(fresh)
-        const series = store.getSeriesById(playlistId)
-        const remote = remoteDocs.find(d => d.playlistId === playlistId)
-        const mutable = store._getSeriesMutable(playlistId)
-        if (mutable && remote) {
-          mergeRemoteIntoSeries(mutable, remote)
+    await firebaseSyncService.processQueue(
+      id => store._getSeriesMutable(id),
+      async (playlistId, result) => {
+        if (result.deleted) {
+          store.deleteSeries(playlistId)
+          await store.saveToStorage(storageService)
+          onStateChanged?.()
         }
-      } catch (err) {
-        logger.warn('Sync hydration failed:', playlistId, err)
-      }
+      },
+      { force: Boolean(options.force) }
+    )
+    await _refreshQueueStatus()
+    await pullAndMerge(store, storageService, youTubeApiService, onStateChanged)
+    const beforeCollections = store.getSeries()
+    await firebaseSyncService.syncCollections(firebaseAuthService.getUid(), store)
+    for (const [id, series] of Object.entries(store.getSeries())) {
+      if (series.collectionUpdatedAt !== beforeCollections[id]?.collectionUpdatedAt) await firebaseSyncService.enqueuePush(id)
     }
-
-    for (const playlistId of toPush) {
-      const series = store._getSeriesMutable(playlistId)
-      if (series) {
-        await firebaseSyncService.pushSeries(uid, playlistId, series)
-      }
-    }
-
-    if (toHydrate.length || remoteDocs.length || toPush.length) {
-      await store.saveToStorage(storageService)
-      if (onStateChanged) onStateChanged()
-    }
+    await _refreshQueueStatus()
+    await store.saveToStorage(storageService)
+    onStateChanged?.()
+    _updateStatus({ lastSyncAt: Date.now(), lastError: null })
+    return { success: true }
+  } catch (error) {
+    logger.warn('Sync failed:', error)
+    _updateStatus({ lastError: error.message || String(error) })
+    return { success: false, error: error.code || 'SYNC_FAILED' }
   } finally {
-    _updateStatus({ syncing: false, lastSyncAt: Date.now() })
+    _updateStatus({ syncing: false })
   }
 }
 
-async function login(store, storageService, youTubeApiService, onStateChanged) {
-  if (!isFirebaseConfigured()) {
-    throw { code: 'SYNC_NOT_CONFIGURED', message: 'Firebase is not configured' }
-  }
+function retrySync(store, storageService, youTubeApiService, onStateChanged, options) {
+  return _runSync(() => _retrySync(store, storageService, youTubeApiService, onStateChanged, options))
+}
 
+async function login(store, storageService, youTubeApiService, onStateChanged, { allowAccountChange = false } = {}) {
+  if (!isFirebaseConfigured()) throw new AppError('SYNC_NOT_CONFIGURED', 'Firebase is not configured')
   await firebaseAuthService.login()
-  _updateStatus({
-    loggedIn: true,
-    email: firebaseAuthService.getEmail(),
-    lastError: null
-  })
-
-  await pullAndMerge(store, storageService, youTubeApiService, onStateChanged)
-
-  const uid = firebaseAuthService.getUid()
-  for (const playlistId of Object.keys(store.getSeries())) {
-    const series = store._getSeriesMutable(playlistId)
-    if (!series) continue
-    try {
-      await firebaseSyncService.pushSeries(uid, playlistId, series)
-    } catch (err) {
-      logger.warn('Sync initial upload failed:', playlistId, err)
-    }
-  }
-
+  await _assertOwner(store, allowAccountChange)
+  _updateStatus({ loggedIn: true, email: firebaseAuthService.getEmail(), lastError: null })
+  await retrySync(store, storageService, youTubeApiService, onStateChanged, { force: true })
+  for (const playlistId of Object.keys(store.getSeries())) await firebaseSyncService.enqueuePush(playlistId)
+  await _refreshQueueStatus()
+  const result = await retrySync(store, storageService, youTubeApiService, onStateChanged, { force: true })
+  if (!result.success) throw new AppError(result.error, getSyncStatus().lastError || 'Sync failed')
   await store.saveToStorage(storageService)
-  _updateStatus({ lastSyncAt: Date.now() })
-  if (onStateChanged) onStateChanged()
+  onStateChanged?.()
 }
 
 async function logout() {
-  for (const timer of firebaseSyncService._pushTimers?.values?.() || []) {
-    clearTimeout(timer)
-  }
-  firebaseSyncService._pushTimers?.clear?.()
+  const uid = firebaseAuthService.getUid()
   await firebaseAuthService.logout()
-  await chrome.storage.local.remove([SYNC_STORAGE_KEYS.QUEUE])
-  _updateStatus({
-    loggedIn: false,
-    email: null,
-    lastError: null
-  })
+  if (uid) {
+    const queue = await chrome.storage.local.get(SYNC_STORAGE_KEYS.QUEUE)
+    const remaining = (queue[SYNC_STORAGE_KEYS.QUEUE] || []).filter(item => item.uid !== uid)
+    await chrome.storage.local.set({ [SYNC_STORAGE_KEYS.QUEUE]: remaining })
+  }
+  _updateStatus({ loggedIn: false, email: null, syncing: false, lastError: null, pendingChanges: 0 })
 }
 
-function afterSeriesMutation(store, playlistId, onSaved) {
-  if (!firebaseAuthService.isLoggedIn()) return
-
-  firebaseSyncService.enqueuePush(
-    playlistId,
-    id => store._getSeriesMutable(id),
-    async () => {
-      const series = store._getSeriesMutable(playlistId)
-      if (series) series.syncUpdatedAt = Date.now()
-      if (onSaved) await onSaved()
-      _updateStatus({ lastSyncAt: Date.now(), lastError: null })
-    }
-  )
+async function afterSeriesMutation(store, playlistId, onSaved) {
+  if (firebaseAuthService.isLoggedIn()) await firebaseSyncService.enqueuePush(playlistId)
+  if (firebaseAuthService.isLoggedIn()) await _refreshQueueStatus()
+  if (onSaved) await onSaved()
 }
 
 async function afterSeriesDelete(playlistId) {
   if (!firebaseAuthService.isLoggedIn()) return
   await firebaseSyncService.enqueueDelete(playlistId)
-  _updateStatus({ lastSyncAt: Date.now() })
+  await _refreshQueueStatus()
 }
 
 async function onStorageReset() {
   if (firebaseAuthService.isLoggedIn()) {
     const uid = firebaseAuthService.getUid()
-    if (uid) {
-      try {
-        await firebaseSyncService.deleteAllSeries(uid)
-      } catch (err) {
-        logger.warn('Sync remote reset failed:', err)
-      }
-    }
+    if (uid) await firebaseSyncService.deleteAllSeries(uid)
   }
   await logout()
 }
 
 async function manualSync(store, storageService, youTubeApiService, onStateChanged) {
-  if (!firebaseAuthService.isLoggedIn()) {
-    throw { code: 'NOT_LOGGED_IN', message: 'Not logged in' }
-  }
-  await pullAndMerge(store, storageService, youTubeApiService, onStateChanged)
-  await firebaseSyncService.processQueue(
-    id => store._getSeriesMutable(id),
-    () => {}
-  )
-  const uid = firebaseAuthService.getUid()
-  for (const playlistId of Object.keys(store.getSeries())) {
-    const series = store._getSeriesMutable(playlistId)
-    if (!series) continue
-    const remoteAt = series.syncUpdatedAt || 0
-    if (seriesLocalUpdatedAt(series) >= remoteAt) {
-      await firebaseSyncService.pushSeries(uid, playlistId, series)
-    }
-  }
-  await store.saveToStorage(storageService)
-  _updateStatus({ lastSyncAt: Date.now(), lastError: null })
-  if (onStateChanged) onStateChanged()
+  const result = await retrySync(store, storageService, youTubeApiService, onStateChanged, { force: true })
+  if (!result.success) throw new AppError(result.error, getSyncStatus().lastError || 'Sync failed')
 }
 
-export {
-  initSync,
-  login,
-  logout,
-  afterSeriesMutation,
-  afterSeriesDelete,
-  onStorageReset,
-  manualSync,
-  getSyncStatus,
-  firebaseAuthService,
-  isFirebaseConfigured
-}
+export { initSync, login, logout, afterSeriesMutation, afterSeriesDelete, onStorageReset, manualSync, retrySync, getSyncStatus, firebaseAuthService, isFirebaseConfigured }

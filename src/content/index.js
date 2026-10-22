@@ -1,783 +1,107 @@
-// NOTE: Content scripts in MV3 cannot use ES module imports.
-// Keep EVENTS in sync with src/shared/events.js and TRANSLATIONS with src/shared/i18n.js.
+// YouTube page integration entry point (bundled as a classic script).
+// Wires navigation, settings and DOM observation to the playback session
+// and page injections; holds no business logic of its own.
+//
+// After an extension update the previous copy of this script stays on open
+// pages, orphaned. The newest instance claims the page (data attribute on
+// <html>); any other instance shuts down and removes its UI on its next tick.
+import { EVENTS } from '../shared/events.js'
+import { setLanguage } from '../shared/i18n.js'
+import { createMessenger } from './messaging.js'
+import { PlaybackSession } from './playbackSession.js'
+import { PageInjections } from './pageInjections.js'
+import { currentPageIds, isBlockingDialogOpen } from './youtubeDom.js'
 
-const EVENTS = {
-  OPEN_SERIES_TAB: 'OPEN_SERIES_TAB',
-  EPISODE_WATCH: 'EPISODE_WATCH',
-  EPISODE_PROGRESS: 'EPISODE_PROGRESS',
-  GET_NEXT_EPISODE: 'GET_NEXT_EPISODE',
-  PLAYLIST_ADD: 'PLAYLIST_ADD',
-  PLAYLIST_EXISTS: 'PLAYLIST_EXISTS',
-  STATE_GET: 'STATE_GET'
-}
-
-const TRANSLATIONS = {
-  en: {
-    nextEpisode: 'Next Episode',
-    watchNext: 'Watch Next',
-    added: 'Added',
-    addToSeries: 'Add to Series',
-    viewOnYtSeries: 'View on YT Series',
-    adding: 'Adding...',
-    extensionUnavailable: 'Extension not available. Reload the page.',
-    unknownError: 'Unknown error',
-    couldNotAdd: 'Could not add series'
-  },
-  it: {
-    nextEpisode: 'Prossimo Episodio',
-    watchNext: 'Guarda Prossimo',
-    added: 'Aggiunto',
-    addToSeries: 'Aggiungi a Serie',
-    viewOnYtSeries: 'Vedi su YT Series',
-    adding: 'Aggiunta in corso...',
-    extensionUnavailable: 'Estensione non disponibile. Ricarica la pagina.',
-    unknownError: 'Errore sconosciuto',
-    couldNotAdd: 'Impossibile aggiungere la serie'
-  }
-}
-
-function showToast(message, durationMs = 4000, actionLabel, actionUrl) {
-  const existing = document.querySelector('.yt-series-toast')
-  if (existing) existing.remove()
-
-  const toast = document.createElement('div')
-  toast.className = 'yt-series-toast'
-  Object.assign(toast.style, {
-    position: 'fixed',
-    bottom: '24px',
-    left: '50%',
-    transform: 'translateX(-50%)',
-    background: 'rgba(0,0,0,0.85)',
-    color: '#fff',
-    padding: '12px 24px',
-    borderRadius: '8px',
-    fontSize: '14px',
-    zIndex: '999999',
-    fontFamily: 'Roboto, Arial, sans-serif',
-    pointerEvents: 'auto',
-    opacity: '0',
-    transition: 'opacity 0.3s ease',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    maxWidth: '520px',
-  })
-
-  const msgSpan = document.createElement('span')
-  msgSpan.textContent = message
-  msgSpan.style.flex = '1'
-  toast.appendChild(msgSpan)
-
-  if (actionLabel && actionUrl) {
-    const btn = document.createElement('a')
-    btn.textContent = actionLabel
-    btn.href = actionUrl
-    btn.target = '_blank'
-    btn.rel = 'noopener'
-    Object.assign(btn.style, {
-      padding: '6px 14px',
-      background: '#fff',
-      color: '#000',
-      borderRadius: '16px',
-      fontSize: '12px',
-      fontWeight: '700',
-      textDecoration: 'none',
-      whiteSpace: 'nowrap',
-      cursor: 'pointer',
-    })
-    toast.appendChild(btn)
-  }
-
-  document.body.appendChild(toast)
-
-  requestAnimationFrame(() => { toast.style.opacity = '1' })
-
-  setTimeout(() => {
-    toast.style.opacity = '0'
-    setTimeout(() => toast.remove(), 300)
-  }, durationMs)
-}
-
-let currentVideoId = null
+const INSTANCE = crypto.randomUUID()
+const settings = { overlayEnabled: true }
+let session = null
 let currentPlaylistId = null
-let videoEndListener = null
-let videoDetectionInterval = null
-let progressInterval = null
-let progressSaveTimeout = null
-let lastProgressSent = null
-let nextEpisodeOverlay = null
-let isContextValid = true
-let playerMode = 'normal'
-let addSeriesButtonInjected = false
-let visibilityHandler = null
-let modeObserver = null
-let fullscreenHandler = null
-
-function cleanupVideoListener() {
-  if (videoDetectionInterval) {
-    clearInterval(videoDetectionInterval)
-    videoDetectionInterval = null
-  }
-  if (progressInterval) {
-    clearInterval(progressInterval)
-    progressInterval = null
-  }
-  if (progressSaveTimeout) {
-    clearTimeout(progressSaveTimeout)
-    progressSaveTimeout = null
-  }
-  if (videoEndListener) {
-    videoEndListener.video.removeEventListener('ended', videoEndListener.handler)
-    videoEndListener = null
-  }
-  if (nextEpisodeOverlay) {
-    nextEpisodeOverlay.remove()
-    nextEpisodeOverlay = null
-  }
-  if (visibilityHandler) {
-    document.removeEventListener('visibilitychange', visibilityHandler)
-    visibilityHandler = null
-  }
-  if (modeObserver) {
-    modeObserver.disconnect()
-    modeObserver = null
-  }
-  if (fullscreenHandler) {
-    document.removeEventListener('fullscreenchange', fullscreenHandler)
-    fullscreenHandler = null
-  }
-  lastProgressSent = null
-}
-
-function detectPlayerMode() {
-  // YouTube player mode detection
-  const theaterMode = document.querySelector('ytd-watch-flexy[theater-mode]') !== null
-  const fullscreen = document.fullscreenElement !== null
-  const miniPlayer = document.querySelector('.ytp-miniplayer') !== null
-
-  if (miniPlayer) {
-    return 'mini'
-  } else if (fullscreen) {
-    return 'full'
-  } else if (theaterMode) {
-    return 'cinema'
-  } else {
-    return 'normal'
-  }
-}
-
-function updateOverlayPosition() {
-  if (!nextEpisodeOverlay) return
-
-  const mode = detectPlayerMode()
-  playerMode = mode
-
-  // Remove existing mode classes
-  nextEpisodeOverlay.classList.remove('mode-normal', 'mode-cinema', 'mode-full', 'mode-mini')
-  nextEpisodeOverlay.classList.add(`mode-${mode}`)
-}
-
-function safeSendMessage(message, callback) {
-  if (!isContextValid || !chrome.runtime?.sendMessage) {
-    if (callback) callback({ success: false, error: 'CONTEXT_INVALIDATED' })
-    return
-  }
-  try {
-    chrome.runtime.sendMessage(message, (response) => {
-      if (chrome.runtime.lastError) {
-        const error = chrome.runtime.lastError.message
-        if (error.includes('Extension context invalidated') || error.includes('message port closed')) {
-          isContextValid = false
-          cleanupVideoListener()
-        }
-        if (callback) callback({ success: false, error: 'CONTEXT_INVALIDATED' })
-      } else if (callback) {
-        callback(response)
-      }
-    })
-  } catch (err) {
-    isContextValid = false
-    cleanupVideoListener()
-    if (callback) callback({ success: false, error: 'CONTEXT_INVALIDATED' })
-  }
-}
-
-function setupVideoEndDetection(videoId, playlistId) {
-  cleanupVideoListener()
-
-  let attempts = 0
-  let paused = false
-
-  visibilityHandler = () => {
-    if (document.hidden) {
-      paused = true
-      if (videoDetectionInterval) {
-        clearInterval(videoDetectionInterval)
-        videoDetectionInterval = null
-      }
-    } else {
-      paused = false
-      if (!videoDetectionInterval) startPolling()
-    }
-  }
-  document.addEventListener('visibilitychange', visibilityHandler)
-
-  function startPolling() {
-    videoDetectionInterval = setInterval(() => {
-      attempts++
-      const video = document.querySelector('.video-stream, .html5-main-video')
-      if (video) {
-        clearInterval(videoDetectionInterval)
-        videoDetectionInterval = null
-
-        // Monitoraggio progresso con throttling e debouncing
-        if (progressInterval) clearInterval(progressInterval)
-        progressInterval = setInterval(() => {
-          try {
-            if (!video.paused && !video.ended && video.currentTime > 0 && video.duration > 0) {
-              const progress = Math.min(99, Math.round((video.currentTime / video.duration) * 100))
-              const currentTime = Math.round(video.currentTime)
-              const duration = Math.round(video.duration)
-
-              // Mostra overlay Next Episode quando mancano 30 secondi alla fine
-              const timeRemaining = duration - currentTime
-              if (timeRemaining <= 30 && timeRemaining > 0 && !nextEpisodeOverlay && playlistId) {
-                showNextEpisodeOverlay(videoId, playlistId)
-              }
-
-              // Debouncing: salva solo dopo 3 secondi di inattività
-              if (progressSaveTimeout) {
-                clearTimeout(progressSaveTimeout)
-              }
-
-              progressSaveTimeout = setTimeout(() => {
-                // Throttling: non salvare più spesso di ogni 10 secondi
-                const now = Date.now()
-                if (!lastProgressSent || (now - lastProgressSent) >= 10000) {
-                  safeSendMessage({
-                    type: EVENTS.EPISODE_PROGRESS,
-                    payload: {
-                      videoId,
-                      playlistId: playlistId || '',
-                      progress,
-                      currentTime,
-                      duration
-                    }
-                  })
-                  lastProgressSent = now
-                }
-              }, 3000) // 3 secondi di debouncing
-            }
-          } catch (err) { console.warn('[YT Series] progress error:', err.message) }
-        }, 5000) // check ogni 5 secondi
-
-        const onEnded = () => {
-          safeSendMessage({
-            type: EVENTS.EPISODE_WATCH,
-            payload: { videoId, playlistId: playlistId || '' }
-          })
-        }
-
-        video.addEventListener('ended', onEnded)
-        videoEndListener = { video, handler: onEnded }
-      } else if (attempts > 40) {
-        clearInterval(videoDetectionInterval)
-        videoDetectionInterval = null
-      }
-    }, 500)
-  }
-
-  startPolling()
-}
-
-function isMusicVideo() {
-  // Check if the video is a music video by looking at YouTube's category
-  const categoryElement = document.querySelector('meta[itemprop="genre"]')
-  if (categoryElement) {
-    const genre = categoryElement.content.toLowerCase()
-    if (genre.includes('music') || genre.includes('music video')) {
-      return true
-    }
-  }
-
-  // Check if the video is in the Music category via YouTube's data
-  const categoryBadge = document.querySelector('.badge-style-type-live')
-  if (categoryBadge && categoryBadge.textContent.includes('Music')) {
-    return true
-  }
-
-  // Check if the playlist is a music playlist
-  const playlistTitle = document.querySelector('#header .yt-dynamic-text-view-model')
-  if (playlistTitle && playlistTitle.textContent.toLowerCase().includes('music')) {
-    return true
-  }
-
-  return false
-}
-
-function showNextEpisodeOverlay(videoId, playlistId) {
-  if (nextEpisodeOverlay) return
-
-  // Don't show overlay for music videos
-  if (isMusicVideo()) {
-    return
-  }
-
-  // Check if playlist is saved in the extension
-  safeSendMessage({
-    type: EVENTS.PLAYLIST_EXISTS,
-    payload: { playlistId }
-  }, (existsResponse) => {
-    if (!existsResponse || !existsResponse.success || !existsResponse.exists) {
-      return // Playlist not saved in extension
-    }
-
-    // Check if overlay is enabled in settings
-    safeSendMessage({ type: EVENTS.STATE_GET }, (response) => {
-      if (response && response.success && response.state && response.state.settings) {
-        if (!response.state.settings.nextEpisodeOverlay) {
-          return // Overlay disabled in settings
-        }
-      }
-
-      safeSendMessage({
-        type: EVENTS.GET_NEXT_EPISODE,
-        payload: { videoId, playlistId }
-      }, (nextResponse) => {
-        if (nextResponse && nextResponse.success && nextResponse.nextEpisode) {
-          createNextEpisodeOverlay(nextResponse.nextEpisode, playlistId, videoId)
-        }
-      })
-    })
-  })
-}
-
-function createNextEpisodeOverlay(nextEpisode, playlistId, currentVideoId) {
-  // Get language from settings
-  safeSendMessage({ type: EVENTS.STATE_GET }, (response) => {
-    if (!response || !response.success || !response.state) return
-
-    const language = response.state.settings.language || 'system'
-    const lang = language === 'system' ? (navigator.language || 'en').split('-')[0] : language
-    const t = TRANSLATIONS[lang] || TRANSLATIONS.en
-
-    nextEpisodeOverlay = document.createElement('div')
-    nextEpisodeOverlay.className = 'yt-series-next-overlay'
-
-    const contentDiv = document.createElement('div')
-    contentDiv.className = 'yt-series-next-content'
-
-    const infoDiv = document.createElement('div')
-    infoDiv.className = 'yt-series-next-info'
-
-    const labelDiv = document.createElement('div')
-    labelDiv.className = 'yt-series-next-label'
-    labelDiv.textContent = t.nextEpisode
-
-    const titleDiv = document.createElement('div')
-    titleDiv.className = 'yt-series-next-title'
-    titleDiv.textContent = nextEpisode.title
-
-    infoDiv.appendChild(labelDiv)
-    infoDiv.appendChild(titleDiv)
-
-    const btn = document.createElement('button')
-    btn.className = 'yt-series-next-btn'
-    btn.id = 'ytSeriesNextBtn'
-
-    const iconSpan = document.createElement('span')
-    iconSpan.className = 'yt-series-next-icon'
-    iconSpan.textContent = '\u25B6'
-
-    const textSpan = document.createElement('span')
-    textSpan.textContent = t.watchNext
-
-    btn.appendChild(iconSpan)
-    btn.appendChild(textSpan)
-
-    contentDiv.appendChild(infoDiv)
-    contentDiv.appendChild(btn)
-    nextEpisodeOverlay.appendChild(contentDiv)
-
-    document.body.appendChild(nextEpisodeOverlay)
-
-    // Set initial position based on current mode
-    updateOverlayPosition()
-
-    // Listen for player mode changes
-    modeObserver = new MutationObserver(() => {
-      updateOverlayPosition()
-    })
-
-    const playerContainer = document.querySelector('ytd-watch-flexy')
-    if (playerContainer) {
-      modeObserver.observe(playerContainer, { attributes: true, attributeFilter: ['theater-mode'] })
-    }
-
-    // Listen for fullscreen changes
-    fullscreenHandler = updateOverlayPosition
-    document.addEventListener('fullscreenchange', fullscreenHandler)
-
-    document.getElementById('ytSeriesNextBtn').addEventListener('click', () => {
-      // Marca episodio corrente come visto
-      safeSendMessage({
-        type: EVENTS.EPISODE_WATCH,
-        payload: { videoId: currentVideoId, playlistId }
-      })
-
-      // Apre il prossimo episodio
-      window.location.href = `https://www.youtube.com/watch?v=${nextEpisode.id}&list=${playlistId}`
-    })
-  })
-}
-
-function handlePageNavigation() {
-  const url = new URL(window.location.href)
-  const videoId = url.searchParams.get('v')
-  const listId = url.searchParams.get('list')
-
-  if (listId !== currentPlaylistId) {
-    currentPlaylistId = listId
-    addSeriesButtonInjected = false
-  }
-
-  if (videoId && videoId !== currentVideoId) {
-    currentVideoId = videoId
-    setupVideoEndDetection(videoId, listId)
-  } else if (!videoId) {
-    currentVideoId = null
-    cleanupVideoListener()
-  }
-
-  tryInject()
-}
-
-function isOverlayActive() {
-  return !!document.querySelector('[aria-modal="true"], ytd-consent-bump-v2-renderer')
-}
-
-function getYouTubeTextColor() {
-  const existing = document.querySelector('ytd-guide-entry-renderer a#endpoint')
-  if (existing) {
-    return window.getComputedStyle(existing).color
-  }
-  return '#f1f1f1'
-}
-
-function getYouTubeHoverBg() {
-  const existing = document.querySelector('ytd-guide-entry-renderer a#endpoint')
-  if (existing) {
-    const hover = document.createElement('div')
-    hover.style.cssText = 'display:none;background:var(--yt-spec-badge-chip-background)'
-    document.body.appendChild(hover)
-    const bg = window.getComputedStyle(hover).background
-    hover.remove()
-    if (bg && bg !== 'rgba(0, 0, 0, 0)') return bg
-  }
-  return 'rgba(255,255,255,0.1)'
-}
-
-function ensureStyles() {
-  if (document.getElementById('yt-series-style')) return
-  const color = getYouTubeTextColor()
-  const hoverBg = getYouTubeHoverBg()
-  const style = document.createElement('style')
-  style.id = 'yt-series-style'
-  style.textContent = `
-    #yt-series-section-title {
-      display: block;
-      padding: 6px 24px;
-      font-size: 13px;
-      font-weight: 500;
-      color: ${color};
-      opacity: 0.7;
-    }
-    #yt-series-link {
-      display: flex;
-      align-items: center;
-      padding: 0 24px;
-      height: 40px;
-      cursor: pointer;
-      color: ${color};
-      text-decoration: none;
-      font-size: 14px;
-      font-weight: 400;
-      transition: background 0.15s;
-    }
-    #yt-series-link:hover {
-      background: ${hoverBg};
-    }
-    #yt-series-link .yt-series-icon {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 24px;
-      height: 24px;
-      margin-right: 24px;
-      flex-shrink: 0;
-    }
-    #yt-series-link .yt-series-icon img {
-      width: 24px;
-      height: 24px;
-    }
-    #yt-series-link .yt-series-label {
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .yt-series-next-overlay {
-      position: fixed;
-      bottom: 100px;
-      right: 24px;
-      z-index: 9999;
-      animation: slideIn 0.3s ease;
-    }
-    .yt-series-next-overlay.mode-cinema {
-      bottom: 80px;
-      right: 40px;
-    }
-    .yt-series-next-overlay.mode-full {
-      bottom: 60px;
-      right: 60px;
-    }
-    .yt-series-next-overlay.mode-mini {
-      bottom: 20px;
-      right: 20px;
-      transform: scale(0.8);
-    }
-    @keyframes slideIn {
-      from {
-        transform: translateX(100%);
-        opacity: 0;
-      }
-      to {
-        transform: translateX(0);
-        opacity: 1;
-      }
-    }
-    .yt-series-next-content {
-      background: rgba(0, 0, 0, 0.9);
-      border-radius: 12px;
-      padding: 16px;
-      min-width: 280px;
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    .yt-series-next-info {
-      margin-bottom: 12px;
-    }
-    .yt-series-next-label {
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: #ff0000;
-      margin-bottom: 4px;
-    }
-    .yt-series-next-title {
-      font-size: 14px;
-      font-weight: 500;
-      color: #fff;
-      line-height: 1.3;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-    .yt-series-next-btn {
-      width: 100%;
-      padding: 12px 16px;
-      background: #ff0000;
-      border: none;
-      border-radius: 8px;
-      color: #fff;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      transition: background 0.2s, transform 0.1s;
-    }
-    .yt-series-next-btn:hover {
-      background: #cc0000;
-    }
-    .yt-series-next-btn:active {
-      transform: scale(0.98);
-    }
-    .yt-series-next-icon {
-      font-size: 16px;
-    }
-  `
-  document.head.appendChild(style)
-}
-
-function injectSidebarLink() {
-  if (document.querySelector('#yt-series-sidebar-section')) return
-
-  const sections = document.querySelectorAll('ytd-guide-section-renderer')
-  if (sections.length < 2) return
-
-  const section = document.createElement('div')
-  section.id = 'yt-series-sidebar-section'
-
-  const title = document.createElement('div')
-  title.id = 'yt-series-section-title'
-  title.textContent = 'YT Series'
-
-  const entry = document.createElement('div')
-  entry.id = 'yt-series-sidebar-link'
-
-  const link = document.createElement('a')
-  link.id = 'yt-series-link'
-  link.href = '#'
-
-  const icon = document.createElement('span')
-  icon.className = 'yt-series-icon'
-  const img = document.createElement('img')
-  img.src = chrome.runtime.getURL('icons/icon16.png')
-  img.alt = ''
-  icon.appendChild(img)
-
-  const label = document.createElement('span')
-  label.className = 'yt-series-label'
-  label.textContent = 'YT Series'
-
-  link.appendChild(icon)
-  link.appendChild(label)
-
-  link.addEventListener('click', (e) => {
-    e.preventDefault()
-    safeSendMessage({ type: EVENTS.OPEN_SERIES_TAB })
-  })
-
-  entry.appendChild(link)
-  section.appendChild(title)
-  section.appendChild(entry)
-
-  const lastSection = sections[sections.length - 1]
-  lastSection.parentNode.insertBefore(section, lastSection)
-}
-
-function injectAddToSeriesButton() {
-  if (addSeriesButtonInjected) return
-
-  document.querySelectorAll('#yt-series-add-btn').forEach(btn => btn.remove())
-  addSeriesButtonInjected = true
-
-  const url = new URL(window.location.href)
-  const playlistId = url.searchParams.get('list')
-  if (!playlistId) {
-    addSeriesButtonInjected = false
-    return
-  }
-
-  const actionBar = document.querySelector('#playlist-action-menu #top-level-buttons-computed')
-  const pageHeader = document.querySelector('#page-manager > ytd-browse > yt-page-header-renderer > yt-page-header-view-model > div.ytPageHeaderViewModelScrollContainer')
-  const targetContainer = actionBar || pageHeader
-
-  if (!targetContainer) {
-    addSeriesButtonInjected = false
-    return
-  }
-
-  const lang = (navigator.language || 'en').split('-')[0]
-  const t = TRANSLATIONS[lang] || TRANSLATIONS.en
-
-  safeSendMessage({
-    type: EVENTS.PLAYLIST_EXISTS,
-    payload: { playlistId }
-  }, (existsResponse) => {
-    const isAdded = existsResponse && existsResponse.success && existsResponse.exists
-
-    const button = document.createElement('button')
-    button.id = 'yt-series-add-btn'
-    button.style.cssText = `
-      background: #f1f1f1;
-      color: #0f0f0f;
-      border: none;
-      border-radius: 18px;
-      padding: 0 16px;
-      height: 36px;
-      font-size: 14px;
-      font-weight: 700;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin: 8px 0;
-      white-space: nowrap;
-      flex-shrink: 0;
-    `
-    const buttonLabel = isAdded ? t.viewOnYtSeries : t.addToSeries
-    button.setAttribute('aria-label', buttonLabel)
-    button.textContent = buttonLabel
-
-    button.addEventListener('click', () => {
-      if (isAdded) {
-        safeSendMessage({ type: EVENTS.OPEN_SERIES_TAB })
-      } else {
-        const playlistUrl = window.location.href
-        button.disabled = true
-        button.textContent = t.adding
-        safeSendMessage({
-          type: EVENTS.PLAYLIST_ADD,
-          payload: { url: playlistUrl }
-        }, (addResponse) => {
-          if (addResponse && addResponse.success) {
-            button.textContent = t.viewOnYtSeries
-            button.style.background = '#e8e8e8'
-          } else if (addResponse && addResponse.error === 'CONTEXT_INVALIDATED') {
-            showToast(t.extensionUnavailable)
-            button.textContent = t.addToSeries
-            button.disabled = false
-          } else {
-            const msg = (addResponse && addResponse.message) ? addResponse.message : t.unknownError
-            showToast(t.couldNotAdd + ': ' + msg)
-            button.textContent = t.addToSeries
-            button.disabled = false
-          }
-        })
-      }
-    })
-
-    targetContainer.appendChild(button)
-  })
-}
-
 let observer = null
+let scheduled = false
+let stopped = false
 
-function tryInject() {
-  if (isOverlayActive()) {
-    setTimeout(tryInject, 1000)
-    return
-  }
+const messenger = createMessenger({ onInvalidated: shutdown })
+const injections = new PageInjections(messenger, INSTANCE)
 
-  const sections = document.querySelectorAll('ytd-guide-section-renderer')
-  if (sections.length >= 2 && !document.querySelector('#yt-series-sidebar-section')) {
-    injectSidebarLink()
-  }
-
-  injectAddToSeriesButton()
+/** False once the extension was reloaded or a newer copy of this script took over. */
+function isCurrentInstance() {
+  return Boolean(chrome.runtime?.id) && document.documentElement.dataset.ytSeriesInstance === INSTANCE
 }
 
-function startObserver() {
-  ensureStyles()
-  tryInject()
-  observer = new MutationObserver(() => {
-    if (!document.querySelector('#yt-series-sidebar-section')) {
-      tryInject()
-    }
+function shutdown() {
+  if (stopped) return
+  stopped = true
+  session?.dispose()
+  session = null
+  observer?.disconnect()
+  document.removeEventListener('yt-navigate-finish', onNavigate)
+  injections.removeOwnUi()
+}
+
+/** @param {{ nextEpisodeOverlay?: boolean, language?: string } | undefined} next */
+function applySettings(next) {
+  if (!next) return
+  settings.overlayEnabled = next.nextEpisodeOverlay !== false
+  setLanguage(next.language && next.language !== 'system' ? next.language : null)
+  if (!settings.overlayEnabled) session?.overlay.hide()
+}
+
+function onNavigate() {
+  if (!isCurrentInstance()) { shutdown(); return }
+  const { videoId, playlistId } = currentPageIds()
+  if (playlistId !== currentPlaylistId) injections.resetButton()
+
+  const changed = videoId !== session?.videoId || playlistId !== currentPlaylistId
+  currentPlaylistId = playlistId
+  if (!videoId) {
+    session?.dispose()
+    session = null
+  } else if (changed) {
+    session?.dispose()
+    session = new PlaybackSession({ videoId, playlistId, messenger, overlayEnabled: () => settings.overlayEnabled })
+    session.start()
+  }
+  inject()
+}
+
+function inject() {
+  if (stopped) return
+  if (!isCurrentInstance() || !messenger.valid) { shutdown(); return }
+  if (isBlockingDialogOpen()) { setTimeout(inject, 1000); return }
+  injections.injectSidebarLink()
+  injections.injectAddButton()
+}
+
+/** YouTube mutates the DOM constantly; re-check injections at most once per frame. */
+function scheduleInject() {
+  if (scheduled) return
+  scheduled = true
+  requestAnimationFrame(() => { scheduled = false; inject() })
+}
+
+function start() {
+  document.documentElement.dataset.ytSeriesInstance = INSTANCE
+  injections.removeForeignUi()
+
+  chrome.runtime.onMessage.addListener((message, sender) => {
+    if (stopped || sender?.id !== chrome.runtime.id || message?.type !== EVENTS.STATE_UPDATED) return
+    applySettings(message.state?.settings)
+    const savedIds = message.state?.series
+    if (!savedIds) return
+    injections.syncSavedState(savedIds)
+    if (session) session.untracked = false // the video may belong to a series just added
+    // The series was deleted elsewhere: stop offering its next episode.
+    if (currentPlaylistId && !savedIds[currentPlaylistId]) session?.overlay.hide()
   })
+
+  // Settings at startup (previously only picked up on the first broadcast).
+  messenger.send(EVENTS.CONTENT_SETTINGS_GET).then(response => { if (response.success) applySettings(response.settings) })
+
+  observer = new MutationObserver(scheduleInject)
   observer.observe(document.body, { childList: true, subtree: true })
-
-  document.addEventListener('yt-navigate-finish', handlePageNavigation)
-  handlePageNavigation()
+  document.addEventListener('yt-navigate-finish', onNavigate)
+  onNavigate()
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', startObserver)
-} else {
-  startObserver()
-}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start)
+else start()

@@ -72,25 +72,83 @@
   margin-bottom: 6px;
 }
 
+/* Watched toggle: same pill + accent language as .btn-secondary and the
+   folder button. The circle fills with the theme accent when watched. */
 .episode-status {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-xs);
-  font-size: 11px;
+  gap: 6px;
+  padding: 3px 12px 3px 4px;
+  /* Derived from the muted text so the outline stays visible on every card colour. */
+  border: 1px solid color-mix(in srgb, var(--text-muted) 40%, transparent);
+  border-radius: 20px;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-primary);
+  font-size: 12px;
   font-weight: 600;
-  padding: 2px var(--space-sm);
-  border-radius: var(--radius-sm);
+  line-height: 1.4;
   cursor: pointer;
+  transition: color var(--transition), border-color var(--transition), background var(--transition), transform 0.1s;
+}
+
+.episode-status-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  color: inherit;
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
+}
+
+.episode-status-icon svg {
+  width: 12px;
+  height: 12px;
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity var(--transition), transform var(--transition);
+}
+
+.episode-status:hover,
+.episode-status:focus-visible {
+  border-color: var(--primary);
+  color: var(--text);
+}
+
+/* Hover on an unwatched episode previews the check. */
+.episode-status-unwatched:hover .episode-status-icon svg {
+  opacity: 0.6;
+  transform: scale(1);
+}
+
+.episode-status:active {
+  transform: scale(0.97);
 }
 
 .episode-status-watched {
-  background: rgba(46, 204, 113, 0.2);
-  color: var(--success);
+  border-color: color-mix(in srgb, var(--primary) 55%, transparent);
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  color: var(--text);
 }
 
-.episode-status-unwatched {
-  background: rgba(229, 9, 20, 0.2);
-  color: var(--primary);
+.episode-status-watched .episode-status-icon {
+  border-color: var(--primary-fill);
+  background: var(--primary-fill);
+  color: var(--text-on-primary);
+}
+
+.episode-status-watched .episode-status-icon svg {
+  opacity: 1;
+  transform: scale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .episode-status,
+  .episode-status-icon,
+  .episode-status-icon svg { transition: none; }
 }
 
 /* detail episodes */

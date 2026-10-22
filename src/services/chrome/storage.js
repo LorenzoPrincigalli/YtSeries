@@ -1,3 +1,4 @@
+import { AppError } from '../../shared/errors.js'
 import { logger } from '../../shared/logger.js'
 
 class StorageService {
@@ -6,7 +7,7 @@ class StorageService {
       return await chrome.storage.sync.get(keys)
     } catch (err) {
       logger.error('StorageService.get failed:', err)
-      throw { code: 'STORAGE_GET_ERROR', message: 'Failed to read storage', context: err }
+      throw new AppError('STORAGE_GET_ERROR', 'Failed to read storage', { cause: err })
     }
   }
 
@@ -21,7 +22,7 @@ class StorageService {
       )
       if (!isQuota) {
         logger.error('StorageService.set failed:', err)
-        throw { code: 'STORAGE_SET_ERROR', message: 'Failed to write storage', context: err }
+        throw new AppError('STORAGE_SET_ERROR', 'Failed to write storage', { cause: err })
       }
 
       logger.warn('StorageService.set quota exceeded, trying per-key fallback')
@@ -31,12 +32,9 @@ class StorageService {
         try {
           await chrome.storage.sync.set({ [key]: value })
         } catch (keyErr) {
+          // Never delete the previous value: a quota failure must not cost the user their settings.
           logger.error(`StorageService.set: failed to save key "${key}" (${size} bytes):`, keyErr)
-          try {
-            await chrome.storage.sync.remove(key)
-            logger.warn(`StorageService.set: removed corrupted key "${key}"`)
-          } catch (_) {}
-          throw { code: 'STORAGE_SET_ERROR', message: `Cannot save "${key}" (${size} bytes exceeds sync quota)`, context: err }
+          throw new AppError('STORAGE_QUOTA_EXCEEDED', `Cannot save "${key}" (${size} bytes exceeds sync quota)`, { cause: keyErr })
         }
       }
     }
@@ -47,7 +45,7 @@ class StorageService {
       await chrome.storage.sync.remove(keys)
     } catch (err) {
       logger.error('StorageService.remove failed:', err)
-      throw { code: 'STORAGE_REMOVE_ERROR', message: 'Failed to remove from storage', context: err }
+      throw new AppError('STORAGE_REMOVE_ERROR', 'Failed to remove from storage', { cause: err })
     }
   }
 
@@ -56,7 +54,7 @@ class StorageService {
       return await chrome.storage.local.get(keys)
     } catch (err) {
       logger.error('StorageService.getLocal failed:', err)
-      throw { code: 'STORAGE_GET_ERROR', message: 'Failed to read local storage', context: err }
+      throw new AppError('STORAGE_GET_ERROR', 'Failed to read local storage', { cause: err })
     }
   }
 
@@ -65,7 +63,7 @@ class StorageService {
       await chrome.storage.local.set(data)
     } catch (err) {
       logger.error('StorageService.setLocal failed:', err)
-      throw { code: 'STORAGE_SET_ERROR', message: 'Failed to write local storage', context: err }
+      throw new AppError('STORAGE_SET_ERROR', 'Failed to write local storage', { cause: err })
     }
   }
 
@@ -74,7 +72,7 @@ class StorageService {
       await chrome.storage.local.remove(keys)
     } catch (err) {
       logger.error('StorageService.removeLocal failed:', err)
-      throw { code: 'STORAGE_REMOVE_ERROR', message: 'Failed to remove from local storage', context: err }
+      throw new AppError('STORAGE_REMOVE_ERROR', 'Failed to remove from local storage', { cause: err })
     }
   }
 }

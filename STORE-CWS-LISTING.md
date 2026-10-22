@@ -17,11 +17,12 @@ YT Series turns any YouTube playlist into a Netflix-style TV series tracker. Add
 - "Next Episode" overlay on YouTube 30s before a video ends
 - "Add to Series" button directly on YouTube playlist pages
 - Sidebar integration on YouTube for one-click dashboard access
-- Hover to preview any episode without leaving the page
+- Hover a series to see its next episode at a glance
 - Sort and filter episodes by publish date, watched status, and more
 - Discover more series from the same channel
-- Four themes: Classic Red, Ocean Blue, Forest Green, Light (with dark variants)
-- Keyboard shortcut: Ctrl+Shift+Y to open the dashboard
+- Four themes: Classic Red, Ocean Blue, Forest Green and Light, all with accessible contrast
+- Keyboard shortcut: Ctrl+Shift+Y opens the YT Series popup
+- Full keyboard navigation and screen-reader labels throughout the dashboard
 - Backup and restore your data as JSON
 - Cloud sync across devices (optional, via Google sign-in with Firebase)
 - English and Italian language support
@@ -40,7 +41,7 @@ English, Italian
 
 ## Screenshots
 1. Home dashboard with hero carousel and New This Week
-2. Series carousels with hover preview
+2. Series carousels with next-episode preview on hover
 3. Series detail with episode list and sort options
 4. Filtered view with search results
 5. Settings panel with themes, language, and support options
@@ -51,6 +52,23 @@ English, Italian
 
 ## Website
 https://github.com/LorenzoPrincigalli/YtSeries
+
+## Permission justifications (Privacy practices tab)
+
+| Permission | Justification |
+|------------|---------------|
+| storage | Saves the user's series, progress and settings locally. |
+| alarms | Checks saved playlists for new episodes once a day (optional, user setting). |
+| notifications | Tells the user when new episodes are found. |
+| tabs | Opens or focuses the dashboard tab and the next-episode link. |
+| identity | Optional Google sign-in for Cloud Sync. |
+| scripting | Refreshes the YouTube integration in YouTube tabs that were already open when the extension is installed or updated. |
+| Host: youtube.com | Sidebar shortcut, "Add to Series" button, next-episode overlay and watch-progress tracking on YouTube pages. |
+| Host: googleapis.com, identitytoolkit, securetoken, firestore | YouTube Data API (dev fallback) and optional Cloud Sync. |
+| Host: *.workers.dev proxy | Relays YouTube Data API requests so no API key ships in the extension. |
+
+Remote code: **No** — all code is bundled in the package.
+Data usage: no data sold or transferred to third parties; no use for unrelated purposes or creditworthiness.
 
 ## Privacy Policy URL
 https://lorenzoprincigalli.github.io/YtSeries/privacy-policy.html

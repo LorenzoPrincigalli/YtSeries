@@ -50,13 +50,7 @@ Firebase (Cloud Sync) is entirely optional — the extension works without it.
                     └──────────────────┘
 
                     ┌──────────────────┐
-                    │  Lemon Squeezy   │
-                    │  (license verify)│
-                    └──────────────────┘
-
-                    ┌──────────────────┐
                     │  GitHub Pages    │
-                    │  activate.html   │
                     │  privacy-policy  │
                     └──────────────────┘
 ```
@@ -72,8 +66,7 @@ Firebase (Cloud Sync) is entirely optional — the extension works without it.
 | **Firestore** | Spark | Free | Series sync between devices | 1 GiB storage, 10 GiB/mo download, 20K writes/day, 50K reads/day |
 | **Cloudflare Worker** | Free | Free | YouTube API proxy + KV cache | 100K req/day, 10ms CPU; KV: 100K reads/day, 1K writes/day |
 | **YouTube Data API v3** | Free tier | Free | Playlist/video metadata | 10,000 units/day (search=100u, playlists=1u, items=1u, videos=1u) |
-| **Lemon Squeezy** | Free | Free | License validation | 0% fees up to $100/mo |
-| **GitHub Pages** | Free | Free | Host activate.html, privacy policy | 100GB bandwidth, 1GB storage |
+| **GitHub Pages** | Free | Free | Host privacy policy | 100GB bandwidth, 1GB storage |
 | **Chrome Web Store** | Developer account | **$5 one-time** | Publishing | Required to publish |
 
 ## Firebase architecture
@@ -92,14 +85,16 @@ Single collection: `users/{uid}/series/{playlistId}`
 Document shape:
 ```javascript
 {
+  deleted: false,
   metadata: {
-    title, thumbnail, channelTitle, channelId, videoCount
+    title, thumbnail, channelTitle, channelId, videoCount, collection, collectionCover
   },
   lastEpisodeIndex: number,
   completed: boolean,
+  completedAt: timestamp,
   updatedAt: timestamp,
   progress: {
-    videoId: { w: boolean, p: number, a: timestamp }
+    videoId: { w: boolean, p: number, r: seconds, t: seconds, a: timestamp }
     // only videos with watched/progress data
   }
 }
@@ -114,24 +109,27 @@ Mutation (tab/popup/content)
   → background handler
     → store mutation
       → chrome.storage.local save
-        → [if logged in] afterSeriesMutation()
-          → enqueuePush(playlistId)  // 3s debounce
-            → pushSeries() → Firestore PATCH
+        → [if logged in] durable queue entry in chrome.storage.local
+          → MV3 alarm / manual sync flushes queue
+            → read remote doc → merge per field → conditional Firestore PATCH
 ```
 
 ### Sync conflict resolution
 
-Last-writer-wins per field, with timestamp comparison:
-- `updatedAt` on each document determines which version is newer
-- Per-video progress: compares `watchedAt` timestamps
+Last-writer-wins per independently timestamped field, with a retry on Firestore's document-version precondition:
+- `completedAt` resolves completion independently of progress
+- `collectionAt` resolves assignment and selected cover together per series. Multi-series edits enqueue each member; they are not a multi-document Firestore transaction.
+- Per-video progress compares `progressUpdatedAt` (`a` remotely), including an explicit unwatched state
+- `updatedAt` is a logical mutation time, never a new timestamp merely because a manual sync ran
 - Metadata always pulled from YouTube API (source of truth)
-- Missing series on remote (user never synced) → uploaded during login
+- Remote deletes use a tombstone (`deleted`, `deletedAt`) so an offline deletion cannot be resurrected by a pull
+- A different Google account requires explicit confirmation before it is made the library owner
 
 ### Offline queue
 
-Failed pushes are queued in `chrome.storage.local` (`_syncQueue`) and retried:
-- On next `pullAndMerge` (init, manual sync)
-- Items are processed sequentially
+Every mutation is queued in `chrome.storage.local` (`_syncQueue`) before network work. The background `syncRetry` alarm and manual Sync process the queue sequentially. Entries are coalesced per account and playlist, persisted atomically, and retried with bounded backoff. Firestore list pagination is followed, so large libraries are not truncated.
+
+Reset is intentionally different: it first deletes remote documents and only then clears the local library and authentication. A remote failure leaves local data intact rather than falsely reporting a complete privacy reset.
 
 ## Current costs: $0/mo
 
@@ -147,7 +145,12 @@ At scale (hundreds of users), potential cost drivers:
 
 | Layer | Mechanism |
 |-------|-----------|
-| Firestore access | Security rules: only authenticated owner `request.auth.uid == userId` |
+| Firestore access | `firestore.rules`: owner-only (`request.auth.uid == userId`) **and** document shape/type/size validation per collection |
+| Worker endpoints | Allowlist: `search`, `playlists`, `playlistItems`, `videos`; per-endpoint parameter validators; anything else → 400/404 |
+| Worker callers | `Origin` must be in `ALLOWED_ORIGINS` (browser pages cannot forge it); the `X-YT-Series-Client` token ships in the bundle and is only a scanner filter |
+| Worker abuse | `RATE_LIMITER` binding (atomic, per `CF-Connecting-IP`), KV daily counter fallback; no client cache bypass |
+| Worker errors | Upstream bodies reduced to `{ error: { code, errors: [{ reason }] } }`; no messages, stack or key |
+| Extension messaging | Router authorises by sender context; youtube.com content scripts get 7 routes only |
 | Firebase Auth | Google OAuth via `chrome.identity.getAuthToken`, exchanged for Firebase token |
 | API key (YouTube) | Stored as Cloudflare Worker secret, never in extension |
 | API key (Firebase) | In `src/shared/firebase.config.js` — gitignored, loaded at runtime via `fetch()` |
@@ -161,7 +164,6 @@ script-src 'self'
 connect-src 'self'
   https://shy-snowflake-0680.lollo-princigalli.workers.dev
   https://www.googleapis.com
-  https://api.lemonsqueezy.com
   https://identitytoolkit.googleapis.com
   https://securetoken.googleapis.com
   https://firestore.googleapis.com
@@ -174,15 +176,17 @@ style-src 'self' 'unsafe-inline'
 
 | Secret | Where stored | Gitignored? | Loaded how? |
 |--------|-------------|-------------|-------------|
-| YT API key | Cloudflare Worker env (`YT_API_KEY`) | N/A | Server-side only |
+| YT API key | Cloudflare Worker secret (`YT_API_KEY`) | N/A | Server-side only |
+| Allowed origins | Worker secret `ALLOWED_ORIGINS` (`chrome-extension://<EXTENSION_ID>`) | N/A | Unset = Origin check skipped (dev) |
+| Client token override | Worker secret `YT_SERIES_CLIENT_TOKEN` (optional) | N/A | Must match `WORKER_CLIENT_TOKEN` |
+| Direct-API dev key | `chrome.storage.local` key `youtubeApiKey` (never synced) | N/A | Only when `WORKER_BASE` is empty |
 | Firebase apiKey | `src/shared/firebase.config.js` | Yes (.gitignore) | `fetch(chrome.runtime.getURL(...))` |
 | Firebase projectId | `src/shared/firebase.config.js` | Yes | Same |
 | Firebase authDomain | `src/shared/firebase.config.js` | Yes | Same |
 | OAuth client_id | `manifest.json` | No (public by nature) | Static manifest |
-| Lemon Squeezy key | N/A | N/A | Not stored; uses checkout URL from constants |
 
 ## Related
 
-- [04-services-and-apis.md](04-services-and-apis.md) — YouTube, Lemon Squeezy, Chrome wrappers
+- [04-services-and-apis.md](04-services-and-apis.md) — YouTube service, Worker, Chrome wrappers
 - [05-firebase-sync-setup.md](05-firebase-sync-setup.md) — Firebase console setup guide
 - [03-data-model.md](03-data-model.md) — Data shapes (including sync payloads)

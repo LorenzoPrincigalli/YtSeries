@@ -1,6 +1,6 @@
 {
   "name": "yt-series",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "private": true,
   "description": "Transform YouTube playlists into a TV-series tracker with cinematic UI",
   "license": "MIT",
@@ -19,16 +19,29 @@
     "icons": "node src/assets/scripts/generate-icons.cjs",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "echo 'No linter configured yet'",
-    "trailer": "node scripts/generate-trailer.cjs"
+    "lint": "eslint . && node scripts/lint-css.mjs",
+    "trailer": "node scripts/generate-trailer.cjs",
+    "build": "node scripts/build.mjs",
+    "build:watch": "node scripts/build.mjs --watch",
+    "typecheck": "tsc -p jsconfig.json",
+    "check": "npm run lint && npm run typecheck && npm test && npm run build && npm run smoke && npm run e2e",
+    "smoke": "node scripts/smoke.mjs",
+    "e2e": "node scripts/e2e.mjs"
   },
   "engines": {
     "node": ">=18"
   },
   "devDependencies": {
+    "@eslint/js": "^9.36.0",
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "@types/chrome": "^0.1.12",
+    "axe-core": "^4.10.3",
+    "esbuild": "^0.25.10",
+    "eslint": "^9.36.0",
+    "globals": "^16.4.0",
     "playwright": "^1.60.0",
     "sharp": "^0.34.5",
+    "typescript": "^5.9.2",
     "vitest": "^4.1.7"
   }
 }
