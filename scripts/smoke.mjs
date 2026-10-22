@@ -145,7 +145,11 @@ try {
   await popup.waitForFunction(() => document.getElementById('seriesCount').textContent !== '—', null, { timeout: 5000 })
   check(Number(await popup.textContent('#seriesCount')) > 0, 'popup shows library stats')
   check(await popup.getAttribute('html', 'data-theme') === 'ocean-blue', 'popup follows the selected theme')
-  await popup.close()
+  // "Open Dashboard" focuses the existing dashboard tab (or opens one) and closes the popup.
+  const dashboardsBefore = context.pages().filter(p => p.url().includes('/src/tab/index.html')).length
+  await Promise.all([popup.waitForEvent('close', { timeout: 5000 }), popup.click('#openDashboard')])
+  const dashboardsAfter = context.pages().filter(p => p.url().includes('/src/tab/index.html')).length
+  check(dashboardsAfter >= 1 && dashboardsAfter <= Math.max(1, dashboardsBefore), 'popup "Open Dashboard" opens or focuses the dashboard')
 
   // Saved library view.
   await page.click('.nav-link[data-view="saved"]')

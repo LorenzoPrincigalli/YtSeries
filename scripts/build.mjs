@@ -12,9 +12,9 @@ const watch = process.argv.includes('--watch')
 const ENTRIES = [
   { in: 'src/background/index.js', format: 'esm' },
   { in: 'src/tab/app.js', format: 'esm' },
-  // Content scripts and classic popup scripts cannot be ES modules.
+  // Content scripts cannot be ES modules.
   { in: 'src/content/index.js', format: 'iife' },
-  { in: 'src/popup/popup.js', format: 'iife' }
+  { in: 'src/popup/popup.js', format: 'esm' }
 ]
 
 const STATIC_EXTENSIONS = new Set(['.html', '.css', '.woff2', '.png', '.svg', '.json'])
