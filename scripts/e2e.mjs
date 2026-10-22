@@ -676,6 +676,25 @@ await step('re-injected content script takes over: one button, correct saved sta
   await yt.close()
 })
 
+await step('legacy orphaned script button (pre-1.2 markup) is cleaned up', async () => {
+  const yt = await context.newPage()
+  watchErrors(yt, 'youtube-legacy')
+  await yt.goto('https://www.youtube.com/playlist?list=PLlayout0001') // saved
+  await yt.waitForFunction(() => /View on YT Series/.test(document.querySelector('.yt-series-add-btn')?.textContent || ''))
+  // Emulate the old orphaned content script: whenever no #yt-series-add-btn exists it
+  // appends its own "Add to Series" (id only, no class/owner); it also inserts one right away.
+  await yt.evaluate(() => {
+    const container = document.querySelectorAll('.ytPageHeaderViewModelScrollContainer')[1]
+    const legacy = () => { const b = document.createElement('button'); b.id = 'yt-series-add-btn'; b.textContent = 'Add to Series'; container.append(b) }
+    legacy()
+    new MutationObserver(() => { if (!document.querySelector('#yt-series-add-btn')) legacy() }).observe(document.body, { childList: true, subtree: true })
+  })
+  await yt.waitForTimeout(800)
+  const buttons = await yt.$$eval('#yt-series-add-btn, .yt-series-add-btn', list => list.map(b => ({ text: b.textContent, owned: Boolean(b.dataset.owner) })))
+  assert(buttons.length === 1 && buttons[0].owned && /View on YT Series/.test(buttons[0].text), `buttons: ${JSON.stringify(buttons)}`)
+  await yt.close()
+})
+
 await step('no uncaught errors or console errors on any page', async () => {
   assert(!consoleErrors.length, consoleErrors.slice(0, 5).join(' | '))
 })

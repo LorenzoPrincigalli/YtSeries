@@ -13,7 +13,10 @@ import { showToast } from './toast.js'
 
 const SIDEBAR_ID = 'yt-series-sidebar-section'
 const BUTTON_CLASS = 'yt-series-add-btn'
-const OWNED = `#${SIDEBAR_ID}, .${BUTTON_CLASS}`
+const BUTTON_ID = 'yt-series-add-btn'
+// Includes UI made by pre-1.2 copies of this script (id only, no class or
+// owner): an orphaned old copy keeps re-adding an "Add to Series" button.
+const OWNED = `#${SIDEBAR_ID}, .${BUTTON_CLASS}, #${BUTTON_ID}`
 const LOOKUP_RETRY_MS = 2000
 
 export class PageInjections {
@@ -126,7 +129,7 @@ export class PageInjections {
 
   /** @param {string} playlistId @param {boolean} saved */
   createButton(playlistId, saved) {
-    const button = h('button', { type: 'button', id: 'yt-series-add-btn', class: BUTTON_CLASS, dataset: { playlistId, owner: this.instance } })
+    const button = h('button', { type: 'button', id: BUTTON_ID, class: BUTTON_CLASS, dataset: { playlistId, owner: this.instance } })
     this.render(button, saved)
     button.addEventListener('click', async () => {
       if (button.dataset.saved === 'true') { this.openDashboard(); return }
