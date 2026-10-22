@@ -1,9 +1,63 @@
 rules_version = '2';
+
+// Each user can only touch their own subtree, and only with documents shaped
+// like the ones FirebaseSyncService writes (see seriesToFirestorePayload and
+// syncCollections). Anything else — extra fields, wrong types, oversized
+// maps, unknown collections — is rejected server-side.
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /users/{userId}/{document=**} {
-      allow read, write: if request.auth != null
-                         && request.auth.uid == userId;
+
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    function isTimestamp(value) {
+      return value is number && value >= 0;
+    }
+
+    function shortString(value, max) {
+      return value is string && value.size() <= max;
+    }
+
+    function validMetadata(m) {
+      return m is map
+        && m.keys().hasOnly(['title', 'thumbnail', 'channelTitle', 'channelId', 'videoCount', 'collection', 'collectionCover'])
+        && shortString(m.get('title', ''), 500)
+        && shortString(m.get('thumbnail', ''), 2048)
+        && shortString(m.get('channelTitle', ''), 500)
+        && shortString(m.get('channelId', ''), 64)
+        && (m.get('videoCount', 0) is number)
+        && shortString(m.get('collection', ''), 40)
+        && shortString(m.get('collectionCover', ''), 2048);
+    }
+
+    function validSeries(d) {
+      return d.keys().hasOnly(['deleted', 'deletedAt', 'metadata', 'lastEpisodeIndex', 'completed', 'completedAt', 'collectionAt', 'updatedAt', 'progress'])
+        && d.deleted is bool
+        && isTimestamp(d.updatedAt)
+        && d.progress is map
+        && d.progress.size() <= 10000
+        && (!('deletedAt' in d) || isTimestamp(d.deletedAt))
+        && (!('metadata' in d) || validMetadata(d.metadata))
+        && (!('lastEpisodeIndex' in d) || d.lastEpisodeIndex is number)
+        && (!('completed' in d) || d.completed is bool)
+        && (!('completedAt' in d) || isTimestamp(d.completedAt))
+        && (!('collectionAt' in d) || isTimestamp(d.collectionAt));
+    }
+
+    match /users/{userId}/series/{playlistId} {
+      allow read, delete: if isOwner(userId);
+      allow create, update: if isOwner(userId)
+        && playlistId.matches('^[A-Za-z0-9_-]{1,200}$')
+        && validSeries(request.resource.data);
+    }
+
+    match /users/{userId}/collectionState/registry {
+      allow read, delete: if isOwner(userId);
+      allow create, update: if isOwner(userId)
+        && request.resource.data.keys().hasOnly(['records'])
+        && request.resource.data.records is list
+        && request.resource.data.records.size() <= 500;
     }
   }
 }

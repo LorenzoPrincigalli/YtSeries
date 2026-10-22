@@ -5,3 +5,16 @@ compatibility_date = "2026-05-27"
 [[kv_namespaces]]
 binding = "CACHE_KV"
 id = "d23a00e598044e9495fb84b879335d90"
+
+# Atomic per-IP rate limiting (Workers Rate Limiting API). Without this
+# binding the Worker falls back to a best-effort daily KV counter.
+[[unsafe.bindings]]
+name = "RATE_LIMITER"
+type = "ratelimit"
+namespace_id = "1001"
+simple = { limit = 120, period = 60 }
+
+# Secrets (set with `wrangler secret put <NAME>`, never commit them):
+#   YT_API_KEY             YouTube Data API key
+#   ALLOWED_ORIGINS        comma-separated, e.g. chrome-extension://<EXTENSION_ID>
+#   YT_SERIES_CLIENT_TOKEN optional override of the public client token
