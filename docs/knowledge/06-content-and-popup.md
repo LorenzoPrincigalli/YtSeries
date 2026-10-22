@@ -13,7 +13,9 @@ Runs on all `https://www.youtube.com/*` pages.
 3. **SPA navigation** — listen `yt-navigate-finish`, re-run injection and video setup
 4. **Playlist button** — inject “Add to Series” button on playlist pages; checks `PLAYLIST_EXISTS` to show correct text
 5. **Progress tracking** — send `EPISODE_PROGRESS` periodically (throttled to 10s with 3s debounce)
-6. **Next Episode overlay** — show overlay 30s before video end with “Watch Next” button
+6. **Next Episode overlay** — show overlay 30s before video end with “Watch Next” button. It has a close control and `Escape`; closing suppresses it only for that video/playlist session. It is removed on pause, seek, ad playback, navigation and when the setting changes.
+
+The playlist button starts from `handlePageNavigation()` only. A request generation token invalidates stale `PLAYLIST_EXISTS` callbacks after SPA navigation; the callback checks the current playlist, connected target and existing button before inserting. The DOM observer retries when YouTube replaces the action bar, while a pending request prevents duplicate checks.
 
 ### Duplicated EVENTS
 
@@ -26,6 +28,7 @@ Content script defines local EVENTS object (must stay in sync with `src/shared/e
 - `PLAYLIST_ADD`
 - `PLAYLIST_EXISTS`
 - `STATE_GET`
+- `STATE_UPDATED` (background sends the reduced state to YouTube tabs so the overlay reacts immediately to settings/deletions)
 
 ### Fragile DOM selectors
 
@@ -69,7 +72,7 @@ Uses `state.license?.isPro` for badge — same UI vs enforcement caveat as tab.
 | ES modules | Yes | No | No |
 | Imports `events.js` | Yes | No | No |
 | Mutates store | No | No | No |
-| Listens `STATE_UPDATED` | Yes | No | No |
+| Listens `STATE_UPDATED` | Yes | Yes | No |
 
 ## Agent checklist
 

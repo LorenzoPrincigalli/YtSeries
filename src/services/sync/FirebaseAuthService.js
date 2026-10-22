@@ -5,6 +5,7 @@ import { logger } from '../../shared/logger.js'
 class FirebaseAuthService {
   constructor() {
     this._session = null
+    this._googleAccessToken = null
   }
 
   isConfigured() {
@@ -27,7 +28,7 @@ class FirebaseAuthService {
     return this._session?.email || null
   }
 
-  async tryRestoreSession() {
+  async tryRestoreSession({ refresh = true } = {}) {
     if (!this.isConfigured()) return null
 
     try {
@@ -38,11 +39,8 @@ class FirebaseAuthService {
         return null
       }
 
-      if (session.expiresAt && session.expiresAt > Date.now() + 60_000) {
-        this._session = session
-        return session
-      }
-
+      this._session = session
+      if (!refresh || (session.expiresAt && session.expiresAt > Date.now() + 60_000)) return session
       return this._refreshSession(session.refreshToken)
     } catch (err) {
       logger.warn('FirebaseAuth: restore failed:', err)
@@ -102,19 +100,19 @@ class FirebaseAuthService {
       expiresAt: Date.now() + (parseInt(data.expiresIn, 10) || 3600) * 1000
     }
 
+    this._googleAccessToken = googleToken
     await this._persistSession(session)
     this._session = session
     return session
   }
 
   async logout() {
-    const token = this._session?.googleAccessToken
-    if (token) {
-      try {
-        await chrome.identity.removeCachedAuthToken({ token })
-      } catch (_) {}
-    }
+    try {
+      if (chrome.identity.clearAllCachedAuthTokens) await chrome.identity.clearAllCachedAuthTokens()
+      else if (this._googleAccessToken) await chrome.identity.removeCachedAuthToken({ token: this._googleAccessToken })
+    } catch (_) {}
 
+    this._googleAccessToken = null
     this._session = null
     await chrome.storage.local.remove(SYNC_STORAGE_KEYS.AUTH)
   }
@@ -135,6 +133,7 @@ class FirebaseAuthService {
   }
 
   async _refreshSession(refreshToken) {
+    const previous = this._session
     const { apiKey } = getFirebaseConfig()
     const resp = await fetch(
       `https://securetoken.googleapis.com/v1/token?key=${encodeURIComponent(apiKey)}`,
@@ -160,7 +159,7 @@ class FirebaseAuthService {
       uid: data.user_id,
       idToken: data.id_token,
       refreshToken: data.refresh_token || refreshToken,
-      email: this._session?.email || null,
+      email: previous?.email || null,
       expiresAt: Date.now() + (parseInt(data.expires_in, 10) || 3600) * 1000
     }
 

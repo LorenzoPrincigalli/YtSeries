@@ -109,7 +109,8 @@ function updateSyncIndicator(syncStatus) {
     else mode = 'connected'
   }
 
-  dot.classList.add(mode === 'connected' ? 'connected' : mode === 'error' ? 'error' : mode === 'syncing' ? 'syncing' : '')
+  const modifier = mode === 'connected' ? 'connected' : mode === 'error' ? 'error' : mode === 'syncing' ? 'syncing' : null
+  if (modifier) dot.classList.add(modifier)
   dot.title = SYNC_HINTS[mode] || 'Cloud sync'
 
   if (hint && SYNC_HINTS[mode]) {

@@ -1,7 +1,9 @@
 // NOTE: Content scripts in MV3 cannot use ES module imports.
-// Keep EVENTS in sync with src/shared/events.js and TRANSLATIONS with src/shared/i18n.js.
+// Keep EVENTS in sync with src/shared/events.js (enforced by contentEventsSync.test.js).
+// Keep TRANSLATIONS in sync with src/shared/i18n.js.
 
 const EVENTS = {
+  STATE_UPDATED: 'STATE_UPDATED',
   OPEN_SERIES_TAB: 'OPEN_SERIES_TAB',
   EPISODE_WATCH: 'EPISODE_WATCH',
   EPISODE_PROGRESS: 'EPISODE_PROGRESS',
@@ -15,6 +17,7 @@ const TRANSLATIONS = {
   en: {
     nextEpisode: 'Next Episode',
     watchNext: 'Watch Next',
+    close: 'Close',
     added: 'Added',
     addToSeries: 'Add to Series',
     viewOnYtSeries: 'View on YT Series',
@@ -26,6 +29,7 @@ const TRANSLATIONS = {
   it: {
     nextEpisode: 'Prossimo Episodio',
     watchNext: 'Guarda Prossimo',
+    close: 'Chiudi',
     added: 'Aggiunto',
     addToSeries: 'Aggiungi a Serie',
     viewOnYtSeries: 'Vedi su YT Series',
@@ -106,37 +110,47 @@ let progressInterval = null
 let progressSaveTimeout = null
 let lastProgressSent = null
 let nextEpisodeOverlay = null
+let nextEpisodeRequestPending = false
+let overlayRequestGeneration = 0
+let playbackGeneration = 0
+let overlaySessionKey = null
+let overlayDismissedForSession = false
+let overlayEnabled = true
+let contentLanguage = 'system'
 let isContextValid = true
 let playerMode = 'normal'
 let addSeriesButtonInjected = false
+let addSeriesButtonPending = false
+let addSeriesRequestGeneration = 0
 let visibilityHandler = null
 let modeObserver = null
 let fullscreenHandler = null
+let overlayKeydownHandler = null
 
-function cleanupVideoListener() {
-  if (videoDetectionInterval) {
-    clearInterval(videoDetectionInterval)
-    videoDetectionInterval = null
+function getSessionKey(videoId, playlistId) {
+  return `${videoId || ''}::${playlistId || ''}`
+}
+
+function getContentTranslation() {
+  const lang = contentLanguage === 'system'
+    ? (navigator.language || 'en').split('-')[0]
+    : contentLanguage
+  return TRANSLATIONS[lang] || TRANSLATIONS.en
+}
+
+function invalidateOverlayRequest() {
+  overlayRequestGeneration++
+  nextEpisodeRequestPending = false
+}
+
+function removeNextEpisodeOverlay({ dismiss = false } = {}) {
+  if (dismiss && overlaySessionKey === getSessionKey(currentVideoId, currentPlaylistId)) {
+    overlayDismissedForSession = true
   }
-  if (progressInterval) {
-    clearInterval(progressInterval)
-    progressInterval = null
-  }
-  if (progressSaveTimeout) {
-    clearTimeout(progressSaveTimeout)
-    progressSaveTimeout = null
-  }
-  if (videoEndListener) {
-    videoEndListener.video.removeEventListener('ended', videoEndListener.handler)
-    videoEndListener = null
-  }
+
   if (nextEpisodeOverlay) {
     nextEpisodeOverlay.remove()
     nextEpisodeOverlay = null
-  }
-  if (visibilityHandler) {
-    document.removeEventListener('visibilitychange', visibilityHandler)
-    visibilityHandler = null
   }
   if (modeObserver) {
     modeObserver.disconnect()
@@ -145,6 +159,48 @@ function cleanupVideoListener() {
   if (fullscreenHandler) {
     document.removeEventListener('fullscreenchange', fullscreenHandler)
     fullscreenHandler = null
+  }
+  if (overlayKeydownHandler) {
+    document.removeEventListener('keydown', overlayKeydownHandler)
+    overlayKeydownHandler = null
+  }
+}
+
+function cancelPendingProgressSave() {
+  if (progressSaveTimeout) {
+    clearTimeout(progressSaveTimeout)
+    progressSaveTimeout = null
+  }
+}
+
+function stopProgressTracking() {
+  if (progressInterval) {
+    clearInterval(progressInterval)
+    progressInterval = null
+  }
+  cancelPendingProgressSave()
+}
+
+function cleanupVideoListener() {
+  playbackGeneration++
+  invalidateOverlayRequest()
+  if (videoDetectionInterval) {
+    clearInterval(videoDetectionInterval)
+    videoDetectionInterval = null
+  }
+  stopProgressTracking()
+  if (videoEndListener) {
+    const { video, onEnded, onSeeking, onPause, onPlaying } = videoEndListener
+    video.removeEventListener('ended', onEnded)
+    video.removeEventListener('seeking', onSeeking)
+    video.removeEventListener('pause', onPause)
+    video.removeEventListener('playing', onPlaying)
+    videoEndListener = null
+  }
+  removeNextEpisodeOverlay()
+  if (visibilityHandler) {
+    document.removeEventListener('visibilitychange', visibilityHandler)
+    visibilityHandler = null
   }
   lastProgressSent = null
 }
@@ -172,6 +228,18 @@ function updateOverlayPosition() {
   const mode = detectPlayerMode()
   playerMode = mode
 
+  const fullscreenElement = document.fullscreenElement
+  if (fullscreenElement?.tagName === 'VIDEO') {
+    invalidateOverlayRequest()
+    removeNextEpisodeOverlay()
+    return
+  }
+
+  const host = fullscreenElement || document.body
+  if (host && nextEpisodeOverlay.parentElement !== host) {
+    host.appendChild(nextEpisodeOverlay)
+  }
+
   // Remove existing mode classes
   nextEpisodeOverlay.classList.remove('mode-normal', 'mode-cinema', 'mode-full', 'mode-mini')
   nextEpisodeOverlay.classList.add(`mode-${mode}`)
@@ -185,7 +253,7 @@ function safeSendMessage(message, callback) {
   try {
     chrome.runtime.sendMessage(message, (response) => {
       if (chrome.runtime.lastError) {
-        const error = chrome.runtime.lastError.message
+        const error = String(chrome.runtime.lastError.message || '')
         if (error.includes('Extension context invalidated') || error.includes('message port closed')) {
           isContextValid = false
           cleanupVideoListener()
@@ -202,92 +270,201 @@ function safeSendMessage(message, callback) {
   }
 }
 
+function safeSendMessageAsync(message) {
+  return new Promise(resolve => safeSendMessage(message, response => {
+    resolve(response || { success: false, error: 'NO_RESPONSE' })
+  }))
+}
+
+function applyContentSettings(settings) {
+  if (!settings || typeof settings !== 'object') return
+  const wasEnabled = overlayEnabled
+  overlayEnabled = settings.nextEpisodeOverlay !== false
+  contentLanguage = settings.language || 'system'
+
+  if (wasEnabled && !overlayEnabled) {
+    invalidateOverlayRequest()
+    removeNextEpisodeOverlay()
+  }
+}
+
+function refreshContentSettings() {
+  safeSendMessage({ type: EVENTS.STATE_GET }, response => {
+    if (response?.success) applyContentSettings(response.state?.settings)
+  })
+}
+
+if (chrome.runtime?.onMessage) {
+  chrome.runtime.onMessage.addListener((message, sender) => {
+    if (!sender || sender.id !== chrome.runtime.id) return
+    if (message?.type !== EVENTS.STATE_UPDATED) return
+    applyContentSettings(message.state?.settings || message.settings)
+    if (
+      currentPlaylistId
+      && message.state?.series
+      && !message.state.series[currentPlaylistId]
+    ) {
+      invalidateOverlayRequest()
+      removeNextEpisodeOverlay()
+    }
+  })
+}
+
+function isAdPlaying() {
+  const player = document.querySelector('#movie_player, .html5-video-player')
+  return !!player?.classList?.contains('ad-showing')
+}
+
+function isPlaybackSessionCurrent(videoId, playlistId, generation) {
+  return generation === playbackGeneration
+    && currentVideoId === videoId
+    && currentPlaylistId === playlistId
+}
+
 function setupVideoEndDetection(videoId, playlistId) {
   cleanupVideoListener()
 
-  let attempts = 0
-  let paused = false
+  const generation = playbackGeneration
+  overlaySessionKey = getSessionKey(videoId, playlistId)
+  overlayDismissedForSession = false
+
+  const clearTransientOverlay = () => {
+    invalidateOverlayRequest()
+    removeNextEpisodeOverlay()
+    cancelPendingProgressSave()
+  }
+
+  const startProgressTracking = (video) => {
+    stopProgressTracking()
+    if (document.hidden || video.paused || video.ended) return
+
+    const tick = () => {
+      try {
+        if (!isPlaybackSessionCurrent(videoId, playlistId, generation)) return
+        if (document.hidden || video.paused || video.ended || video.seeking) return
+        if (videoEndListener?.video !== video) return
+
+        if (isAdPlaying()) {
+          clearTransientOverlay()
+          return
+        }
+
+        if (!(video.currentTime > 0) || !(video.duration > 0)) return
+
+        const progress = Math.min(99, Math.max(0, Math.round((video.currentTime / video.duration) * 100)))
+        const currentTime = Math.round(video.currentTime)
+        const duration = Math.round(video.duration)
+        const timeRemaining = duration - currentTime
+
+        if (timeRemaining > 30 || timeRemaining <= 0) {
+          if (nextEpisodeOverlay || nextEpisodeRequestPending) clearTransientOverlay()
+        } else if (
+          playlistId
+          && overlayEnabled
+          && !overlayDismissedForSession
+          && !nextEpisodeOverlay
+          && !nextEpisodeRequestPending
+        ) {
+          showNextEpisodeOverlay(videoId, playlistId, generation)
+        }
+
+        cancelPendingProgressSave()
+        progressSaveTimeout = setTimeout(() => {
+          if (!isPlaybackSessionCurrent(videoId, playlistId, generation)) return
+          if (document.hidden || video.paused || video.ended || video.seeking || isAdPlaying()) return
+          const now = Date.now()
+          if (!lastProgressSent || (now - lastProgressSent) >= 10000) {
+            safeSendMessage({
+              type: EVENTS.EPISODE_PROGRESS,
+              payload: {
+                videoId,
+                playlistId: playlistId || '',
+                progress,
+                currentTime,
+                duration
+              }
+            })
+            lastProgressSent = now
+          }
+        }, 3000)
+      } catch (err) {
+        console.warn('[YT Series] progress error:', err.message)
+      }
+    }
+
+    progressInterval = setInterval(tick, 5000)
+    tick()
+  }
+
+  const detachBoundVideo = () => {
+    if (!videoEndListener) return
+    const { video, onEnded, onSeeking, onPause, onPlaying } = videoEndListener
+    video.removeEventListener('ended', onEnded)
+    video.removeEventListener('seeking', onSeeking)
+    video.removeEventListener('pause', onPause)
+    video.removeEventListener('playing', onPlaying)
+    videoEndListener = null
+    stopProgressTracking()
+  }
+
+  const bindVideo = (video) => {
+    if (videoEndListener?.video === video) {
+      if (!progressInterval && !document.hidden && !video.paused && !video.ended) {
+        startProgressTracking(video)
+      }
+      return
+    }
+
+    detachBoundVideo()
+
+    const onEnded = () => {
+      clearTransientOverlay()
+      stopProgressTracking()
+      if (!isPlaybackSessionCurrent(videoId, playlistId, generation)) return
+      safeSendMessage({
+        type: EVENTS.EPISODE_WATCH,
+        payload: { videoId, playlistId: playlistId || '' }
+      })
+    }
+    const onSeeking = clearTransientOverlay
+    const onPause = () => {
+      clearTransientOverlay()
+      stopProgressTracking()
+    }
+    const onPlaying = () => {
+      if (isPlaybackSessionCurrent(videoId, playlistId, generation)) {
+        startProgressTracking(video)
+      }
+    }
+
+    video.addEventListener('ended', onEnded)
+    video.addEventListener('seeking', onSeeking)
+    video.addEventListener('pause', onPause)
+    video.addEventListener('playing', onPlaying)
+    videoEndListener = { video, onEnded, onSeeking, onPause, onPlaying }
+
+    startProgressTracking(video)
+  }
+
+  const pollForVideo = () => {
+    if (!isPlaybackSessionCurrent(videoId, playlistId, generation) || document.hidden) return
+    const video = document.querySelector('.video-stream, .html5-main-video')
+    if (video) bindVideo(video)
+    else detachBoundVideo()
+  }
 
   visibilityHandler = () => {
     if (document.hidden) {
-      paused = true
-      if (videoDetectionInterval) {
-        clearInterval(videoDetectionInterval)
-        videoDetectionInterval = null
-      }
+      clearTransientOverlay()
+      stopProgressTracking()
     } else {
-      paused = false
-      if (!videoDetectionInterval) startPolling()
+      pollForVideo()
     }
   }
   document.addEventListener('visibilitychange', visibilityHandler)
 
-  function startPolling() {
-    videoDetectionInterval = setInterval(() => {
-      attempts++
-      const video = document.querySelector('.video-stream, .html5-main-video')
-      if (video) {
-        clearInterval(videoDetectionInterval)
-        videoDetectionInterval = null
-
-        // Monitoraggio progresso con throttling e debouncing
-        if (progressInterval) clearInterval(progressInterval)
-        progressInterval = setInterval(() => {
-          try {
-            if (!video.paused && !video.ended && video.currentTime > 0 && video.duration > 0) {
-              const progress = Math.min(99, Math.round((video.currentTime / video.duration) * 100))
-              const currentTime = Math.round(video.currentTime)
-              const duration = Math.round(video.duration)
-
-              // Mostra overlay Next Episode quando mancano 30 secondi alla fine
-              const timeRemaining = duration - currentTime
-              if (timeRemaining <= 30 && timeRemaining > 0 && !nextEpisodeOverlay && playlistId) {
-                showNextEpisodeOverlay(videoId, playlistId)
-              }
-
-              // Debouncing: salva solo dopo 3 secondi di inattività
-              if (progressSaveTimeout) {
-                clearTimeout(progressSaveTimeout)
-              }
-
-              progressSaveTimeout = setTimeout(() => {
-                // Throttling: non salvare più spesso di ogni 10 secondi
-                const now = Date.now()
-                if (!lastProgressSent || (now - lastProgressSent) >= 10000) {
-                  safeSendMessage({
-                    type: EVENTS.EPISODE_PROGRESS,
-                    payload: {
-                      videoId,
-                      playlistId: playlistId || '',
-                      progress,
-                      currentTime,
-                      duration
-                    }
-                  })
-                  lastProgressSent = now
-                }
-              }, 3000) // 3 secondi di debouncing
-            }
-          } catch (err) { console.warn('[YT Series] progress error:', err.message) }
-        }, 5000) // check ogni 5 secondi
-
-        const onEnded = () => {
-          safeSendMessage({
-            type: EVENTS.EPISODE_WATCH,
-            payload: { videoId, playlistId: playlistId || '' }
-          })
-        }
-
-        video.addEventListener('ended', onEnded)
-        videoEndListener = { video, handler: onEnded }
-      } else if (attempts > 40) {
-        clearInterval(videoDetectionInterval)
-        videoDetectionInterval = null
-      }
-    }, 500)
-  }
-
-  startPolling()
+  pollForVideo()
+  videoDetectionInterval = setInterval(pollForVideo, 1000)
 }
 
 function isMusicVideo() {
@@ -315,57 +492,75 @@ function isMusicVideo() {
   return false
 }
 
-function showNextEpisodeOverlay(videoId, playlistId) {
-  if (nextEpisodeOverlay) return
+async function showNextEpisodeOverlay(videoId, playlistId, generation) {
+  const sessionKey = getSessionKey(videoId, playlistId)
+  if (
+    nextEpisodeOverlay
+    || nextEpisodeRequestPending
+    || !overlayEnabled
+    || overlayDismissedForSession
+    || overlaySessionKey !== sessionKey
+    || !isPlaybackSessionCurrent(videoId, playlistId, generation)
+    || isMusicVideo()
+    || isAdPlaying()
+  ) return
 
-  // Don't show overlay for music videos
-  if (isMusicVideo()) {
-    return
-  }
+  const requestGeneration = ++overlayRequestGeneration
+  nextEpisodeRequestPending = true
+  const isCurrent = () => requestGeneration === overlayRequestGeneration
+    && overlaySessionKey === sessionKey
+    && overlayEnabled
+    && !overlayDismissedForSession
+    && !nextEpisodeOverlay
+    && !isAdPlaying()
+    && isPlaybackSessionCurrent(videoId, playlistId, generation)
 
-  // Check if playlist is saved in the extension
-  safeSendMessage({
-    type: EVENTS.PLAYLIST_EXISTS,
-    payload: { playlistId }
-  }, (existsResponse) => {
-    if (!existsResponse || !existsResponse.success || !existsResponse.exists) {
-      return // Playlist not saved in extension
-    }
-
-    // Check if overlay is enabled in settings
-    safeSendMessage({ type: EVENTS.STATE_GET }, (response) => {
-      if (response && response.success && response.state && response.state.settings) {
-        if (!response.state.settings.nextEpisodeOverlay) {
-          return // Overlay disabled in settings
-        }
-      }
-
-      safeSendMessage({
-        type: EVENTS.GET_NEXT_EPISODE,
-        payload: { videoId, playlistId }
-      }, (nextResponse) => {
-        if (nextResponse && nextResponse.success && nextResponse.nextEpisode) {
-          createNextEpisodeOverlay(nextResponse.nextEpisode, playlistId, videoId)
-        }
-      })
+  try {
+    const existsResponse = await safeSendMessageAsync({
+      type: EVENTS.PLAYLIST_EXISTS,
+      payload: { playlistId }
     })
-  })
+    if (!isCurrent() || !existsResponse.success || !existsResponse.exists) return
+
+    const nextResponse = await safeSendMessageAsync({
+      type: EVENTS.GET_NEXT_EPISODE,
+      payload: { videoId, playlistId }
+    })
+    if (!isCurrent() || !nextResponse.success || !nextResponse.nextEpisode) return
+
+    createNextEpisodeOverlay(nextResponse.nextEpisode, playlistId, videoId, requestGeneration, generation)
+  } finally {
+    if (requestGeneration === overlayRequestGeneration) nextEpisodeRequestPending = false
+  }
 }
 
-function createNextEpisodeOverlay(nextEpisode, playlistId, currentVideoId) {
-  // Get language from settings
-  safeSendMessage({ type: EVENTS.STATE_GET }, (response) => {
-    if (!response || !response.success || !response.state) return
+function createNextEpisodeOverlay(nextEpisode, playlistId, sourceVideoId, requestGeneration, generation) {
+  if (
+    requestGeneration !== overlayRequestGeneration
+    || nextEpisodeOverlay
+    || !overlayEnabled
+    || overlayDismissedForSession
+    || !isPlaybackSessionCurrent(sourceVideoId, playlistId, generation)
+  ) return
 
-    const language = response.state.settings.language || 'system'
-    const lang = language === 'system' ? (navigator.language || 'en').split('-')[0] : language
-    const t = TRANSLATIONS[lang] || TRANSLATIONS.en
+    const t = getContentTranslation()
 
     nextEpisodeOverlay = document.createElement('div')
     nextEpisodeOverlay.className = 'yt-series-next-overlay'
+    nextEpisodeOverlay.setAttribute('role', 'dialog')
+    nextEpisodeOverlay.setAttribute('aria-label', t.nextEpisode)
+    nextEpisodeOverlay.setAttribute('aria-live', 'polite')
 
     const contentDiv = document.createElement('div')
     contentDiv.className = 'yt-series-next-content'
+
+    const closeBtn = document.createElement('button')
+    closeBtn.type = 'button'
+    closeBtn.className = 'yt-series-next-close'
+    closeBtn.setAttribute('aria-label', t.close)
+    closeBtn.textContent = '\u00D7'
+    closeBtn.addEventListener('click', () => removeNextEpisodeOverlay({ dismiss: true }))
+    contentDiv.appendChild(closeBtn)
 
     const infoDiv = document.createElement('div')
     infoDiv.className = 'yt-series-next-info'
@@ -382,8 +577,8 @@ function createNextEpisodeOverlay(nextEpisode, playlistId, currentVideoId) {
     infoDiv.appendChild(titleDiv)
 
     const btn = document.createElement('button')
+    btn.type = 'button'
     btn.className = 'yt-series-next-btn'
-    btn.id = 'ytSeriesNextBtn'
 
     const iconSpan = document.createElement('span')
     iconSpan.className = 'yt-series-next-icon'
@@ -418,30 +613,41 @@ function createNextEpisodeOverlay(nextEpisode, playlistId, currentVideoId) {
     fullscreenHandler = updateOverlayPosition
     document.addEventListener('fullscreenchange', fullscreenHandler)
 
-    document.getElementById('ytSeriesNextBtn').addEventListener('click', () => {
-      // Marca episodio corrente come visto
+    overlayKeydownHandler = (event) => {
+      if (event.key === 'Escape' && nextEpisodeOverlay) {
+        event.stopPropagation()
+        removeNextEpisodeOverlay({ dismiss: true })
+      }
+    }
+    document.addEventListener('keydown', overlayKeydownHandler)
+
+    btn.addEventListener('click', () => {
       safeSendMessage({
         type: EVENTS.EPISODE_WATCH,
-        payload: { videoId: currentVideoId, playlistId }
+        payload: { videoId: sourceVideoId, playlistId }
       })
 
-      // Apre il prossimo episodio
+      removeNextEpisodeOverlay({ dismiss: true })
       window.location.href = `https://www.youtube.com/watch?v=${nextEpisode.id}&list=${playlistId}`
     })
-  })
 }
 
 function handlePageNavigation() {
   const url = new URL(window.location.href)
   const videoId = url.searchParams.get('v')
   const listId = url.searchParams.get('list')
+  const videoSessionChanged = videoId !== currentVideoId || listId !== currentPlaylistId
 
   if (listId !== currentPlaylistId) {
-    currentPlaylistId = listId
     addSeriesButtonInjected = false
+    addSeriesButtonPending = false
+    addSeriesRequestGeneration++
+    document.querySelectorAll('#yt-series-add-btn').forEach(btn => btn.remove())
   }
 
-  if (videoId && videoId !== currentVideoId) {
+  currentPlaylistId = listId
+
+  if (videoId && videoSessionChanged) {
     currentVideoId = videoId
     setupVideoEndDetection(videoId, listId)
   } else if (!videoId) {
@@ -556,6 +762,7 @@ function ensureStyles() {
       }
     }
     .yt-series-next-content {
+      position: relative;
       background: rgba(0, 0, 0, 0.9);
       border-radius: 12px;
       padding: 16px;
@@ -563,8 +770,32 @@ function ensureStyles() {
       backdrop-filter: blur(10px);
       border: 1px solid rgba(255, 255, 255, 0.1);
     }
+    .yt-series-next-close {
+      position: absolute;
+      top: 6px;
+      right: 8px;
+      width: 30px;
+      height: 30px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 0;
+      border-radius: 50%;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.75);
+      font-size: 24px;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .yt-series-next-close:hover,
+    .yt-series-next-close:focus-visible {
+      background: rgba(255, 255, 255, 0.14);
+      color: #fff;
+      outline: none;
+    }
     .yt-series-next-info {
       margin-bottom: 12px;
+      padding-right: 24px;
     }
     .yt-series-next-label {
       font-size: 11px;
@@ -606,8 +837,16 @@ function ensureStyles() {
     .yt-series-next-btn:active {
       transform: scale(0.98);
     }
+    .yt-series-next-btn:focus-visible {
+      outline: 2px solid #fff;
+      outline-offset: 2px;
+    }
     .yt-series-next-icon {
       font-size: 16px;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .yt-series-next-overlay { animation: none; }
+      .yt-series-next-btn { transition: none; }
     }
   `
   document.head.appendChild(style)
@@ -682,6 +921,9 @@ function injectAddToSeriesButton() {
     return
   }
 
+  const requestGeneration = ++addSeriesRequestGeneration
+  addSeriesButtonPending = true
+
   const lang = (navigator.language || 'en').split('-')[0]
   const t = TRANSLATIONS[lang] || TRANSLATIONS.en
 
@@ -689,10 +931,20 @@ function injectAddToSeriesButton() {
     type: EVENTS.PLAYLIST_EXISTS,
     payload: { playlistId }
   }, (existsResponse) => {
+    if (requestGeneration !== addSeriesRequestGeneration) return
+    addSeriesButtonPending = false
+    if (new URL(window.location.href).searchParams.get('list') !== playlistId) return
+    if (!targetContainer.isConnected) {
+      addSeriesButtonInjected = false
+      queueMicrotask(tryInject)
+      return
+    }
+    if (document.querySelector('#yt-series-add-btn')) return
     const isAdded = existsResponse && existsResponse.success && existsResponse.exists
 
     const button = document.createElement('button')
     button.id = 'yt-series-add-btn'
+    button.dataset.playlistId = playlistId
     button.style.cssText = `
       background: #f1f1f1;
       color: #0f0f0f;
@@ -764,10 +1016,14 @@ function tryInject() {
 
 function startObserver() {
   ensureStyles()
-  tryInject()
   observer = new MutationObserver(() => {
     if (!document.querySelector('#yt-series-sidebar-section')) {
       tryInject()
+    }
+    if (new URL(window.location.href).searchParams.has('list') &&
+      !addSeriesButtonPending && !document.querySelector('#yt-series-add-btn')) {
+      addSeriesButtonInjected = false
+      injectAddToSeriesButton()
     }
   })
   observer.observe(document.body, { childList: true, subtree: true })

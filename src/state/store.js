@@ -3,12 +3,24 @@ import { logger } from '../shared/logger.js'
 
 class Store {
   constructor() {
+    this._saveChain = Promise.resolve()
+    this._savedSettings = null
+    this.reset()
+  }
+
+  reset() {
+    this._savedSettings = null
     this._state = {
       series: {},
+      activity: [],
+      activityReadAt: 0,
+      collections: [],
+      collectionRecords: [],
       settings: {
         theme: 'classic-red',
         autoRefresh: true,
         lastRefreshCheck: 0,
+        language: 'system',
         nextEpisodeOverlay: true
       },
       license: {
@@ -18,17 +30,13 @@ class Store {
   }
 
   getState() {
-    return {
-      series: { ...this._state.series },
-      settings: { ...this._state.settings },
-      license: { ...this._state.license }
-    }
+    return structuredClone(this._state)
   }
 
   getSeries() {
     const copy = {}
     for (const [id, s] of Object.entries(this._state.series)) {
-      copy[id] = { ...s, videos: [...s.videos] }
+      copy[id] = structuredClone(s)
     }
     return copy
   }
@@ -36,7 +44,7 @@ class Store {
   getSeriesById(playlistId) {
     const s = this._state.series[playlistId]
     if (!s) return null
-    return { ...s, videos: [...s.videos] }
+    return structuredClone(s)
   }
 
   /** Mutable reference for sync merge (do not expose to UI). */
@@ -71,58 +79,57 @@ class Store {
       }
     } catch (err) {
       logger.error('Store.loadFromStorage: sync read failed:', err)
+      throw err
     }
 
     try {
-      const localData = await storageService.getLocal([STORAGE_KEYS.SERIES])
+      const localData = await storageService.getLocal([STORAGE_KEYS.SERIES, STORAGE_KEYS.ACTIVITY, STORAGE_KEYS.ACTIVITY_READ_AT, STORAGE_KEYS.COLLECTIONS, STORAGE_KEYS.COLLECTION_RECORDS])
+      this._state.collections = Array.isArray(localData[STORAGE_KEYS.COLLECTIONS]) ? [...new Set(localData[STORAGE_KEYS.COLLECTIONS].filter(name => typeof name === 'string' && name.trim() && name.length <= 40).map(name => name.trim()))] : []
+      this.mergeCollectionRecords(localData[STORAGE_KEYS.COLLECTION_RECORDS] || [])
+      this._state.activityReadAt = Number.isSafeInteger(localData[STORAGE_KEYS.ACTIVITY_READ_AT]) && localData[STORAGE_KEYS.ACTIVITY_READ_AT] > 0 ? localData[STORAGE_KEYS.ACTIVITY_READ_AT] : 0
       if (localData[STORAGE_KEYS.SERIES]) {
+        const series = localData[STORAGE_KEYS.SERIES]
+        if (typeof series !== 'object' || Array.isArray(series) ||
+          Object.entries(series).some(([id, value]) =>
+            ['__proto__', 'constructor', 'prototype'].includes(id) || !value ||
+            value.playlistId !== id || !Array.isArray(value.videos) ||
+            value.videos.some(video => !video || typeof video.id !== 'string'))) {
+          throw new Error('Stored library is invalid; restore a valid backup before saving changes')
+        }
         this._state.series = localData[STORAGE_KEYS.SERIES]
+      }
+      if (localData[STORAGE_KEYS.ACTIVITY]) {
+        if (!Array.isArray(localData[STORAGE_KEYS.ACTIVITY])) throw new Error('Stored activity is invalid')
+        this._state.activity = localData[STORAGE_KEYS.ACTIVITY].filter(event => event && typeof event.type === 'string' && Number.isFinite(event.at)).slice(0, 100)
       }
     } catch (err) {
       logger.error('Store.loadFromStorage: local read failed:', err)
+      throw err
     }
 
+    this._savedSettings = JSON.stringify(this._state.settings)
     logger.info('Store loaded from storage')
   }
 
-  async saveToStorage(storageService) {
-    let syncOk = true
-
-    for (const key of [STORAGE_KEYS.SETTINGS]) {
-      const val = this._state[key]
-      const size = new TextEncoder().encode(JSON.stringify(val)).length
-      if (size > 4096) {
-        logger.warn(`Store.saveToStorage: ${key} is ${size} bytes, cannot sync. Skipping save for this key.`)
-        syncOk = false
-      } else {
-        try {
-          await storageService.set({ [key]: val })
-        } catch (setErr) {
-          const msg = setErr?.message || ''
-          const isQuota = msg.includes('QUOTA') || msg.includes('quota') || msg.includes('153')
-          if (isQuota) {
-            logger.warn(`Store.saveToStorage: sync quota exceeded for ${key}, data not saved for this key`)
-          } else {
-            logger.error(`Store.saveToStorage: sync write failed for ${key}:`, setErr)
-          }
-          syncOk = false
+  saveToStorage(storageService) {
+    const snapshot = this.getState()
+    const settingsJson = JSON.stringify(snapshot.settings)
+    const save = this._saveChain.then(async () => {
+      // Preserve ordering even when network callbacks and commands save together.
+      await storageService.setLocal({ [STORAGE_KEYS.SERIES]: snapshot.series, [STORAGE_KEYS.ACTIVITY]: snapshot.activity, [STORAGE_KEYS.ACTIVITY_READ_AT]: snapshot.activityReadAt, [STORAGE_KEYS.COLLECTIONS]: snapshot.collections, [STORAGE_KEYS.COLLECTION_RECORDS]: snapshot.collectionRecords })
+      if (settingsJson !== this._savedSettings) {
+        if (new TextEncoder().encode(settingsJson).length > 8192) {
+          throw new Error('Settings exceed Chrome sync storage quota')
         }
+        await storageService.set({ [STORAGE_KEYS.SETTINGS]: snapshot.settings })
+        this._savedSettings = settingsJson
       }
-    }
-
-    try {
-      await storageService.setLocal({ [STORAGE_KEYS.SERIES]: this._state.series })
-    } catch (localErr) {
-      logger.error('Store.saveToStorage: local write failed:', localErr)
-      throw localErr
-    }
-
-    if (!syncOk) {
-      logger.warn('Store.saveToStorage: sync write degraded, local write succeeded')
-    }
+    })
+    this._saveChain = save.catch(() => {})
+    return save
   }
 
-  addSeries(series) {
+  addSeries(series, { markDirty = true } = {}) {
     const existing = this._state.series[series.playlistId]
 
     const existingVideoMap = {}
@@ -132,12 +139,15 @@ class Store {
       }
     }
 
+    const newVideoIds = existing ? series.videos.filter(video => !existingVideoMap[video.id]).map(video => video.id) : []
     this._state.series[series.playlistId] = {
+      ...existing,
       ...series,
       lastEpisodeIndex: existing?.lastEpisodeIndex || 0,
       newEpisodesCount: existing ? Math.max(0, series.videos.length - (existing.videos?.length || 0)) : 0,
+      latestNewVideoId: newVideoIds[0] || null,
       completed: existing?.completed || false,
-      addedAt: existing?.addedAt || Date.now(),
+      addedAt: existing?.addedAt ?? Date.now(),
       lastRefreshedAt: Date.now(),
       videos: series.videos.map(v => {
         const existingVideo = existingVideoMap[v.id]
@@ -148,16 +158,155 @@ class Store {
           watchedAt: existingVideo?.watchedAt || null,
           resumeTime: existingVideo?.resumeTime || 0,
           totalWatchedTime: existingVideo?.totalWatchedTime || 0,
-          lastWatchedAt: existingVideo?.lastWatchedAt || null
+          lastWatchedAt: existingVideo?.lastWatchedAt || null,
+          progressUpdatedAt: existingVideo?.progressUpdatedAt || 0
         }
       })
     }
+    if (markDirty) this._touch(this._state.series[series.playlistId])
+    return { newVideoIds }
+  }
+
+  _touch(series) {
+    const at = Math.max(Date.now(), (series.localUpdatedAt || 0) + 1)
+    series.localUpdatedAt = at
+    return at
+  }
+
+  importSeries(series) {
+    const restored = structuredClone(series)
+    const existing = this._state.series[series.playlistId]
+    restored.localUpdatedAt = Math.max(existing?.localUpdatedAt || 0, restored.localUpdatedAt || 0)
+    const at = this._touch(restored)
+    restored.completedUpdatedAt = at
+    restored.collectionUpdatedAt = at
+    for (const video of restored.videos) video.progressUpdatedAt = at
+    const next = restored.videos.findIndex(video => !video.watched)
+    restored.lastEpisodeIndex = next < 0 ? Math.max(0, restored.videos.length - 1) : next
+    this._state.series[series.playlistId] = restored
+  }
+
+  replaceSeries(seriesMap) {
+    this._state.series = {}
+    for (const series of Object.values(seriesMap)) this.importSeries(series)
   }
 
   toggleSeriesComplete(playlistId) {
     const series = this._state.series[playlistId]
     if (!series) return
     series.completed = !series.completed
+    series.completedUpdatedAt = this._touch(series)
+  }
+
+  setSeriesCollection(playlistId, collection) {
+    const series = this._state.series[playlistId]
+    if (!series) return false
+    if ((series.collection || '') === collection) return false
+
+    const target = Object.values(this._state.series).filter(s => s.collection === collection)
+      .sort((a, b) => (b.collectionUpdatedAt || 0) - (a.collectionUpdatedAt || 0))[0]
+    series.collectionCover = collection ? target?.collectionCover || '' : ''
+    series.collection = collection
+    series.collectionUpdatedAt = this._touch(series)
+    return true
+  }
+
+  createCollection(name, ids = []) {
+    if (typeof name !== 'string' || !name.trim() || name.trim().length > 40) throw new Error('INVALID_COLLECTION')
+    name = name.trim()
+    if (this._state.collections.includes(name) || Object.values(this._state.series).some(s => s.collection === name)) throw new Error('COLLECTION_EXISTS')
+    if (!Array.isArray(ids) || ids.some(id => typeof id !== 'string' || !Object.hasOwn(this._state.series, id))) throw new Error('INVALID_COLLECTION_MOVE')
+    this._state.collections.push(name)
+    this._recordCollection(name, false)
+    for (const id of new Set(ids)) this.setSeriesCollection(id, name)
+    return name
+  }
+
+  editCollection(name, nextName, cover) {
+    if (typeof name !== 'string' || !name.trim() || typeof nextName !== 'string' || !nextName.trim() || nextName.trim().length > 40) throw new Error('INVALID_COLLECTION')
+    nextName = nextName.trim()
+    const members = Object.values(this._state.series).filter(s => s.collection === name)
+    if (!members.length && !this._state.collections.includes(name)) throw new Error('COLLECTION_NOT_FOUND')
+    if (nextName !== name && (this._state.collections.includes(nextName) || Object.values(this._state.series).some(s => s.collection === nextName))) throw new Error('COLLECTION_EXISTS')
+    const allowed = members.flatMap(s => [s.thumbnail, s.collectionCover, ...(s.videos || []).map(v => v.thumbnail)])
+    if (typeof cover !== 'string' || (cover && (!cover.startsWith('https://') || !allowed.includes(cover)))) throw new Error('INVALID_COVER')
+    this._state.collections = this._state.collections.map(value => value === name ? nextName : value)
+    if (name !== nextName) this._recordCollection(name, true)
+    this._recordCollection(nextName, false)
+    for (const series of members) {
+      series.collection = nextName
+      series.collectionCover = cover
+      series.collectionUpdatedAt = this._touch(series)
+    }
+    return members.map(s => s.playlistId)
+  }
+
+  moveCollectionSeries(ids, destination) {
+    if (!Array.isArray(ids) || !ids.length || ids.some(id => typeof id !== 'string' || !Object.hasOwn(this._state.series, id)) ||
+      typeof destination !== 'string' || destination.trim().length > 40) throw new Error('INVALID_COLLECTION_MOVE')
+    const unique = [...new Set(ids)].filter(id => (this._state.series[id].collection || '') !== destination.trim())
+    for (const id of unique) this.setSeriesCollection(id, destination.trim())
+    return unique
+  }
+
+  deleteCollection(name) {
+    if (typeof name !== 'string' || !name.trim()) throw new Error('INVALID_COLLECTION')
+    const ids = Object.values(this._state.series).filter(s => s.collection === name).map(s => s.playlistId)
+    this._state.collections = this._state.collections.filter(value => value !== name)
+    this._recordCollection(name, true)
+    for (const id of ids) this.setSeriesCollection(id, '')
+    return ids
+  }
+
+  _recordCollection(name, deleted) {
+    const at = Math.max(Date.now(), ...this._state.collectionRecords.map(record => record.at + 1))
+    this.mergeCollectionRecords([{ name, deleted, at }])
+  }
+
+  mergeCollectionRecords(records) {
+    const merged = new Map(this._state.collections.map(name => [name, { name, deleted: false, at: 1 }]))
+    for (const record of [...this._state.collectionRecords, ...(Array.isArray(records) ? records : [])]) {
+      if (!record || typeof record.name !== 'string' || !record.name.trim() || record.name.length > 40 || !Number.isSafeInteger(record.at) || record.at < 1 || typeof record.deleted !== 'boolean') continue
+      const old = merged.get(record.name)
+      if (!old || record.at > old.at || (record.at === old.at && record.deleted)) merged.set(record.name, { name: record.name, at: record.at, deleted: record.deleted })
+    }
+    this._state.collectionRecords = [...merged.values()].sort((a, b) => a.name.localeCompare(b.name))
+    this._state.collections = this._state.collectionRecords.filter(record => !record.deleted).map(record => record.name)
+    for (const record of this._state.collectionRecords.filter(value => value.deleted)) {
+      for (const series of Object.values(this._state.series)) {
+        if (series.collection === record.name && (series.collectionUpdatedAt || 0) <= record.at) {
+          series.collection = ''; series.collectionCover = ''; series.collectionUpdatedAt = record.at
+          series.localUpdatedAt = Math.max(series.localUpdatedAt || 0, record.at)
+        }
+      }
+    }
+  }
+
+  undoCollectionMove(entries) {
+    const changed = []
+    for (const entry of entries) {
+      const series = this._state.series[entry.id]
+      if (!series || series.collectionUpdatedAt !== entry.afterAt || (series.collection || '') !== entry.destination) continue
+      if (this._state.collectionRecords.some(record => record.name === entry.collection && record.deleted && record.at >= entry.afterAt)) continue
+      series.collection = entry.collection
+      series.collectionCover = entry.cover
+      series.collectionUpdatedAt = this._touch(series)
+      changed.push(entry.id)
+    }
+    return changed
+  }
+
+  recordActivity(type, { playlistId = null, videoId = null, title = '' } = {}) {
+    const at = Math.max(Date.now(), (this._state.activity[0]?.at || 0) + 1, this._state.activityReadAt + 1)
+    this._state.activity.unshift({ type, playlistId, videoId, title: String(title).slice(0, 160), at })
+    this._state.activity = this._state.activity.slice(0, 100)
+  }
+
+  markActivityRead(through) {
+    if (!Number.isSafeInteger(through) || through < 0) throw new Error('Invalid activity cursor')
+    const latest = Math.max(0, ...this._state.activity.map(event => event.at))
+    this._state.activityReadAt = Math.max(this._state.activityReadAt, Math.min(through, latest))
+    return this._state.activityReadAt
   }
 
   findPlaylistByVideoId(videoId) {
@@ -169,8 +318,23 @@ class Store {
     return null
   }
 
+  /** Resolve playlist for a video, falling back when playlistId hint is stale or wrong. */
+  resolvePlaylistForVideo(videoId, playlistIdHint) {
+    const id = typeof videoId === 'string' ? videoId.trim() : ''
+    if (!id) return null
+
+    const hint = typeof playlistIdHint === 'string' ? playlistIdHint.trim() : ''
+    if (hint) {
+      const series = this._state.series[hint]
+      if (series?.videos.some(v => v.id === id)) return { playlistId: hint, videoId: id }
+    }
+
+    const found = this.findPlaylistByVideoId(id)
+    return found ? { playlistId: found, videoId: id } : null
+  }
+
   playlistExists(playlistId) {
-    return playlistId in this._state.series
+    return Object.hasOwn(this._state.series, playlistId)
   }
 
   getNextEpisode(playlistId, currentVideoId) {
@@ -206,6 +370,7 @@ class Store {
       video.progress = 100
       video.resumeTime = video.duration || 0
       video.watchedAt = Date.now()
+      video.progressUpdatedAt = this._touch(series)
     }
 
     const nextIndex = series.videos.findIndex(v => !v.watched)
@@ -220,11 +385,12 @@ class Store {
     const video = series.videos.find(v => v.id === videoId)
     if (!video) return
 
-    if (video.watched) {
+    if (video.watched || video.progress || video.resumeTime) {
       video.watched = false
       video.progress = 0
       video.watchedAt = null
       video.resumeTime = 0
+      video.progressUpdatedAt = this._touch(series)
     }
 
     const nextIndex = series.videos.findIndex(v => !v.watched)
@@ -239,10 +405,15 @@ class Store {
     const video = series.videos.find(v => v.id === videoId)
     if (!video) return
 
+    if (![progress, currentTime, duration].every(Number.isFinite)) return
+    progress = Math.min(99, Math.max(0, progress))
+    currentTime = Math.max(0, duration > 0 ? Math.min(currentTime, duration) : currentTime)
+
     const previousResumeTime = video.resumeTime || 0
     video.resumeTime = currentTime
-    video.progress = progress
+    video.progress = video.watched ? 100 : progress
     video.lastWatchedAt = Date.now()
+    video.progressUpdatedAt = this._touch(series)
 
     // Calculate total watched time using delta from previous resumeTime
     if (currentTime > 0 && duration > 0) {
@@ -265,4 +436,4 @@ class Store {
 }
 
 const store = new Store()
-export { store }
+export { Store, store }

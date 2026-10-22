@@ -9,7 +9,7 @@
 
 ## Daily development
 
-- **Test**: `npm test` (Vitest, 86 tests, 5 files)
+- **Test**: `npm test` (Vitest; keep the current count in the final report rather than this page)
 - **Reload**: Click refresh on extension card in `chrome://extensions`
 - **Debug**: Right-click icon → Inspect popup, or open tab and use DevTools
 
@@ -18,7 +18,19 @@
 - **Search**: Enter triggers YouTube API search. Typing filters local series instantly.
 - **Theme**: `applyTheme()` sets all CSS variables for dark/light. Toolbar icon follows theme.
 - **Upsell**: Banner once/day, dismissible. No toast spam.
-- **Notifications**: "New Episode Notifications" toggle — Pro only, hidden for free users.
+- **Notifications**: "New Episode Notifications" toggle is available to every user.
+
+## Manual Cloud Sync smoke test
+
+Run this on two Chrome profiles after any change to sync:
+
+1. Load the same unpacked build in both profiles and sign in to the same Google account.
+2. Add a playlist in profile A; press **Sync now** and confirm it appears in profile B after Sync now.
+3. Mark one episode watched in A, then mark a different episode unwatched in B; sync both and confirm neither change is lost.
+4. Disconnect profile A, change progress or delete a series, reconnect, then use **Sync now**. Confirm the pending-change count returns to zero and the result reaches B.
+5. Clear data only after a backup; verify a remote failure reports an error and does not falsely clear the local library.
+6. Pause a partially watched episode, click Continue in the dashboard, and verify YouTube opens at the saved timestamp.
+7. Delete a series and use Undo. Then import a backup, open the Backups list, restore the pre-import snapshot, and confirm the expected library returns.
 
 ## Build for publishing
 

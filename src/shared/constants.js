@@ -1,5 +1,10 @@
 const STORAGE_KEYS = {
   SERIES: 'series',
+  ACTIVITY: 'activity',
+  ACTIVITY_READ_AT: 'activityReadAt',
+  COLLECTIONS: 'collections',
+  COLLECTION_RECORDS: 'collectionRecords',
+  BACKUPS: 'backups',
   SETTINGS: 'settings',
   LICENSE: 'license'
 }
@@ -7,19 +12,23 @@ const STORAGE_KEYS = {
 const SYNC_STORAGE_KEYS = {
   AUTH: '_firebaseAuth',
   QUEUE: '_syncQueue',
-  STATUS: '_syncStatus'
+  STATUS: '_syncStatus',
+  OWNER: '_syncOwnerUid'
 }
 
-const SYNC_PUSH_DEBOUNCE_MS = 3000
+// Cloud writes are deliberately slower than local progress persistence. Queue
+// entries are durable immediately; this delay only controls the opportunistic
+// flush while the MV3 service worker remains alive.
+const SYNC_PUSH_DEBOUNCE_MS = 60_000
+const SYNC_MAX_CONFLICT_RETRIES = 3
 
 const API = {
   YOUTUBE_BASE: 'https://www.googleapis.com/youtube/v3',
   WORKER_BASE: 'https://shy-snowflake-0680.lollo-princigalli.workers.dev'
 }
 
-const FREE_LIMITS = {
-  MAX_SERIES: 3
-}
+/** Must match cloudflare-worker/security.js DEFAULT_CLIENT_TOKEN (or Worker secret YT_SERIES_CLIENT_TOKEN). */
+const WORKER_CLIENT_TOKEN = 'yt-series-extension-v1'
 
 const THEME_COLORS = {
   'classic-red': {
@@ -92,7 +101,6 @@ const THEME_COLORS = {
   }
 }
 
-const LICENSE_CACHE_DAYS = 1
 const AUTO_REFRESH_INTERVAL_MINUTES = 1440
 const YOUTUBE_API_MAX_RESULTS = 50
 
@@ -106,10 +114,10 @@ export {
   STORAGE_KEYS,
   SYNC_STORAGE_KEYS,
   SYNC_PUSH_DEBOUNCE_MS,
+  SYNC_MAX_CONFLICT_RETRIES,
   API,
-  FREE_LIMITS,
+  WORKER_CLIENT_TOKEN,
   THEME_COLORS,
-  LICENSE_CACHE_DAYS,
   AUTO_REFRESH_INTERVAL_MINUTES,
   YOUTUBE_API_MAX_RESULTS,
   EXTENSION_ID,

@@ -92,14 +92,16 @@ Single collection: `users/{uid}/series/{playlistId}`
 Document shape:
 ```javascript
 {
+  deleted: false,
   metadata: {
-    title, thumbnail, channelTitle, channelId, videoCount
+    title, thumbnail, channelTitle, channelId, videoCount, collection, collectionCover
   },
   lastEpisodeIndex: number,
   completed: boolean,
+  completedAt: timestamp,
   updatedAt: timestamp,
   progress: {
-    videoId: { w: boolean, p: number, a: timestamp }
+    videoId: { w: boolean, p: number, r: seconds, t: seconds, a: timestamp }
     // only videos with watched/progress data
   }
 }
@@ -114,24 +116,27 @@ Mutation (tab/popup/content)
   → background handler
     → store mutation
       → chrome.storage.local save
-        → [if logged in] afterSeriesMutation()
-          → enqueuePush(playlistId)  // 3s debounce
-            → pushSeries() → Firestore PATCH
+        → [if logged in] durable queue entry in chrome.storage.local
+          → MV3 alarm / manual sync flushes queue
+            → read remote doc → merge per field → conditional Firestore PATCH
 ```
 
 ### Sync conflict resolution
 
-Last-writer-wins per field, with timestamp comparison:
-- `updatedAt` on each document determines which version is newer
-- Per-video progress: compares `watchedAt` timestamps
+Last-writer-wins per independently timestamped field, with a retry on Firestore's document-version precondition:
+- `completedAt` resolves completion independently of progress
+- `collectionAt` resolves assignment and selected cover together per series. Multi-series edits enqueue each member; they are not a multi-document Firestore transaction.
+- Per-video progress compares `progressUpdatedAt` (`a` remotely), including an explicit unwatched state
+- `updatedAt` is a logical mutation time, never a new timestamp merely because a manual sync ran
 - Metadata always pulled from YouTube API (source of truth)
-- Missing series on remote (user never synced) → uploaded during login
+- Remote deletes use a tombstone (`deleted`, `deletedAt`) so an offline deletion cannot be resurrected by a pull
+- A different Google account requires explicit confirmation before it is made the library owner
 
 ### Offline queue
 
-Failed pushes are queued in `chrome.storage.local` (`_syncQueue`) and retried:
-- On next `pullAndMerge` (init, manual sync)
-- Items are processed sequentially
+Every mutation is queued in `chrome.storage.local` (`_syncQueue`) before network work. The background `syncRetry` alarm and manual Sync process the queue sequentially. Entries are coalesced per account and playlist, persisted atomically, and retried with bounded backoff. Firestore list pagination is followed, so large libraries are not truncated.
+
+Reset is intentionally different: it first deletes remote documents and only then clears the local library and authentication. A remote failure leaves local data intact rather than falsely reporting a complete privacy reset.
 
 ## Current costs: $0/mo
 

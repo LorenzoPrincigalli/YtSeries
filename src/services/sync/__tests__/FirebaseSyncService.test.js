@@ -13,13 +13,27 @@ beforeAll(() => {
   vi.stubGlobal('chrome', { runtime: { getURL: () => '' } })
 })
 
+describe('collection cover sync', () => {
+  it('round trips name and cover together and rejects older changes', () => {
+    const series = {collection:'Design',collectionCover:'https://i.ytimg.com/a.jpg',collectionUpdatedAt:500,localUpdatedAt:500,videos:[]};
+    const remote = seriesToFirestorePayload(series);
+    const local = {videos:[],collectionUpdatedAt:100};
+    mergeRemoteIntoSeries(local,remote);
+    expect(local.collectionCover).toBe(series.collectionCover);
+    mergeRemoteIntoSeries(local,{metadata:{collection:'Old',collectionCover:''},collectionAt:200});
+    expect(local.collection).toBe('Design');
+    mergeRemoteIntoSeries(local,{metadata:{collection:'Design',collectionCover:''},collectionAt:600});
+    expect(local.collectionCover).toBe('');
+  });
+});
+
 describe('seriesLocalUpdatedAt', () => {
-  it('returns syncUpdatedAt when present', () => {
-    expect(seriesLocalUpdatedAt({ syncUpdatedAt: 500 })).toBe(500)
+  it('uses a local mutation timestamp rather than a remote sync timestamp', () => {
+    expect(seriesLocalUpdatedAt({ localUpdatedAt: 500, syncUpdatedAt: 900 })).toBe(500)
   })
 
-  it('falls back to lastRefreshedAt', () => {
-    expect(seriesLocalUpdatedAt({ lastRefreshedAt: 300, addedAt: 100 })).toBe(300)
+  it('uses the completion timestamp when it is newer', () => {
+    expect(seriesLocalUpdatedAt({ localUpdatedAt: 300, completedUpdatedAt: 400, addedAt: 100 })).toBe(400)
   })
 
   it('falls back to addedAt', () => {
@@ -75,6 +89,12 @@ describe('seriesToFirestorePayload', () => {
     expect(payload.metadata.channelTitle).toBe('Test Channel')
   })
 
+  it('includes a collection with an independent timestamp', () => {
+    const payload = seriesToFirestorePayload({ title: 'Test', collection: 'Documentaries', collectionUpdatedAt: 42, videos: [] })
+    expect(payload.metadata.collection).toBe('Documentaries')
+    expect(payload.collectionAt).toBe(42)
+  })
+
   it('includes progress for watched videos only', () => {
     const now = Date.now()
     const series = {
@@ -88,21 +108,18 @@ describe('seriesToFirestorePayload', () => {
       completed: false
     }
     const payload = seriesToFirestorePayload(series)
-    expect(payload.progress.v1).toEqual({ w: true, p: 100, a: now })
+    expect(payload.progress.v1).toMatchObject({ w: true, p: 100, a: now })
     // v2 has no watched/progress/watchedAt
     expect(payload.progress.v2).toBeUndefined()
     // v3 has progress > 0
-    expect(payload.progress.v3).toEqual({ w: false, p: 50, a: 0 })
+    expect(payload.progress.v3).toMatchObject({ w: false, p: 50, a: 0 })
   })
 
-  it('includes updatedAt as Date.now()', () => {
-    const before = Date.now()
+  it('uses the most recent local mutation as updatedAt', () => {
     const payload = seriesToFirestorePayload({
-      title: 'T', videos: [], lastEpisodeIndex: 0, completed: false
+      title: 'T', videos: [], lastEpisodeIndex: 0, completed: false, localUpdatedAt: 123
     })
-    const after = Date.now()
-    expect(payload.updatedAt).toBeGreaterThanOrEqual(before)
-    expect(payload.updatedAt).toBeLessThanOrEqual(after)
+    expect(payload.updatedAt).toBe(123)
   })
 })
 
@@ -141,6 +158,20 @@ describe('mergeRemoteIntoSeries', () => {
     mergeRemoteIntoSeries(series, remote)
     expect(series.videos[0].watched).toBe(true)
     expect(series.videos[0].watchedAt).toBe(500)
+  })
+
+  it('propagates an unwatched state newer than a previous watch', () => {
+    const series = makeSeries([{ id: 'v1', watched: true, watchedAt: 100, progressUpdatedAt: 100 }])
+    mergeRemoteIntoSeries(series, { updatedAt: 200, progress: { v1: { w: false, p: 0, r: 0, a: 200 } } })
+    expect(series.videos[0].watched).toBe(false)
+    expect(series.videos[0].progressUpdatedAt).toBe(200)
+  })
+
+  it('merges a newer remote collection without replacing YouTube metadata', () => {
+    const series = makeSeries([], { title: 'YouTube title', collection: 'Old', collectionUpdatedAt: 10 })
+    mergeRemoteIntoSeries(series, { updatedAt: 30, collectionAt: 30, metadata: { title: 'Stale title', collection: 'Films' }, progress: {} })
+    expect(series.collection).toBe('Films')
+    expect(series.title).toBe('YouTube title')
   })
 
   it('updates lastEpisodeIndex to next unwatched', () => {

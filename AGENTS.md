@@ -19,7 +19,7 @@ Istruzioni e riferimenti rapidi per AI coding agents che lavorano su questo prog
 - Installazione dipendenze: `npm install`
 - Generazione icone: `npm run icons`
 - Build/pack: vedi [08-dev-workflow.md](docs/knowledge/08-dev-workflow.md)
-- Test: `npm test` (Vitest, 81 test su 5 file)
+- Test: `npm test` (Vitest — run `npm test` for current file/test counts)
 - API key in `src/shared/config.js` — NON inserire chiavi reali (vanno nel bundle)
 
 ## Documentazione chiave

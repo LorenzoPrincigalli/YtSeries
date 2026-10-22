@@ -28,19 +28,29 @@ chrome.runtime.sendMessage({
 })
 ```
 
-Tab listens in `app.js` → `listenBroadcasts()`. Do not handle `_broadcast` as an incoming command.
+Tab listens in `app.js` → `listenBroadcasts()`. Do not handle `_broadcast` as an incoming command. The dashboard header bell opens the local activity panel.
 
 ## Event reference
 
 | Type | Direction | Payload | Response |
 |------|-----------|---------|----------|
 | `STATE_GET` | → BG | — | `{ success, state }` |
+| `ACTIVITY_MARK_READ` | → BG | `{ through: nonnegative safe integer }` | `{ success, activityReadAt }`; saves and broadcasts state |
 | `STATE_UPDATED` | BG → clients | — (includes `state`, `_broadcast`) | — |
 | `PLAYLIST_ADD` | → BG | `{ url: string }` | `{ success, series? }` or `LIMIT_REACHED` |
 | `SERIES_DELETE` | → BG | `{ playlistId }` | `{ success }` |
+| `SERIES_RESTORE` | → BG | `{ series }` | `{ success, state }` |
 | `SERIES_REFRESH` | → BG | `{ playlistId }` | `{ success, series? }` |
 | `SERIES_COMPLETE_TOGGLE` | → BG | `{ playlistId }` | `{ success, state? }` |
+| `SERIES_COLLECTION_SET` | → BG | `{ playlistId, collection }` | `{ success, state }` |
+| `COLLECTION_EDIT` | → BG | `{ name, nextName, cover }` | `{ success, state }`; validates name collision and cover before changing all members |
+| `COLLECTION_CREATE` | → BG | `{ name, ids?: playlistId[] }` | `{ success, state }`; validates name and all IDs before creating and assigning selected series; omitted/empty IDs create an empty collection |
+| `COLLECTION_MOVE` | → BG | `{ ids: playlistId[], destination }` | `{ success, state }`; validates all IDs before a bulk move; empty destination removes assignment |
 | `EPISODE_WATCH` | → BG | `{ videoId, playlistId? }` | `{ success, state? }` |
+| `EPISODE_UNWATCH` | → BG | `{ videoId, playlistId? }` | `{ success, state? }` |
+| `EPISODE_PROGRESS` | → BG | `{ videoId, playlistId?, progress, currentTime, duration }` | `{ success }` |
+| `GET_NEXT_EPISODE` | → BG | `{ playlistId, videoId }` | `{ success, nextEpisode }` |
+| `PLAYLIST_EXISTS` | → BG | `{ playlistId }` | `{ success, exists }` |
 | `SETTINGS_UPDATE` | → BG | partial settings object | `{ success, settings }` |
 | `LICENSE_VERIFY` | → BG | `{ key }` | `{ success, valid, reason? }` |
 | `ACTIVATE_LICENSE` | external → BG | `{ key }` (top-level, not payload) | `{ success, valid? }` |
@@ -49,6 +59,11 @@ Tab listens in `app.js` → `listenBroadcasts()`. Do not handle `_broadcast` as 
 | `FETCH_CHANNEL_PLAYLISTS` | → BG | `{ channelId, excludePlaylistId? }` | `{ success, playlists }` |
 | `SET_ICON_THEME` | → BG | `{ suffix: '' \| '_light' }` | `{ success }` |
 | `STORAGE_RESET` | → BG | — | `{ success }` |
+| `SYNC_LOGIN` | → BG | `{ allowAccountChange?: boolean }` | `{ success, syncStatus }` |
+| `SYNC_LOGOUT`, `SYNC_NOW`, `SYNC_STATUS` | → BG | — | `{ success, syncStatus }` |
+| `IMPORT_SERIES` | → BG | `{ series: object }` | `{ success, imported }` |
+| `BACKUP_LIST` | → BG | — | `{ success, backups }` |
+| `BACKUP_RESTORE` | → BG | `{ id }` | `{ success, state }` |
 
 ### `EPISODE_WATCH` notes
 
@@ -59,7 +74,7 @@ Tab listens in `app.js` → `listenBroadcasts()`. Do not handle `_broadcast` as 
 
 | Code | Meaning |
 |------|---------|
-| `LIMIT_REACHED` | Free tier, 3 series max (`FREE_LIMITS.MAX_SERIES`) |
+| `ACCOUNT_CHANGED` | Local library belongs to another Google account; the UI asks for explicit confirmation |
 | `FORBIDDEN` | Message from non-extension sender |
 | `RATE_LIMITED` | License verify backoff |
 | `UNKNOWN_TYPE` | Unhandled `message.type` |

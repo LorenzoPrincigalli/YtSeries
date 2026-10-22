@@ -1,16 +1,31 @@
 import { t } from "../../shared/i18n.js";
+import { isInProgress } from "../seriesView.js";
 
 const SVG_CAROUSEL_LEFT = '<svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>';
 const SVG_CAROUSEL_RIGHT = '<svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>';
 
 class HomePage {
   constructor() {
-    this.isPro = false;
     this._heroTimer = null;
   }
 
-  setPro(isPro) {
-    this.isPro = isPro;
+  renderLibraryGrid(series, onClick) {
+    const grid = document.createElement('div');
+    grid.className = 'collection-library-grid';
+    for (const item of series) {
+      const card = this._createCard(item, onClick);
+      card.tabIndex = 0;
+      card.setAttribute('role', 'button');
+      card.setAttribute('aria-label', item.title);
+      card.addEventListener('keydown', event => {
+        if (event.target === card && (event.key === 'Enter' || event.key === ' ')) {
+          event.preventDefault();
+          onClick(item);
+        }
+      });
+      grid.append(card);
+    }
+    return grid;
   }
 
   destroy() {
@@ -97,7 +112,7 @@ class HomePage {
 
       const btn = document.createElement("button");
       btn.className = "hero-btn hero-btn-play";
-      const btnLabel = watchedCount > 0 ? t("continue_watching") : t("start");
+      const btnLabel = isInProgress(s) ? t("continue_watching") : t("start");
       btn.textContent = `\u25B6 ${btnLabel}`;
       btn.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -516,7 +531,7 @@ class HomePage {
     playOverlay.appendChild(playBtn);
     thumb.appendChild(playOverlay);
 
-    if (hasNew && this.isPro && !isComplete) {
+    if (hasNew && !isComplete) {
       const badge = document.createElement("span");
       badge.className = "card-badge card-badge-new";
       badge.textContent = t("new_badge", { n: series.newEpisodesCount });

@@ -6,15 +6,21 @@ import { t, setLanguage } from "../shared/i18n.js";
 import { HomePage } from "./components/home.js";
 import { DetailPage } from "./components/detail.js";
 import { ModalManager } from "./components/modal.js";
+import { isInProgress } from "./seriesView.js";
+import { renderCollections } from "./components/collections.js";
+import { openCollectionEditor } from "./components/collectionEditor.js";
 
 let state = null;
 let syncStatus = null;
+let currentCollection = "";
 let currentFilter = "all";
+let currentSection = "home";
 let currentSearch = "";
 let currentSearchResults = null;
 let searchTimeout = null;
 let searchHintTimeout = null;
 let recommendedPlaylists = null;
+let activityPanelOpen = false;
 
 const homePage = new HomePage();
 const detailPage = new DetailPage();
@@ -78,6 +84,15 @@ window.addEventListener("yt-series-delete", async (e) => {
   if (response.success && state) {
     delete state.series[playlistId];
     render();
+    if (response.deletedSeries) {
+      showErrorToast(t('series_deleted_undo'), t('undo'), async () => {
+        const restored = await sendMessage(EVENTS.SERIES_RESTORE, { series: response.deletedSeries });
+        if (restored.success && restored.state) {
+          state = restored.state;
+          render();
+        }
+      });
+    }
   }
 });
 
@@ -147,13 +162,20 @@ function translateUI() {
     const attr = el.dataset.i18nAttr;
     if (attr) {
       el.setAttribute(attr, t(key));
-    } else {
+    } else if (!el.querySelector('svg, img')) {
       el.textContent = t(key);
     }
   });
 
   const settingsBtn = document.getElementById("settingsBtn");
   if (settingsBtn) settingsBtn.title = t("settings");
+  const activityBtn = document.getElementById('activityBtn');
+  if (activityBtn) {
+    activityBtn.title = t('activity_title');
+    activityBtn.setAttribute('aria-label', t('activity_title'));
+  }
+  const activityPanelClose = document.getElementById('activityPanelClose');
+  if (activityPanelClose) activityPanelClose.setAttribute('aria-label', t('close'));
 
   document.querySelectorAll("#themeSelect option").forEach((opt) => {
     const key = `theme_${opt.value.replace(/-/g, "_")}`;
@@ -274,7 +296,7 @@ async function handleImportData() {
     const response = await sendMessage(EVENTS.IMPORT_SERIES, { series: data });
     if (response.success) {
       await loadState();
-      showErrorToast(t('import_success'));
+      showSuccessToast(t('import_success'));
     } else {
       showErrorToast(response.message || t('import_error'));
     }
@@ -282,6 +304,39 @@ async function handleImportData() {
     showErrorToast(t('invalid_import_format'));
   }
   input.value = '';
+}
+
+async function handleShowBackups() {
+  const list = document.getElementById('backupList');
+  if (!list) return;
+  const response = await sendMessage(EVENTS.BACKUP_LIST);
+  list.innerHTML = '';
+  list.classList.remove('hidden');
+  if (!response.success || !response.backups?.length) {
+    list.textContent = t('no_backups');
+    return;
+  }
+  for (const backup of response.backups) {
+    const row = document.createElement('div');
+    row.className = 'backup-row';
+    const label = document.createElement('span');
+    label.textContent = `${new Date(backup.at).toLocaleString()} · ${backup.seriesCount} ${t('series_count')}`;
+    const restore = document.createElement('button');
+    restore.type = 'button';
+    restore.className = 'btn-secondary';
+    restore.textContent = t('restore_backup');
+    restore.addEventListener('click', async () => {
+      if (!await modalManager.confirm(t('restore_backup_confirm'))) return;
+      const result = await sendMessage(EVENTS.BACKUP_RESTORE, { id: backup.id });
+      if (result.success && result.state) {
+        state = result.state;
+        render();
+        list.classList.add('hidden');
+      } else showErrorToast(t('restore_backup_error'));
+    });
+    row.append(label, restore);
+    list.appendChild(row);
+  }
 }
 
 function handleBugReport() {
@@ -353,6 +408,22 @@ function renderChangelog() {
 function bindUIEvents() {
   document.getElementById("addPlaylistBtn").addEventListener("click", () => {
     modalManager.open("addPlaylistModal");
+  });
+
+  document.getElementById('activityBtn')?.addEventListener('click', (event) => {
+    event.stopPropagation();
+    toggleActivityPanel();
+  });
+  document.getElementById('activityPanelClose')?.addEventListener('click', () => toggleActivityPanel(false));
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && activityPanelOpen) {
+      toggleActivityPanel(false);
+      document.getElementById('activityBtn').focus();
+    }
+  });
+  document.addEventListener('click', (event) => {
+    const container = document.querySelector('.activity-menu-container');
+    if (activityPanelOpen && container && !container.contains(event.target)) toggleActivityPanel(false);
   });
 
   document.getElementById("settingsBtn").addEventListener("click", () => {
@@ -442,6 +513,7 @@ function bindUIEvents() {
   document
     .getElementById("importDataBtn")
     .addEventListener("click", () => document.getElementById("importFileInput").click());
+  document.getElementById("showBackupsBtn")?.addEventListener("click", handleShowBackups);
   document
     .getElementById("importFileInput")
     .addEventListener("change", handleImportData);
@@ -515,7 +587,7 @@ function bindUIEvents() {
   });
 
   document.getElementById("searchInput").addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && currentSearch) {
+    if (e.key === "Enter" && currentSearch && currentSection !== 'saved') {
       if (searchTimeout) clearTimeout(searchTimeout);
       if (searchHintTimeout) clearTimeout(searchHintTimeout);
       doYouTubeSearch();
@@ -542,6 +614,9 @@ async function doYouTubeSearch() {
   document.querySelectorAll(".nav-link[data-filter]").forEach((chip) => {
     chip.addEventListener("click", (e) => {
       e.preventDefault();
+      currentSection = "home";
+      currentCollection = "";
+      document.querySelector('.nav-link[data-view="saved"]').classList.remove('active');
       document
         .querySelectorAll(".nav-link[data-filter]")
         .forEach((c) => c.classList.remove("active"));
@@ -568,6 +643,9 @@ async function doYouTubeSearch() {
     .addEventListener("click", (e) => {
       e.preventDefault();
       currentFilter = "all";
+      currentSection = "home";
+      currentCollection = "";
+      document.querySelector('.nav-link[data-view="saved"]').classList.remove('active');
       currentSearch = "";
       currentSearchResults = null;
       document.getElementById("searchInput").value = "";
@@ -582,6 +660,20 @@ async function doYouTubeSearch() {
     });
 
   let ticking = false;
+  document.querySelector('.nav-link[data-view="saved"]').addEventListener('click', event => {
+    event.preventDefault();
+    currentSection = 'saved';
+    currentFilter = 'all';
+    currentCollection = '';
+    currentSearch = '';
+    currentSearchResults = null;
+    clearTimeout(searchTimeout);
+    clearTimeout(searchHintTimeout);
+    document.getElementById('searchInput').value = '';
+    document.getElementById('searchClear').classList.add('hidden');
+    document.querySelectorAll('.nav-link').forEach(link => link.classList.toggle('active', link.dataset.view === 'saved'));
+    renderHome();
+  });
   window.addEventListener(
     "scroll",
     () => {
@@ -625,15 +717,19 @@ function _detailCallbacks() {
     onBack: () => {},
     onRefresh: handleRefreshSeries,
     onCompleteToggle: handleSeriesCompleteToggle,
+    onCollectionSet: handleSeriesCollectionSet,
+    collections: collectionNames(),
     onAddSeries,
   };
 }
 
 function render() {
   renderHome();
+  updateActivityPanel();
 }
 
 function renderHome() {
+  homePage.destroy();
   const main = document.getElementById("mainContent");
   main.innerHTML = "";
 
@@ -645,7 +741,7 @@ function renderHome() {
     h2.textContent = `"${currentSearch}"`;
     searchHeader.appendChild(h2);
     // Show "Press Enter" hint if YouTube search hasn't been triggered yet
-    if (!currentSearchResults && searchHintTimeout) {
+    if (currentSection !== 'saved' && !currentSearchResults && searchHintTimeout) {
       const hint = document.createElement("p");
       hint.className = "search-header-hint";
       hint.textContent = t("search_hint");
@@ -655,6 +751,10 @@ function renderHome() {
   }
 
   const seriesArray = Object.values(state?.series || {});
+  if (currentSection === 'saved') {
+    renderSavedLibrary(main, seriesArray);
+    return;
+  }
 
   if (seriesArray.length === 0) {
     if (currentSearchResults) {
@@ -692,15 +792,18 @@ function renderHome() {
     }
   }
 
+  if (currentCollection && !seriesArray.some(s => s.collection === currentCollection)) currentCollection = "";
   const filtered = filterSeries(seriesArray);
-  const continueSeries = filtered.filter((s) => {
-    if (s.completed) return false;
-    const watched = s.videos.filter((v) => v.watched).length;
-    return watched > 0 && watched < s.videos.length;
-  });
+  if (!filtered.length && seriesArray.length) {
+    const empty = document.createElement('p');
+    empty.className = 'search-empty';
+    empty.textContent = t('filtered_empty');
+    main.appendChild(empty);
+  }
+  const continueSeries = filtered.filter(isInProgress);
   const newSeries = filtered.filter((s) => s.newEpisodesCount > 0);
 
-  if (!currentSearch && currentFilter === "all") {
+  if (!currentSearch && currentFilter === "all" && !currentCollection) {
     const heroSeries = buildHeroSeries(seriesArray);
     if (heroSeries.length > 0) {
       main.appendChild(
@@ -725,7 +828,7 @@ function renderHome() {
     }
   }
 
-  if (currentFilter === "all" || currentFilter === "watching") {
+  if (currentFilter === "all") {
     const watching = continueSeries.slice(0, 10);
     if (watching.length > 0) {
       main.appendChild(
@@ -741,7 +844,7 @@ function renderHome() {
     main.appendChild(
       homePage.renderRow(
         t("new_episodes"),
-        newSeries.slice(0, 10),
+        newSeries,
         onSeriesClick,
       ),
     );
@@ -751,7 +854,7 @@ function renderHome() {
     currentFilter === "watching" ||
     currentFilter === "completed"
   ) {
-    const allShown = filtered.slice(0, 20);
+    const allShown = filtered;
     if (allShown.length > 0) {
       main.appendChild(
         homePage.renderRow(t("my_series"), allShown, onSeriesClick),
@@ -791,7 +894,7 @@ function renderHome() {
 
   if (
     !currentSearch &&
-    currentFilter !== "completed" &&
+    currentFilter === "all" && !currentCollection &&
     seriesArray.length > 0
   ) {
     const recSection = document.createElement("div");
@@ -822,13 +925,13 @@ function filterSeries(seriesArray) {
     );
   }
 
+  if (currentCollection) {
+    filtered = filtered.filter((series) => series.collection === currentCollection);
+  }
+
   switch (currentFilter) {
     case "watching":
-      filtered = filtered.filter((s) => {
-        if (s.completed) return false;
-        const watched = s.videos.filter((v) => v.watched).length;
-        return watched > 0 && watched < s.videos.length;
-      });
+      filtered = filtered.filter(isInProgress);
       break;
     case "completed":
       filtered = filtered.filter(
@@ -859,6 +962,104 @@ function filterSeries(seriesArray) {
   });
 
   return filtered;
+}
+
+function renderSavedLibrary(main, seriesArray) {
+  if (currentCollection && !collectionNames().includes(currentCollection)) currentCollection = '';
+  renderCollectionFilters(main, seriesArray);
+  const heading = document.createElement('h2');
+  heading.className = 'collection-content-title';
+  heading.tabIndex = -1;
+  heading.textContent = currentCollection || t('all_saved');
+  main.append(heading);
+  if (currentCollection) {
+    const actions = document.createElement('div');
+    actions.className = 'collection-management';
+    for (const mode of ['add', 'edit', 'move', 'delete']) {
+      if (mode === 'move' && !seriesArray.some(s => s.collection === currentCollection)) continue;
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'btn-secondary';
+      button.textContent = t(mode === 'add' ? 'add_collection_series' : mode === 'delete' ? 'delete_collection' : mode === 'edit' ? 'edit_collection' : 'move_series');
+      button.addEventListener('click', () => manageCollection(mode));
+      actions.append(button);
+    }
+    main.append(actions);
+  }
+  const filtered = filterSeries(seriesArray);
+  if (!filtered.length) {
+    const empty = document.createElement('p');
+    empty.className = 'search-empty';
+    empty.textContent = t(currentCollection && !currentSearch ? 'collection_empty' : seriesArray.length ? 'filtered_empty' : 'saved_empty');
+    main.append(empty);
+  }
+  main.append(homePage.renderLibraryGrid(filtered, onSeriesClick));
+}
+
+function renderCollectionFilters(container, seriesArray) {
+  const section = renderCollections(seriesArray, currentCollection, name => {
+    currentCollection = name;
+    render();
+    const target = name ? document.querySelector('.collection-content-title') :
+      [...document.querySelectorAll('.collection-tile')].find(el => el.dataset.collection === '');
+    target?.focus({ preventScroll: true });
+  }, state?.collections || [], () => manageCollection('create'));
+  if (section) {
+    container.append(section);
+    if (currentCollection) {
+      const shelf = section.querySelector('.collections-shelf');
+      const selected = section.querySelector('[aria-pressed="true"]');
+      if (selected) shelf.scrollLeft = Math.max(0, selected.offsetLeft - shelf.offsetLeft - 12);
+    }
+  }
+}
+
+function collectionNames() {
+  return [...new Set([...(state?.collections || []), ...Object.values(state?.series || {}).map(s => s.collection).filter(Boolean)])].sort();
+}
+
+async function manageCollection(mode) {
+  const name = currentCollection;
+  if (mode === 'delete') {
+    if (!await modalManager.confirm(t('delete_collection_confirm', { name }))) return;
+    try {
+      const response = await sendMessage(EVENTS.COLLECTION_DELETE, { name });
+      if (!response.success) throw new Error();
+      state = response.state; currentCollection = ''; render();
+    } catch { showErrorToast(t('collection_save_error')); }
+    return;
+  }
+  openCollectionEditor({ name, mode,
+    series: Object.values(state.series).filter(s => mode === 'create' || mode === 'add' || s.collection === name),
+    collections: collectionNames(),
+    onSave: async payload => {
+      const response = await sendMessage(mode === 'create' ? EVENTS.COLLECTION_CREATE : mode === 'edit' ? EVENTS.COLLECTION_EDIT : EVENTS.COLLECTION_MOVE, payload);
+      if (!response.success) throw new Error(response.message || response.error);
+      state = response.state;
+      currentCollection = mode === 'create' ? payload.name : mode === 'edit' ? payload.nextName : name;
+      if (mode === 'create') {
+        currentSearch = '';
+        document.getElementById('searchInput').value = '';
+        document.getElementById('searchClear').classList.add('hidden');
+      }
+      render();
+      if (mode === 'move' || mode === 'add') {
+        showErrorToast(t('collection_move_result', { moved: response.moved, skipped: response.skipped }), response.undoToken ? t('undo') : null, response.undoToken ? async () => {
+          try {
+            const result = await sendMessage(EVENTS.COLLECTION_UNDO, { token: response.undoToken });
+            if (!result.success) throw new Error();
+            state = result.state; render();
+            showErrorToast(t('collection_undo_result', { restored: result.restored, skipped: result.skipped }));
+          } catch { showErrorToast(t('collection_undo_expired')); }
+        } : null);
+      }
+    }
+  });
+}
+
+function activityLocale() {
+  const language = state?.settings?.language || 'system';
+  return language === 'system' ? navigator.language : language;
 }
 
 function getThisWeekSeries(allSeries) {
@@ -910,8 +1111,9 @@ function onSeriesClick(series) {
 function onContinueWatching(series) {
   const nextEpisode = series.videos.find((v) => !v.watched);
   if (nextEpisode) {
+    const resumeAt = Number.isFinite(nextEpisode.resumeTime) && nextEpisode.resumeTime > 0 ? `&t=${Math.floor(nextEpisode.resumeTime)}` : "";
     window.open(
-      `https://www.youtube.com/watch?v=${nextEpisode.id}&list=${series.playlistId}`,
+      `https://www.youtube.com/watch?v=${nextEpisode.id}&list=${series.playlistId}${resumeAt}`,
       "_blank",
       "noopener",
     );
@@ -977,6 +1179,102 @@ async function handleSeriesCompleteToggle(playlistId) {
       detailPage.render(series, _detailCallbacks());
     }
     render();
+  }
+}
+
+async function handleSeriesCollectionSet(playlistId, collection) {
+  const response = await sendMessage(EVENTS.SERIES_COLLECTION_SET, { playlistId, collection });
+  if (response.success && response.state) {
+    state = response.state;
+    detailPage.render(state.series[playlistId], _detailCallbacks());
+    render();
+  } else {
+    showErrorToast(response.message || t("collection_save_error"));
+  }
+}
+
+function describeActivity(event) {
+  const series = event.playlistId ? state?.series?.[event.playlistId] : null;
+  const episode = series?.videos?.find((video) => video.id === event.videoId);
+  const title = episode?.title || series?.title || event.title || t('unknown_series');
+  const labels = { series_added: 'activity_series_added', series_deleted: 'activity_series_deleted', series_completed: 'activity_series_completed', series_reopened: 'activity_series_reopened', collection_changed: 'activity_collection_changed', episode_watched: 'activity_episode_watched', episode_unwatched: 'activity_episode_unwatched', library_imported: 'activity_library_imported' };
+  return t(labels[event.type] || 'recent_activity_item', { title });
+}
+
+function updateActivityPanel() {
+  const badge = document.getElementById('activityBadge');
+  const list = document.getElementById('activityPanelList');
+  if (!badge || !list) return;
+  const events = state?.activity || [];
+  const unread = events.filter(event => event.at > (state?.activityReadAt || 0)).length;
+  badge.textContent = unread > 99 ? '99+' : String(unread);
+  badge.classList.toggle('hidden', unread === 0);
+  document.getElementById('activityBtn')?.setAttribute('aria-label', t('activity_unread', { n: unread }));
+  list.innerHTML = '';
+  if (!events.length) {
+    const empty = document.createElement('p');
+    empty.className = 'activity-panel-empty';
+    empty.textContent = t('no_activity');
+    list.appendChild(empty);
+  } else {
+    for (const event of events) {
+      const targetSeries = state?.series?.[event.playlistId];
+      const targetVideo = targetSeries?.videos?.find(video => video.id === event.videoId);
+      const row = document.createElement(targetSeries ? (targetVideo ? 'a' : 'button') : 'div');
+      row.className = 'activity-panel-item';
+      if (targetSeries) {
+        row.classList.add('activity-panel-link');
+        if (targetVideo) {
+          const url = new URL('https://www.youtube.com/watch');
+          url.searchParams.set('v', targetVideo.id);
+          url.searchParams.set('list', targetSeries.playlistId);
+          if (!targetVideo.watched && targetVideo.resumeTime > 0) url.searchParams.set('t', Math.floor(targetVideo.resumeTime) + 's');
+          row.href = url.href;
+          row.target = '_blank';
+          row.rel = 'noopener noreferrer';
+        } else row.type = 'button';
+        row.addEventListener('click', () => {
+          toggleActivityPanel(false);
+          if (!targetVideo) onSeriesClick(targetSeries);
+        });
+      }
+      const marker = document.createElement('span');
+      marker.className = 'activity-panel-marker';
+      marker.textContent = event.type === 'episode_watched' ? '✓' : '•';
+      const body = document.createElement('span');
+      body.className = 'activity-panel-body';
+      body.textContent = describeActivity(event);
+      const time = document.createElement('time');
+      time.textContent = new Intl.RelativeTimeFormat(activityLocale(), { numeric: 'auto' }).format(Math.round((event.at - Date.now()) / 60000), 'minute');
+      row.append(marker, body, time);
+      list.appendChild(row);
+    }
+  }
+}
+
+function toggleActivityPanel(force) {
+  const panel = document.getElementById('activityPanel');
+  const button = document.getElementById('activityBtn');
+  if (!panel || !button) return;
+  activityPanelOpen = force === undefined ? !activityPanelOpen : force;
+  panel.classList.toggle('hidden', !activityPanelOpen);
+  button.setAttribute('aria-expanded', String(activityPanelOpen));
+  if (activityPanelOpen) {
+    updateActivityPanel();
+    markVisibleActivityRead();
+  }
+}
+
+async function markVisibleActivityRead() {
+  const through = Math.max(0, ...(state?.activity || []).map(event => event.at));
+  if (through <= (state?.activityReadAt || 0)) return;
+  try {
+    const response = await sendMessage(EVENTS.ACTIVITY_MARK_READ, { through });
+    if (!response.success) throw new Error(response.message);
+    state.activityReadAt = Math.max(state.activityReadAt || 0, response.activityReadAt);
+    updateActivityPanel();
+  } catch {
+    showErrorToast(t('activity_read_error'));
   }
 }
 
@@ -1244,6 +1542,7 @@ function populateSyncUI() {
     if (s.lastSyncAt) {
       statusLine += ` · ${t("sync_last_sync", { time: formatSyncTime(s.lastSyncAt) })}`;
     }
+    if (s.pendingChanges) statusLine += ` · ${t("sync_pending_changes", { count: s.pendingChanges })}`;
     statusEl.textContent = statusLine;
   } else {
     if (loginBtn) {
@@ -1271,7 +1570,11 @@ async function handleSyncLogin() {
   const loginBtn = document.getElementById("syncLoginBtn");
   if (loginBtn) loginBtn.disabled = true;
   try {
-    const response = await sendMessage(EVENTS.SYNC_LOGIN);
+    let response = await sendMessage(EVENTS.SYNC_LOGIN);
+    if (!response.success && response.error === 'ACCOUNT_CHANGED') {
+      const confirmed = await modalManager.confirm(response.message || 'Use this Google account for the local library?');
+      if (confirmed) response = await sendMessage(EVENTS.SYNC_LOGIN, { allowAccountChange: true });
+    }
     if (response.syncStatus) syncStatus = response.syncStatus;
     if (response.success) {
       await loadState();
@@ -1465,5 +1768,29 @@ function showErrorToast(message, actionLabel, actionFn) {
 
   document.body.appendChild(toast);
 
+  setTimeout(() => toast.remove(), 5000);
+}
+
+function showSuccessToast(message) {
+  const existing = document.querySelector(".toast-success");
+  if (existing) existing.remove();
+
+  const toast = document.createElement("div");
+  toast.className = "toast-success";
+  Object.assign(toast.style, {
+    position: "fixed",
+    bottom: "24px",
+    right: "24px",
+    padding: "12px 20px",
+    background: "var(--success)",
+    color: "#fff",
+    borderRadius: "8px",
+    fontSize: "14px",
+    zIndex: "300",
+    animation: "fadeIn 0.2s ease",
+    maxWidth: "480px",
+  });
+  toast.textContent = message;
+  document.body.appendChild(toast);
   setTimeout(() => toast.remove(), 5000);
 }

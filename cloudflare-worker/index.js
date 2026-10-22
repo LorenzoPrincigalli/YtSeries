@@ -1,6 +1,8 @@
 // YT Series — Cloudflare Worker
 // YouTube API proxy with 3-layer caching
 
+import { validateWorkerClient, checkDailyRateLimit } from './security.js'
+
 const YOUTUBE_BASE = 'https://www.googleapis.com/youtube/v3'
 
 const EDGE_TTL = {
@@ -61,7 +63,7 @@ export default {
         headers: {
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type'
+          'Access-Control-Allow-Headers': 'Content-Type, X-YT-Series-Client'
         }
       })
     }
@@ -77,6 +79,20 @@ export default {
     if (request.method !== 'GET') {
       return new Response(JSON.stringify({ error: 'Method not allowed' }), {
         status: 405, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      })
+    }
+
+    const auth = validateWorkerClient(request, env)
+    if (!auth.ok) {
+      return new Response(JSON.stringify({ error: auth.error }), {
+        status: auth.status, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      })
+    }
+
+    const rate = await checkDailyRateLimit(request, env)
+    if (!rate.ok) {
+      return new Response(JSON.stringify({ error: rate.error }), {
+        status: rate.status, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       })
     }
 

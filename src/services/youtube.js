@@ -1,4 +1,4 @@
-import { API, YOUTUBE_API_MAX_RESULTS } from '../shared/constants.js'
+import { API, YOUTUBE_API_MAX_RESULTS, WORKER_CLIENT_TOKEN } from '../shared/constants.js'
 import { logger } from '../shared/logger.js'
 
 class YouTubeApiService {
@@ -10,10 +10,19 @@ class YouTubeApiService {
     this.apiKey = key
   }
 
-  _buildUrl(path) {
+  _buildUrl(endpoint, params = {}) {
     const base = API.WORKER_BASE || API.YOUTUBE_BASE
-    const keySuffix = API.WORKER_BASE ? '' : `&key=${this.apiKey}`
-    return `${base}${path}${keySuffix}`
+    const path = String(endpoint).replace(/^\/+/, '')
+    const url = new URL(`${base.replace(/\/+$/, '')}/${path}`)
+
+    for (const [name, value] of Object.entries(params)) {
+      if (value !== undefined && value !== null && value !== '') {
+        url.searchParams.set(name, String(value))
+      }
+    }
+
+    if (!API.WORKER_BASE) url.searchParams.set('key', this.apiKey)
+    return url.toString()
   }
 
   _buildPlaylistResult(playlistId, playlist, videos) {
@@ -54,7 +63,11 @@ class YouTubeApiService {
     if (!channelId) return []
 
     try {
-      const data = await this._fetch(this._buildUrl(`/playlists?part=snippet,contentDetails&channelId=${channelId}&maxResults=10`))
+      const data = await this._fetch(this._buildUrl('/playlists', {
+        part: 'snippet,contentDetails',
+        channelId,
+        maxResults: 10
+      }))
 
       if (!data.items) return []
 
@@ -79,27 +92,49 @@ class YouTubeApiService {
 
   _extractPlaylistId(url) {
     if (typeof url !== 'string') return null
-    if (!url.startsWith('https://')) return null
+    try {
+      const parsed = new URL(url)
+      const allowedHosts = new Set([
+        'youtube.com',
+        'www.youtube.com',
+        'm.youtube.com',
+        'music.youtube.com',
+        'youtu.be'
+      ])
 
-    const patterns = [
-      /[?&]list=([^&]+)/,
-      /youtube\.com\/playlist\?list=([^&]+)/,
-      /youtu\.be\/.*[?&]list=([^&]+)/
-    ]
+      if (
+        parsed.protocol !== 'https:' ||
+        !allowedHosts.has(parsed.hostname) ||
+        (parsed.port && parsed.port !== '443') ||
+        parsed.username ||
+        parsed.password
+      ) {
+        return null
+      }
 
-    for (const pattern of patterns) {
-      const match = url.match(pattern)
-      if (match) return match[1]
+      const playlistId = parsed.searchParams.get('list')
+      if (!this._isSafeIdentifier(playlistId)) return null
+      return playlistId
+    } catch (_) {
+      return null
     }
+  }
 
-    return null
+  _isSafeIdentifier(value) {
+    if (typeof value !== 'string' || !/^[A-Za-z0-9_-]{1,200}$/.test(value)) return false
+    return !['__proto__', 'constructor', 'prototype'].includes(value.toLowerCase())
   }
 
   async search(query) {
     if (!query || !query.trim()) return { playlists: [], channels: [] }
 
     try {
-      const data = await this._fetch(this._buildUrl(`/search?part=snippet&type=playlist,channel&maxResults=15&q=${encodeURIComponent(query)}`))
+      const data = await this._fetch(this._buildUrl('/search', {
+        part: 'snippet',
+        type: 'playlist,channel',
+        maxResults: 15,
+        q: query
+      }))
 
       const items = data.items || []
       let playlists = []
@@ -141,7 +176,11 @@ class YouTubeApiService {
   }
 
   async _fetch(url) {
-    const response = await fetch(url, { signal: AbortSignal.timeout(15000) })
+    const headers = {}
+    if (API.WORKER_BASE) {
+      headers['X-YT-Series-Client'] = WORKER_CLIENT_TOKEN
+    }
+    const response = await fetch(url, { signal: AbortSignal.timeout(15000), headers })
 
     if (!response.ok) {
       const errorBody = await response.text()
@@ -157,7 +196,10 @@ class YouTubeApiService {
   }
 
   async _getPlaylistDetails(playlistId) {
-    const data = await this._fetch(this._buildUrl(`/playlists?part=snippet,contentDetails&id=${playlistId}`))
+    const data = await this._fetch(this._buildUrl('/playlists', {
+      part: 'snippet,contentDetails',
+      id: playlistId
+    }))
 
     if (!data.items || data.items.length === 0) {
       throw { code: 'PLAYLIST_NOT_FOUND', message: 'Playlist not found' }
@@ -171,7 +213,12 @@ class YouTubeApiService {
     let nextPageToken = ''
 
     do {
-      const data = await this._fetch(this._buildUrl(`/playlistItems?part=snippet,contentDetails&maxResults=${YOUTUBE_API_MAX_RESULTS}&playlistId=${playlistId}${nextPageToken ? `&pageToken=${nextPageToken}` : ''}`))
+      const data = await this._fetch(this._buildUrl('/playlistItems', {
+        part: 'snippet,contentDetails',
+        maxResults: YOUTUBE_API_MAX_RESULTS,
+        playlistId,
+        pageToken: nextPageToken
+      }))
 
       if (data.items) {
         for (const item of data.items) {
@@ -212,7 +259,10 @@ class YouTubeApiService {
 
     for (const chunk of chunks) {
       const ids = chunk.join(',')
-      const data = await this._fetch(this._buildUrl(`/videos?part=contentDetails&id=${ids}`))
+      const data = await this._fetch(this._buildUrl('/videos', {
+        part: 'contentDetails',
+        id: ids
+      }))
 
       if (data.items) {
         for (const item of data.items) {

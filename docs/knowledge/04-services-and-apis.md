@@ -94,7 +94,9 @@ To change worker URL: update `API.WORKER_BASE` in `src/shared/constants.js` and 
 
 | Name | Interval | Handler |
 |------|----------|---------|
-| `autoRefresh` | 1440 min | `autoRefresh()` — Pro only, refreshes all series |
+| `autoRefresh` | 1440 min | `autoRefresh()` — refreshes all series and creates at most one grouped new-episode notification |
+
+The grouped notification (`new_episodes_summary`) opens the first newly discovered episode directly on YouTube. If that target is no longer available, it opens the dashboard instead.
 | `licenseHeartbeat` | 1440 min | `reverifyLicense()` |
 
 ## Background API key loading

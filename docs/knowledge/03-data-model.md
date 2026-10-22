@@ -6,21 +6,28 @@ Storage keys are defined in `src/shared/constants.js` → `STORAGE_KEYS`.
 
 | Key | Area | Content | Size concern |
 |-----|------|---------|--------------|
-| `settings` | `chrome.storage.sync` | Theme, language, autoRefresh, apiKey | ~4 KB/item limit |
-| `license` | `chrome.storage.sync` | Pro key, flags, checksum | ~4 KB/item limit |
+| `settings` | `chrome.storage.sync` | Theme, language, autoRefresh, nextEpisodeOverlay, apiKey | 8 KB/item limit |
+| `license` | `chrome.storage.sync` | Legacy compatibility value (all features are enabled) | 8 KB/item limit |
 | `series` | `chrome.storage.local` | Map of all series (can be large) | Local quota |
+| `activity` | `chrome.storage.local` | Last 100 local user actions | Local quota |
+| `activityReadAt` | `chrome.storage.local` | Last acknowledged local activity cursor, default 0 | Scalar |
+| `collections` | `chrome.storage.local` | Names explicitly created using the plus card; retained when empty | Small list |
+| `backups` | `chrome.storage.local` | Five most recent automatic series snapshots | Local quota |
 
 **Never move `series` to sync** — it will exceed quota.
 
-`store.saveToStorage()` skips sync write for a key if JSON size > 4096 bytes.
+`store.saveToStorage()` serializes writes and rejects an oversize settings value instead of silently losing it. Series remain local.
 
 ## In-memory state shape
 
 ```javascript
 {
   series: { [playlistId]: Series },
-  settings: { theme, autoRefresh, lastRefreshCheck, language?, apiKey? },
-  license: { key, isPro, verifiedAt }
+  activity: Activity[],
+  activityReadAt: number,
+  collections: string[],
+  settings: { theme, autoRefresh, lastRefreshCheck, language, nextEpisodeOverlay, apiKey? },
+  license: { isPro: true }
 }
 ```
 
@@ -35,8 +42,25 @@ Storage keys are defined in `src/shared/constants.js` → `STORAGE_KEYS`.
 | `videos` | Video[] | Ordered by playlist position |
 | `lastEpisodeIndex` | number | Resume pointer |
 | `newEpisodesCount` | number | Set on refresh when new items appear |
+| `latestNewVideoId` | string/null | First episode discovered in the latest refresh; target for the grouped notification |
 | `completed` | boolean | User toggle |
+| `collection` | string | Optional user-defined collection, max 40 characters |
+| `collectionCover` | string | Optional HTTPS thumbnail selected from collection content; empty uses automatic mosaic; shared across members |
 | `addedAt`, `lastRefreshedAt` | number | Timestamps |
+| `localUpdatedAt` | number | Monotonic timestamp of the latest local library mutation |
+| `syncUpdatedAt`, `remoteUpdateTime` | number, string | Last merged logical timestamp and Firestore optimistic-concurrency version |
+| `completedUpdatedAt` | number | Timestamp of the completion toggle, independent of episode progress |
+| `collectionUpdatedAt` | number | Timestamp of the collection assignment for sync conflict resolution |
+
+`Activity` entries contain `{ type, playlistId?, videoId?, title?, at }`. They are intentionally local-only and are not sent to Firestore.
+
+Collection editing updates member names/covers and `collectionUpdatedAt`; a move inherits the destination's most recently updated cover. Rename collisions are rejected, not silently merged. Bulk input is validated before mutation. Both operations persist once and enqueue every affected series through the existing sync coordinator. Covers are included in backup normalization and cloud metadata, resolved with the collection timestamp. Concurrent cross-device edits still resolve per series, not as a cloud-wide collection transaction.
+
+Explicitly created collection names persist separately in `collections`, including with no series. UI lists the union of this registry and series assignments. Rename updates registry entries, and reset clears them. Empty names are local-only: the current Google sync and series-only backup format do not transfer standalone empty collections.
+
+`at` is monotonic for newly recorded activities, even within one millisecond. The badge counts entries with `at > activityReadAt`. `markActivityRead(through)` advances but never rewinds the cursor, capped to existing events. Opening the panel acknowledges its current snapshot through the background; later events remain unread. The cursor is persisted locally and removed on reset, not synced to Google.
+
+Automatic snapshots are made before deletion, import, full restore and reset. Restoring a snapshot replaces the library, retains a pre-restore snapshot, and reconciles its cloud mutations through the background.
 
 ## Video object
 
@@ -53,52 +77,37 @@ Storage keys are defined in `src/shared/constants.js` → `STORAGE_KEYS`.
 | `resumeTime` | number | Seconds; precise resume point |
 | `totalWatchedTime` | number | Seconds; total time actually watched (calculated via delta) |
 | `lastWatchedAt` | number | Timestamp of last watch session |
+| `progressUpdatedAt` | number | Timestamp of watched/unwatched/progress change; makes an unwatched state syncable |
 
 ## Settings defaults
 
 ```javascript
 {
   theme: 'classic-red',      // classic-red | ocean-blue | forest
-  autoRefresh: false,        // Pro + user enabled
+  autoRefresh: true,
   lastRefreshCheck: 0,
   language: 'system',        // system | en | it
+  nextEpisodeOverlay: true,
   apiKey: ''                 // optional if no worker
 }
 ```
 
-## License object
+## License object (legacy stub)
 
-| Field | Notes |
-|-------|-------|
-| `key` | Lemon Squeezy license key or null |
-| `isPro` | Persisted flag after successful verify |
-| `verifiedAt` | Timestamp of last successful verify |
-| `_checksum` | Written on save; tamper detection on load |
-
-### Tamper detection
-
-On load, checksum is recomputed from `{ key, isPro }`. Mismatch → reset to free, log `_tamperCount` in local storage.
-
-## Internal local keys (not in STORAGE_KEYS)
-
-| Key | Purpose |
-|-----|---------|
-| `_rateLimiter` | License verify backoff state |
-| `_tamperCount`, `_lastTamper` | Tamper audit |
+The product is **donation-only — all features enabled**. In memory, `license.isPro` is always `true`. Values in `chrome.storage.sync` under `license` are **ignored on load**. See [07-freemium-license.md](07-freemium-license.md).
 
 ## Store API (common)
 
 | Method | Effect |
 |--------|--------|
-| `getState()` / `getSeries()` / `getSeriesById()` | Shallow copy reads |
+| `getState()` / `getSeries()` / `getSeriesById()` | Deep-copy reads |
 | `addSeries(data)` | Upsert series from YouTube fetch/refresh |
 | `deleteSeries(playlistId)` | Remove |
 | `markEpisodeWatched(playlistId, videoId)` | Set watched + watchedAt |
 | `toggleSeriesComplete(playlistId)` | Flip completed |
+| `setSeriesCollection(playlistId, collection)` | Set or clear a user collection |
 | `updateSettings(partial)` | Merge settings |
-| `setLicense(partial)` | Merge license |
-| `isPro()` | **Runtime gate** — see [07-freemium-license.md](07-freemium-license.md) |
-| `canAddSeries()` | Pro or count < `FREE_LIMITS.MAX_SERIES` (3) |
+| `isPro()` / `canAddSeries()` | Always allow all features and unlimited library size |
 | `findPlaylistByVideoId(videoId)` | For content script watch events |
 | `loadFromStorage` / `saveToStorage` | Persistence |
 

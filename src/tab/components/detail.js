@@ -47,21 +47,18 @@ class DetailPage {
     document.body.appendChild(modal)
   }
 
-  async render(series, { onWatch, onUnwatch, onBack, onRefresh, onCompleteToggle, onAddSeries, isPro }) {
-
-    this.callbacks = { onWatch, onUnwatch, onBack, onRefresh, onCompleteToggle, onAddSeries }
+  async render(series, { onWatch, onUnwatch, onBack, onRefresh, onCompleteToggle, onCollectionSet, onAddSeries, collections }) {
+    this._closeFolderPicker?.(false)
+    this.callbacks = { onWatch, onUnwatch, onBack, onRefresh, onCompleteToggle, onCollectionSet, onAddSeries, collections }
     this.series = series
 
     const body = document.getElementById('detailModalBody')
     body.innerHTML = ''
 
     body.appendChild(this._renderInfo(series))
-    // Sezione "Nuovo episodio" in evidenza (solo Pro)
-    if (isPro) {
-      const newEp = this._findNewEpisode(series)
-      if (newEp) {
-        body.appendChild(this._renderNewEpisodeHighlight(series, newEp))
-      }
+    const newEp = this._findNewEpisode(series)
+    if (newEp) {
+      body.appendChild(this._renderNewEpisodeHighlight(series, newEp))
     }
     body.appendChild(this._renderEpisodes(series, this.callbacks))
     body.appendChild(this._renderMoreSection(series))
@@ -139,6 +136,7 @@ class DetailPage {
   }
 
   close() {
+    this._closeFolderPicker?.(false)
     document.getElementById('detailModal').classList.add('hidden')
     document.body.style.overflow = ''
     this.series = null
@@ -254,7 +252,8 @@ class DetailPage {
       resume.className = 'btn-primary'
       resume.textContent = `\u25B6 ${t('continue_ep', { n: nextIndex })}`
       resume.addEventListener('click', () => {
-        window.open(`https://www.youtube.com/watch?v=${nextEpisode.id}&list=${series.playlistId}`, '_blank', 'noopener')
+        const resumeAt = Number.isFinite(nextEpisode.resumeTime) && nextEpisode.resumeTime > 0 ? `&t=${Math.floor(nextEpisode.resumeTime)}` : ''
+        window.open(`https://www.youtube.com/watch?v=${nextEpisode.id}&list=${series.playlistId}${resumeAt}`, '_blank', 'noopener')
       })
       actions.appendChild(resume)
     }
@@ -272,15 +271,99 @@ class DetailPage {
     refresh.addEventListener('click', () => this.callbacks.onRefresh(series.playlistId))
     actions.appendChild(refresh)
 
+    const folderButton = document.createElement('button')
+    folderButton.type = 'button'
+    folderButton.className = `folder-icon-btn${series.collection ? ' assigned' : ''}`
+    folderButton.title = t('collection')
+    folderButton.setAttribute('aria-label', t('collection'))
+    folderButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 6.5A2.5 2.5 0 0 1 6 4h4l2 2h6a2.5 2.5 0 0 1 2.5 2.5v8A2.5 2.5 0 0 1 18 19H6a2.5 2.5 0 0 1-2.5-2.5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>'
+    folderButton.addEventListener('click', () => this._openFolderPicker(series, folderButton))
+    actions.appendChild(folderButton)
+
     const del = document.createElement('button')
     del.className = 'btn-secondary text-error'
-    del.textContent = `\uD83D\uDDD1 ${t('delete')}`
+    del.title = t('delete')
+    del.setAttribute('aria-label', t('delete'))
+    del.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14m-9 0V5h4v2m-7 0 1 13h8l1-13m-6 3v7m4-7v7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
     del.addEventListener('click', () => this._confirmDelete(series))
     actions.appendChild(del)
 
     info.appendChild(actions)
     container.appendChild(info)
     return container
+  }
+
+  _openFolderPicker(series, anchor) {
+    this._closeFolderPicker?.(false)
+    const picker = document.createElement('div')
+    picker.id = 'folderPicker'
+    picker.className = 'folder-picker'
+    picker.setAttribute('role', 'dialog')
+    picker.setAttribute('aria-label', t('collection'))
+    const heading = document.createElement('strong')
+    heading.textContent = t('folder_picker')
+    picker.appendChild(heading)
+
+    const apply = (folder) => {
+      this._closeFolderPicker()
+      this.callbacks.onCollectionSet(series.playlistId, folder)
+    }
+    const clear = document.createElement('button')
+    clear.type = 'button'
+    clear.className = 'folder-picker-option'
+    clear.textContent = t('no_folder')
+    clear.addEventListener('click', () => apply(''))
+    picker.appendChild(clear)
+    for (const folder of this.callbacks.collections || []) {
+      const option = document.createElement('button')
+      option.type = 'button'
+      option.className = `folder-picker-option${folder === series.collection ? ' selected' : ''}`
+      option.textContent = folder
+      option.addEventListener('click', () => apply(folder))
+      picker.appendChild(option)
+    }
+    const create = document.createElement('div')
+    create.className = 'folder-picker-create'
+    const input = document.createElement('input')
+    input.maxLength = 40
+    input.placeholder = t('new_folder')
+    input.setAttribute('aria-label', t('new_folder'))
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.textContent = t('create_folder')
+    button.addEventListener('click', () => { if (input.value.trim()) apply(input.value.trim()) })
+    input.addEventListener('keydown', event => { if (event.key === 'Enter' && input.value.trim()) apply(input.value.trim()) })
+    create.append(input, button)
+    picker.appendChild(create)
+    document.body.appendChild(picker)
+    const rect = anchor.getBoundingClientRect()
+    picker.style.top = `${Math.max(12, Math.min(window.innerHeight - picker.offsetHeight - 12, rect.bottom + 8))}px`
+    picker.style.left = `${Math.max(12, Math.min(window.innerWidth - picker.offsetWidth - 12, rect.left))}px`
+    const outside = event => {
+      if (!picker.contains(event.target) && !anchor.contains(event.target)) this._closeFolderPicker(false)
+    }
+    const keyboard = event => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        this._closeFolderPicker()
+      }
+    }
+    const resize = () => this._closeFolderPicker(false)
+    this._closeFolderPicker = (restoreFocus = true) => {
+      document.removeEventListener('pointerdown', outside)
+      document.removeEventListener('keydown', keyboard, true)
+      window.removeEventListener('resize', resize)
+      picker.remove()
+      anchor.setAttribute('aria-expanded', 'false')
+      this._closeFolderPicker = null
+      if (restoreFocus && anchor.isConnected) anchor.focus()
+    }
+    anchor.setAttribute('aria-expanded', 'true')
+    document.addEventListener('pointerdown', outside)
+    document.addEventListener('keydown', keyboard, true)
+    window.addEventListener('resize', resize)
+    input.focus()
   }
 
   _renderEpisodes(series, callbacks) {
@@ -366,7 +449,7 @@ class DetailPage {
     img.src = video.thumbnail || ''
     img.alt = video.title
     img.loading = 'lazy'
-    img.onerror = function () { this.src = '' }
+    img.onerror = function () { this.onerror = null; this.removeAttribute('src') }
     card.appendChild(img)
 
     // Progress bar overlay
