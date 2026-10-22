@@ -3,7 +3,7 @@
 import { EVENTS } from '../shared/events.js'
 import { t } from '../shared/i18n.js'
 import { logger } from '../shared/logger.js'
-import { byId, h, mount } from './core/dom.js'
+import { byId, h, mount } from '../shared/dom.js'
 import { getState, setServer, setUi, subscribe } from './core/store.js'
 import { safeRender, installGlobalErrorHandlers } from './core/errorBoundary.js'
 import { initModalTriggers } from './ui/modal.js'

@@ -44,7 +44,10 @@ const EVENTS = {
   BACKUP_LIST: 'BACKUP_LIST',
   BACKUP_RESTORE: 'BACKUP_RESTORE',
 
-  LOAD_DEMO_DATA: 'LOAD_DEMO_DATA'
+  LOAD_DEMO_DATA: 'LOAD_DEMO_DATA',
+
+  // Content script only: the minimal settings the YouTube integration needs.
+  CONTENT_SETTINGS_GET: 'CONTENT_SETTINGS_GET'
 }
 
 export { EVENTS }

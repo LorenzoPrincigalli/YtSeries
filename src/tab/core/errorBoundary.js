@@ -1,7 +1,7 @@
 // @ts-check
 import { t } from '../../shared/i18n.js'
 import { logger } from '../../shared/logger.js'
-import { h, mount } from './dom.js'
+import { h, mount } from '../../shared/dom.js'
 import { toast } from '../ui/feedback.js'
 
 const log = logger.child('ui')

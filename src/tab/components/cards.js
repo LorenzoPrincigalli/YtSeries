@@ -2,8 +2,8 @@
 // Presentational building blocks for the home and library views. Each
 // function takes data + callbacks and returns DOM; none reads global state.
 import { t } from '../../shared/i18n.js'
-import { h, img } from '../core/dom.js'
-import { svg } from '../core/icons.js'
+import { h, img } from '../../shared/dom.js'
+import { svg } from '../../shared/icons.js'
 import { isInProgress, isComplete, cardProgress, heroProgress, nextEpisode, watchUrl } from '../seriesView.js'
 
 const SCROLL_STEP = 312

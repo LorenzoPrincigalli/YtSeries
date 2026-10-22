@@ -50,12 +50,20 @@ function syncCommand(operation, fallbackCode) {
 
 const appRoutes = {
   [EVENTS.STATE_GET]: { mode: 'read', handler: ctx => ({ success: true, state: ctx.store.getState(), syncStatus: ctx.sync.status() }) },
-  [EVENTS.OPEN_SERIES_TAB]: { mode: 'read', handler: async ctx => { await openSeriesTab(ctx); return { success: true } } },
+  [EVENTS.OPEN_SERIES_TAB]: { contexts: ['extension', 'content'], mode: 'read', handler: async ctx => { await openSeriesTab(ctx); return { success: true } } },
   [EVENTS.PLAYLIST_SEARCH]: { mode: 'read', schema: s.object({ query: s.string({ min: 1, max: 200 }) }), handler: search },
   [EVENTS.FETCH_CHANNEL_PLAYLISTS]: {
     mode: 'read',
     schema: s.object({ channelId: s.id(), excludePlaylistId: s.optional(s.string({ max: 200 })) }),
     handler: channelPlaylists
+  },
+  [EVENTS.CONTENT_SETTINGS_GET]: {
+    contexts: ['content'],
+    mode: 'read',
+    handler: ctx => {
+      const { nextEpisodeOverlay, language } = ctx.store.getSettings()
+      return { success: true, settings: { nextEpisodeOverlay: nextEpisodeOverlay !== false, language: language || 'system' } }
+    }
   },
   [EVENTS.SYNC_STATUS]: { mode: 'read', handler: ctx => ({ success: true, syncStatus: ctx.sync.status() }) },
   [EVENTS.SYNC_LOGIN]: {

@@ -140,8 +140,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return
   }
 
+  // Extension pages (dashboard, popup) have a chrome-extension:// URL; anything
+  // else from our own extension id is the content script on youtube.com.
+  const senderContext = sender.url?.startsWith(chrome.runtime.getURL('')) ? 'extension' : 'content'
+
   ensureInit()
-    .then(() => dispatch(message, ctx))
+    .then(() => dispatch(message, ctx, senderContext))
     .catch(err => {
       log.error('Initialisation failed while handling', message.type, err)
       const code = READ_ONLY_BEFORE_INIT.has(message.type) ? 'STATE_UNAVAILABLE' : 'INIT_FAILED'

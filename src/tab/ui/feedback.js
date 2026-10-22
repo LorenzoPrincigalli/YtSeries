@@ -1,7 +1,7 @@
 // @ts-check
 import { t } from '../../shared/i18n.js'
 import { toAppError } from '../../shared/errors.js'
-import { h } from '../core/dom.js'
+import { h } from '../../shared/dom.js'
 
 const TOAST_MS = 5000
 // Codes whose translated message is more useful than the action's generic one.

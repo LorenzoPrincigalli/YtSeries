@@ -1,148 +1,93 @@
-// NOTE: Popup cannot import ES modules (MV3 restriction).
-// Duplicate minimal constants here. Keep in sync with src/shared/constants.js.
+// Toolbar popup: library stats, sync indicator and shortcuts. Bundled by
+// esbuild, so it shares events, i18n and theme tokens with the dashboard.
+import { EVENTS } from '../shared/events.js'
+import { SUPPORT_URL, THEMES } from '../shared/constants.js'
+import { t, setLanguage } from '../shared/i18n.js'
+import { logger } from '../shared/logger.js'
 
-const SUPPORT_URL = 'https://buymeacoffee.com/ytseriessun'
+const log = logger.child('popup')
+const byId = id => document.getElementById(id)
 
-const THEME_COLORS = {
-  'classic-red': {
-    bg: '#0f0f0f', surface: '#212121', primary: '#ff0000', primaryRgb: '255, 0, 0', primaryHover: '#cc0000',
-    text: '#f1f1f1', textMuted: '#aaaaaa', cardBg: '#1a1a1a', cardHover: '#2a2a2a',
-    border: '#333', modalBg: '#212121', danger: '#E50914', success: '#2ecc71',
-    warning: '#f97316', borderLight: 'rgba(255,255,255,0.08)'
-  },
-  'ocean-blue': {
-    bg: '#0a1628', surface: '#0f1f3d', primary: '#1e90ff', primaryRgb: '30, 144, 255', primaryHover: '#187bda',
-    text: '#e0e8f0', textMuted: '#607080', cardBg: '#152540', cardHover: '#1a2f50',
-    border: '#1a3050', modalBg: '#0f1f3d', danger: '#E50914', success: '#2ecc71',
-    warning: '#f97316', borderLight: 'rgba(200,220,255,0.08)'
-  },
-  'forest': {
-    bg: '#0f1a0f', surface: '#1a2a1a', primary: '#2ecc71', primaryRgb: '46, 204, 113', primaryHover: '#27ae60',
-    text: '#e0f0e0', textMuted: '#608060', cardBg: '#1f301f', cardHover: '#2a402a',
-    border: '#2a3a2a', modalBg: '#1a2a1a', danger: '#E50914', success: '#2ecc71',
-    warning: '#f97316', borderLight: 'rgba(180,220,180,0.08)'
-  },
-  'light': {
-    bg: '#f8f6f3', surface: '#ffffff', primary: '#d40000', primaryRgb: '212, 0, 0', primaryHover: '#b30000',
-    text: '#1a1a1a', textMuted: '#888888', cardBg: '#ffffff', cardHover: '#f0eeeb',
-    border: '#e0ddd8', modalBg: '#ffffff', danger: '#d40000', success: '#1a8a3a',
-    warning: '#d97706', borderLight: 'rgba(0,0,0,0.06)'
-  }
+function send(type, payload = {}) {
+  return new Promise(resolve => {
+    chrome.runtime.sendMessage({ type, payload }, response => {
+      if (chrome.runtime.lastError) {
+        log.warn(`${type} failed`, chrome.runtime.lastError.message)
+        resolve({ success: false, error: 'RUNTIME_ERROR' })
+      } else {
+        resolve(response ?? { success: false, error: 'NO_RESPONSE' })
+      }
+    })
+  })
 }
 
-function applyPopupTheme(themeName) {
-  const colors = THEME_COLORS[themeName] || THEME_COLORS['classic-red']
-  const root = document.documentElement
-  const isDark = themeName !== 'light'
-
-  root.style.setProperty('--bg', colors.bg)
-  root.style.setProperty('--surface', colors.surface)
-  root.style.setProperty('--primary', colors.primary)
-  root.style.setProperty('--primary-rgb', colors.primaryRgb)
-  root.style.setProperty('--primary-hover', colors.primaryHover)
-  root.style.setProperty('--text', colors.text)
-  root.style.setProperty('--text-muted', colors.textMuted)
-  root.style.setProperty('--card-bg', colors.cardBg)
-  root.style.setProperty('--card-hover', colors.cardHover)
-  root.style.setProperty('--border', colors.border)
-  root.style.setProperty('--modal-bg', colors.modalBg)
-  root.style.setProperty('--danger', colors.danger)
-  root.style.setProperty('--success', colors.success)
-  root.style.setProperty('--warning', colors.warning)
-  root.style.setProperty('--border-light', colors.borderLight)
-  root.style.setProperty('--hover-overlay', isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)')
-  root.style.setProperty('--hover-overlay-strong', isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)')
-  root.style.setProperty('--input-bg', isDark ? 'rgba(0,0,0,0.3)' : colors.surface)
-  root.style.setProperty('--card-shadow', isDark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.06)')
-  root.style.setProperty('--card-elevated', isDark ? '0 8px 30px rgba(0,0,0,0.5)' : '0 8px 30px rgba(0,0,0,0.12)')
-  root.style.setProperty('--modal-close-bg', isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)')
-  root.style.setProperty('--modal-close-border', isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)')
-  root.style.setProperty('--modal-close-hover-bg', isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.12)')
+function translate() {
+  for (const el of document.querySelectorAll('[data-i18n]')) el.textContent = t(el.dataset.i18n)
 }
 
-const SYNC_HINTS = {
-  not_configured: '',
-  logged_out: 'Cloud sync available — sign in from Settings',
-  connected: 'Cloud sync on',
-  offline: 'Offline — sync pending',
-  error: 'Sync error — open Settings',
-  syncing: 'Syncing…'
+/** @returns {'connected' | 'error' | 'syncing' | 'offline' | 'logged_out' | null} */
+function syncMode(status) {
+  if (!status?.configured) return null
+  if (!status.loggedIn) return 'logged_out'
+  if (status.syncing) return 'syncing'
+  if (status.lastError) return 'error'
+  if (!navigator.onLine) return 'offline'
+  return 'connected'
 }
 
-document.getElementById('openDashboard').addEventListener('click', () => {
-  chrome.runtime.sendMessage({ type: 'OPEN_SERIES_TAB' })
-  window.close()
-})
-
-document.getElementById('openSettings').addEventListener('click', () => {
-  chrome.tabs.create({ url: chrome.runtime.getURL('src/tab/index.html') + '?settings=1' })
-  window.close()
-})
-
-document.getElementById('supportBtn').addEventListener('click', () => {
-  if (SUPPORT_URL) {
-    chrome.tabs.create({ url: SUPPORT_URL })
-    window.close()
-  }
-})
-
-function updateSyncIndicator(syncStatus) {
-  const dot = document.getElementById('syncDot')
-  const hint = document.getElementById('syncHint')
-  if (!dot) return
-
-  const s = syncStatus || {}
+function renderSync(status) {
+  const dot = byId('syncDot')
+  const hint = byId('syncHint')
+  const mode = syncMode(status)
   dot.className = 'sync-dot'
+  dot.classList.toggle('hidden', !mode)
+  hint.classList.toggle('hidden', !mode)
+  if (!mode) return
+  if (['connected', 'error', 'syncing'].includes(mode)) dot.classList.add(mode)
+  const label = t(`popup_sync_${mode}`)
+  dot.setAttribute('aria-label', label)
+  dot.title = label
+  hint.textContent = label
+}
 
-  if (!s.configured) {
-    dot.style.display = 'none'
-    if (hint) hint.classList.add('hidden')
+function renderStats(state) {
+  const series = Object.values(state.series || {})
+  const unwatched = series.reduce((sum, s) => sum + (s.videos || []).filter(v => !v.watched).length, 0)
+  const fresh = series.reduce((sum, s) => sum + (s.newEpisodesCount || 0), 0)
+  byId('seriesCount').textContent = String(series.length)
+  byId('unwatchedCount').textContent = String(unwatched)
+  byId('newCount').textContent = String(fresh)
+}
+
+function openAndClose(url) {
+  chrome.tabs.create({ url })
+  window.close()
+}
+
+async function init() {
+  byId('openDashboard').addEventListener('click', async () => {
+    await send(EVENTS.OPEN_SERIES_TAB)
+    window.close()
+  })
+  byId('openSettings').addEventListener('click', () => openAndClose(chrome.runtime.getURL('src/tab/index.html?settings=1')))
+  byId('supportBtn').addEventListener('click', () => openAndClose(SUPPORT_URL))
+  translate()
+
+  const response = await send(EVENTS.STATE_GET)
+  if (!response.success || !response.state) {
+    byId('loadError').classList.remove('hidden')
     return
   }
-
-  dot.style.display = 'block'
-  let mode = 'logged_out'
-  if (s.loggedIn) {
-    if (s.syncing) mode = 'syncing'
-    else if (s.lastError) mode = 'error'
-    else if (!navigator.onLine) mode = 'offline'
-    else mode = 'connected'
-  }
-
-  const modifier = mode === 'connected' ? 'connected' : mode === 'error' ? 'error' : mode === 'syncing' ? 'syncing' : null
-  if (modifier) dot.classList.add(modifier)
-  dot.title = SYNC_HINTS[mode] || 'Cloud sync'
-
-  if (hint && SYNC_HINTS[mode]) {
-    hint.textContent = SYNC_HINTS[mode]
-    hint.classList.remove('hidden')
-  } else if (hint) {
-    hint.classList.add('hidden')
-  }
+  const { settings = {} } = response.state
+  document.documentElement.dataset.theme = THEMES.includes(settings.theme) ? settings.theme : 'classic-red'
+  setLanguage(settings.language && settings.language !== 'system' ? settings.language : null)
+  document.documentElement.lang = settings.language && settings.language !== 'system' ? settings.language : navigator.language.split('-')[0]
+  translate()
+  renderStats(response.state)
+  renderSync(response.syncStatus)
 }
 
-try {
-  chrome.runtime.sendMessage({ type: 'STATE_GET' }, (response) => {
-    if (!response?.success || !response.state) return
-
-    const state = response.state
-    applyPopupTheme(state.settings?.theme || 'classic-red')
-    updateSyncIndicator(response.syncStatus)
-
-    const seriesList = Object.values(state.series || {})
-    let unwatched = 0
-    let newEpisodes = 0
-
-    for (const s of seriesList) {
-      const videos = s.videos || []
-      for (const v of videos) {
-        if (!v.watched) unwatched++
-      }
-      if (s.newEpisodesCount) newEpisodes += s.newEpisodesCount
-    }
-
-    document.getElementById('seriesCount').textContent = seriesList.length
-    document.getElementById('unwatchedCount').textContent = unwatched
-    document.getElementById('newCount').textContent = newEpisodes || 0
-  })
-} catch (_) {}
+init().catch(err => {
+  log.error('Popup failed to initialise', err)
+  byId('loadError')?.classList.remove('hidden')
+})

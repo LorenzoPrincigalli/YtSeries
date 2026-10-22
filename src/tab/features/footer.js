@@ -4,7 +4,7 @@ import { CHANGELOG } from '../../shared/changelog.js'
 import { GITHUB_URL } from '../../shared/constants.js'
 import { t } from '../../shared/i18n.js'
 import { logger } from '../../shared/logger.js'
-import { h, byId, mount } from '../core/dom.js'
+import { h, byId, mount } from '../../shared/dom.js'
 import { getState } from '../core/store.js'
 import { openModal, closeModal } from '../ui/modal.js'
 

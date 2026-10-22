@@ -48,12 +48,14 @@ function setWatched(watched) {
 
 const episodeRoutes = {
   [EVENTS.EPISODE_PROGRESS]: {
+    contexts: ['extension', 'content'],
     schema: s.object({ ...episodeRef, progress: s.optional(s.number({ min: 0, max: 100 })), currentTime: seconds, duration: seconds }),
     handler: recordProgress
   },
-  [EVENTS.EPISODE_WATCH]: { schema: s.object(episodeRef), handler: setWatched(true) },
+  [EVENTS.EPISODE_WATCH]: { contexts: ['extension', 'content'], schema: s.object(episodeRef), handler: setWatched(true) },
   [EVENTS.EPISODE_UNWATCH]: { schema: s.object(episodeRef), handler: setWatched(false) },
   [EVENTS.GET_NEXT_EPISODE]: {
+    contexts: ['extension', 'content'],
     mode: 'read',
     schema: s.object({ videoId: s.id(), playlistId: s.id() }),
     handler: (ctx, { playlistId, videoId }) => ({ success: true, nextEpisode: ctx.store.getNextEpisode(playlistId, videoId) })

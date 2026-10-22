@@ -1,7 +1,7 @@
 // @ts-check
 // Recent-activity bell: unread badge and dropdown panel.
 import { t } from '../../shared/i18n.js'
-import { h, byId, mount } from '../core/dom.js'
+import { h, byId, mount } from '../../shared/dom.js'
 import { getState, setUi, subscribe } from '../core/store.js'
 import * as actions from '../actions.js'
 import { watchUrl } from '../seriesView.js'

@@ -84,7 +84,7 @@ async function setCollection(ctx, { playlistId, collection }) {
 }
 
 const seriesRoutes = {
-  [EVENTS.PLAYLIST_ADD]: { schema: s.object({ url: s.string({ min: 1, max: 2048 }) }), handler: addPlaylist },
+  [EVENTS.PLAYLIST_ADD]: { contexts: ['extension', 'content'], schema: s.object({ url: s.string({ min: 1, max: 2048 }) }), handler: addPlaylist },
   [EVENTS.SERIES_REFRESH]: { schema: byPlaylist, handler: refreshSeries },
   [EVENTS.SERIES_DELETE]: { schema: byPlaylist, handler: deleteSeries },
   [EVENTS.SERIES_RESTORE]: { schema: s.object({ series: s.any() }), handler: restoreSeries },
@@ -94,6 +94,7 @@ const seriesRoutes = {
     handler: setCollection
   },
   [EVENTS.PLAYLIST_EXISTS]: {
+    contexts: ['extension', 'content'],
     mode: 'read',
     schema: byPlaylist,
     handler: (ctx, { playlistId }) => ({ success: true, exists: ctx.store.playlistExists(playlistId) })

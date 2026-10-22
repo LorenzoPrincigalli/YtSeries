@@ -279,7 +279,25 @@ const STRINGS = {
     'clear_search': 'Clear search',
     'auto_refresh_hint': 'Check for new episodes every 24h.',
     'load_demo': 'Load demo data',
-    'bug_diagnostics_note': 'Recent error messages and the extension version are attached so the issue can be reproduced.'
+    'bug_diagnostics_note': 'Recent error messages and the extension version are attached so the issue can be reproduced.',
+    // YouTube page integration (content script)
+    'content_next_episode': 'Next Episode',
+    'content_watch_next': 'Watch Next',
+    'content_add_to_series': 'Add to Series',
+    'content_view_on_yt_series': 'View on YT Series',
+    'content_could_not_add': 'Could not add series',
+    // Toolbar popup
+    'popup_load_error': 'Could not load your library.',
+    'popup_series': 'Series',
+    'popup_unwatched': 'Unwatched',
+    'popup_new': 'New',
+    'popup_open_dashboard': 'Open Dashboard',
+    'popup_support': 'Support ☕',
+    'popup_sync_connected': 'Cloud sync on',
+    'popup_sync_error': 'Sync error — open Settings',
+    'popup_sync_syncing': 'Syncing…',
+    'popup_sync_offline': 'Offline — sync pending',
+    'popup_sync_logged_out': 'Cloud sync available — sign in from Settings'
   },
 
   it: {
@@ -550,7 +568,25 @@ const STRINGS = {
     'clear_search': 'Cancella ricerca',
     'auto_refresh_hint': 'Controlla nuovi episodi ogni 24 ore.',
     'load_demo': 'Carica dati demo',
-    'bug_diagnostics_note': 'Vengono allegati gli ultimi messaggi di errore e la versione dell\'estensione per riprodurre il problema.'
+    'bug_diagnostics_note': 'Vengono allegati gli ultimi messaggi di errore e la versione dell\'estensione per riprodurre il problema.',
+    // Integrazione pagina YouTube (content script)
+    'content_next_episode': 'Prossimo Episodio',
+    'content_watch_next': 'Guarda Prossimo',
+    'content_add_to_series': 'Aggiungi a Serie',
+    'content_view_on_yt_series': 'Vedi su YT Series',
+    'content_could_not_add': 'Impossibile aggiungere la serie',
+    // Popup della barra strumenti
+    'popup_load_error': 'Impossibile caricare la libreria.',
+    'popup_series': 'Serie',
+    'popup_unwatched': 'Da vedere',
+    'popup_new': 'Nuovi',
+    'popup_open_dashboard': 'Apri Dashboard',
+    'popup_support': 'Sostienici ☕',
+    'popup_sync_connected': 'Sincronizzazione attiva',
+    'popup_sync_error': 'Errore di sincronizzazione — apri le Impostazioni',
+    'popup_sync_syncing': 'Sincronizzazione…',
+    'popup_sync_offline': 'Offline — sincronizzazione in attesa',
+    'popup_sync_logged_out': 'Sincronizzazione disponibile — accedi dalle Impostazioni'
   }
 }
 

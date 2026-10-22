@@ -40,7 +40,11 @@
       ],
       "js": [
         "src/content/index.js"
-      ]
+      ],
+      "css": [
+        "src/content/content.css"
+      ],
+      "run_at": "document_idle"
     }
   ],
   "commands": {

@@ -120,6 +120,16 @@ describe('router', () => {
     expect(ctx.alarms.clear).toHaveBeenCalledWith('autoRefresh')
   })
 
+  it('limits content scripts to the YouTube-integration routes', async () => {
+    ctx.store.addSeries(playlist('PL1'))
+    for (const type of [EVENTS.STORAGE_RESET, EVENTS.IMPORT_SERIES, EVENTS.STATE_GET, EVENTS.SERIES_DELETE, EVENTS.SYNC_LOGOUT]) {
+      expect(await dispatch({ type, payload: {} }, ctx, 'content')).toMatchObject({ success: false, error: 'FORBIDDEN' })
+    }
+    expect(await dispatch({ type: EVENTS.EPISODE_WATCH, payload: { videoId: 'v1' } }, ctx, 'content')).toMatchObject({ success: true })
+    expect(await dispatch({ type: EVENTS.CONTENT_SETTINGS_GET }, ctx, 'content')).toEqual({ success: true, settings: { nextEpisodeOverlay: true, language: 'system' } })
+    expect(await dispatch({ type: EVENTS.CONTENT_SETTINGS_GET }, ctx, 'extension')).toMatchObject({ error: 'FORBIDDEN' })
+  })
+
   it('rate-limits searches', async () => {
     expect((await dispatch({ type: EVENTS.PLAYLIST_SEARCH, payload: { query: 'a' } }, ctx)).success).toBe(true)
     expect(await dispatch({ type: EVENTS.PLAYLIST_SEARCH, payload: { query: 'b' } }, ctx)).toMatchObject({ error: 'RATE_LIMITED' })

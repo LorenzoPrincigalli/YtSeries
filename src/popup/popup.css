@@ -1,0 +1,70 @@
+/* Toolbar popup. Colours come from ../tab/variables.css via <html data-theme>. */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  width: 280px;
+  padding: var(--space-md);
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-primary);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: var(--space-md);
+}
+.header img { width: 32px; height: 32px; border-radius: var(--radius-sm); }
+.header h1 { flex: 1; font-size: 16px; font-weight: 600; }
+
+.sync-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border);
+}
+.sync-dot.connected { background: var(--success); }
+.sync-dot.error { background: var(--danger); }
+.sync-dot.syncing { background: var(--warning); }
+
+.sync-hint {
+  margin-bottom: 12px;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.stats { display: flex; gap: 12px; margin-bottom: var(--space-md); }
+.stat {
+  flex: 1;
+  padding: 10px;
+  border-radius: var(--radius);
+  background: var(--card-bg);
+  text-align: center;
+}
+.stat-num { color: var(--primary); font-size: 22px; font-weight: 700; }
+.stat-label { margin-top: 2px; color: var(--text-muted); font-size: 11px; }
+
+.btn {
+  display: block;
+  width: 100%;
+  margin-bottom: var(--space-sm);
+  padding: 10px;
+  border: none;
+  border-radius: var(--radius);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+  cursor: pointer;
+}
+.btn:last-of-type { margin-bottom: 12px; }
+.btn-primary { background: var(--primary); color: var(--text-on-primary); }
+.btn-secondary { background: var(--surface); color: var(--text); }
+.btn:hover { opacity: 0.85; }
+.btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+.error-note { margin-bottom: 12px; color: var(--danger); font-size: 12px; }
+.hidden { display: none !important; }

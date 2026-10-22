@@ -1,6 +1,6 @@
 // @ts-check
 // Header: navigation (home / saved / filters) and the search box.
-import { byId } from '../core/dom.js'
+import { byId } from '../../shared/dom.js'
 import { getUi, setUi, subscribe } from '../core/store.js'
 import * as actions from '../actions.js'
 

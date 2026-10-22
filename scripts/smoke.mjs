@@ -95,6 +95,43 @@ try {
   if (shots) await page.screenshot({ path: join(shots, 'search-dark.png') })
   await page.fill('#searchInput', '')
 
+  // ── Content script on a stubbed youtube.com ─────────────────────────────
+  // Playwright serves fake YouTube markup, so the real content script runs
+  // against known selectors without network access.
+  const fakeYouTube = `<!doctype html><html><body>
+    <ytd-guide-section-renderer></ytd-guide-section-renderer><ytd-guide-section-renderer></ytd-guide-section-renderer>
+    <div id="playlist-action-menu"><div id="top-level-buttons-computed"></div></div>
+    <video class="video-stream html5-main-video"></video></body></html>`
+  await context.route('https://www.youtube.com/**', route => route.fulfill({ status: 200, contentType: 'text/html', body: fakeYouTube }))
+  const demoState = (await send('STATE_GET')).state
+  const demoSeries = Object.values(demoState.series).find(s => s.videos.some(v => !v.watched))
+  const target = demoSeries.videos.find(v => !v.watched)
+  const yt = await context.newPage()
+  yt.on('pageerror', err => pageErrors.push(`youtube: ${err.message}`))
+  await yt.goto(`https://www.youtube.com/watch?v=${target.id}&list=${demoSeries.playlistId}`)
+  await yt.waitForSelector('#yt-series-sidebar-section', { timeout: 10000 })
+  check(true, 'content script injects the sidebar link')
+  await yt.waitForSelector('#yt-series-add-btn', { timeout: 10000 })
+  check(/YT Series/.test(await yt.textContent('#yt-series-add-btn')), 'add button recognises a saved playlist')
+  await yt.evaluate(() => document.querySelector('video').dispatchEvent(new Event('ended')))
+  await page.waitForFunction(([pl, vid]) => new Promise(resolve => chrome.runtime.sendMessage({ type: 'STATE_GET' }, r => resolve(r.state.series[pl].videos.find(v => v.id === vid).watched))), [demoSeries.playlistId, target.id], { timeout: 5000 })
+  check(true, 'video "ended" marks the episode watched')
+  const contentBlocked = await yt.evaluate(() => new Promise(resolve => {
+    // Runs in the page's main world: chrome.runtime is not available there, which is expected.
+    resolve(typeof chrome === 'undefined' || !chrome.runtime?.sendMessage)
+  }))
+  check(contentBlocked, 'page scripts cannot reach the extension messaging API')
+  await yt.close()
+
+  // Popup renders stats with the dashboard's theme tokens.
+  const popup = await context.newPage()
+  popup.on('pageerror', err => pageErrors.push(`popup: ${err.message}`))
+  await popup.goto(`chrome-extension://${extensionId}/src/popup/popup.html`)
+  await popup.waitForFunction(() => document.getElementById('seriesCount').textContent !== '—', null, { timeout: 5000 })
+  check(Number(await popup.textContent('#seriesCount')) > 0, 'popup shows library stats')
+  check(await popup.getAttribute('html', 'data-theme') === 'ocean-blue', 'popup follows the selected theme')
+  await popup.close()
+
   // Saved library view.
   await page.click('.nav-link[data-view="saved"]')
   await page.waitForSelector('.collections-section')

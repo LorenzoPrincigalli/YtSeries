@@ -3,7 +3,7 @@
 import { EVENTS } from '../../shared/events.js'
 import { t } from '../../shared/i18n.js'
 import { logger } from '../../shared/logger.js'
-import { byId } from '../core/dom.js'
+import { byId } from '../../shared/dom.js'
 import { send } from '../core/api.js'
 import { openModal, closeModal } from '../ui/modal.js'
 import { errorMessage, toast } from '../ui/feedback.js'

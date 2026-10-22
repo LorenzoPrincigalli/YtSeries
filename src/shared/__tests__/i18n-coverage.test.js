@@ -21,19 +21,22 @@ beforeAll(async () => {
 })
 
 describe('i18n coverage', () => {
-  const sources = walk(join(root, 'src/tab')).filter(file => /\.(js|html)$/.test(file)).map(file => readFileSync(file, 'utf8'))
+  const sources = ['src/tab', 'src/popup', 'src/content'].flatMap(dir => walk(join(root, dir))).filter(file => /\.(js|html)$/.test(file)).map(file => readFileSync(file, 'utf8'))
   const keys = new Set()
   for (const source of sources) {
     for (const match of source.matchAll(/\bt\(\s*['"]([a-z0-9_]+)['"]/g)) keys.add(match[1])
     for (const match of source.matchAll(/data-i18n="([a-z0-9_]+)"/g)) keys.add(match[1])
   }
 
-  it('finds the keys used by the dashboard', () => {
+  // Keys built dynamically (t(`popup_sync_${mode}`)) cannot be found by the regex above.
+  for (const mode of ['connected', 'error', 'syncing', 'offline', 'logged_out']) keys.add(`popup_sync_${mode}`)
+
+  it('finds the keys used by the UI', () => {
     expect(keys.size).toBeGreaterThan(100)
   })
 
   for (const language of ['en', 'it']) {
-    it(`translates every key used in src/tab into ${language}`, () => {
+    it(`translates every UI key into ${language}`, () => {
       const missing = [...keys].filter(key => !hasTranslation(key, language))
       expect(missing).toEqual([])
     })

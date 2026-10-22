@@ -1,132 +1,36 @@
 <!DOCTYPE html>
-<html>
+<html lang="en" data-theme="classic-red">
 <head>
   <meta charset="utf-8">
+  <title>YT Series</title>
   <link rel="stylesheet" href="../tab/variables.css">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      width: 280px;
-      font-family: var(--font-primary);
-      background: var(--bg);
-      color: var(--text);
-      padding: 16px;
-    }
-    .header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 16px;
-    }
-    .header img { width: 32px; height: 32px; border-radius: var(--radius-sm); }
-    .header h1 { font-size: 16px; font-weight: 600; flex: 1; }
-    .sync-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--border);
-      flex-shrink: 0;
-    }
-    .sync-dot.connected { background: var(--success); }
-    .sync-dot.error { background: var(--primary); }
-    .sync-dot.syncing { background: var(--warning); }
-    .sync-hint {
-      font-size: 11px;
-      color: var(--text-muted);
-      margin-bottom: 12px;
-      line-height: 1.3;
-    }
-    .stats { display: flex; gap: 12px; margin-bottom: 16px; }
-    .stat {
-      flex: 1;
-      background: var(--card-bg);
-      border-radius: var(--radius);
-      padding: 10px;
-      text-align: center;
-    }
-    .stat-num { font-size: 22px; font-weight: 700; color: var(--primary); }
-    .stat-label { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
-    .btn-pro {
-      display: block;
-      width: 100%;
-      padding: 10px;
-      border: none;
-      border-radius: var(--radius);
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      text-align: center;
-      margin-bottom: 8px;
-      background: linear-gradient(135deg, var(--success), #27ae60);
-      color: #fff;
-    }
-    .btn-pro:hover { opacity: 0.9; }
-    .btn {
-      display: block;
-      width: 100%;
-      padding: 10px;
-      border: none;
-      border-radius: var(--radius);
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      text-align: center;
-      margin-bottom: 8px;
-    }
-    .btn-primary { background: var(--primary); color: #fff; }
-    .btn-secondary { background: var(--surface); color: var(--text); }
-    .btn:hover { opacity: 0.85; }
-    .footer { font-size: 10px; color: var(--text-muted); text-align: center; margin-top: 8px; }
-        .pro-features {
-      margin-bottom: 10px;
-    }
-    .pro-feature {
-      font-size: 11px;
-      color: var(--text-muted);
-      padding: 3px 0;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .pro-check {
-      color: var(--success);
-      font-weight: 700;
-      font-size: 12px;
-    }
-    .pro-onetime {
-      font-size: 10px;
-      color: var(--text-muted);
-      text-align: center;
-      margin-top: 6px;
-      opacity: 0.7;
-    }
-    .hidden { display: none !important; }
-  </style>
+  <link rel="stylesheet" href="popup.css">
 </head>
 <body>
   <div class="header">
     <img src="../../icons/icon48.png" alt="">
     <h1>YT Series</h1>
-    <span id="syncDot" class="sync-dot" title="Cloud sync"></span>
+    <span id="syncDot" class="sync-dot hidden" role="img" aria-label="Cloud sync"></span>
   </div>
-  <p id="syncHint" class="sync-hint hidden"></p>
-  <div class="stats">
+  <p id="syncHint" class="sync-hint hidden" role="status"></p>
+  <p id="loadError" class="error-note hidden" role="alert" data-i18n="popup_load_error">Could not load your library.</p>
+  <div class="stats" aria-live="polite">
     <div class="stat">
       <div class="stat-num" id="seriesCount">—</div>
-      <div class="stat-label">Series</div>
+      <div class="stat-label" data-i18n="popup_series">Series</div>
     </div>
     <div class="stat">
       <div class="stat-num" id="unwatchedCount">—</div>
-      <div class="stat-label">Unwatched</div>
+      <div class="stat-label" data-i18n="popup_unwatched">Unwatched</div>
     </div>
     <div class="stat">
       <div class="stat-num" id="newCount">—</div>
-      <div class="stat-label">New</div>
+      <div class="stat-label" data-i18n="popup_new">New</div>
     </div>
   </div>
-  <button type="button" class="btn btn-primary" id="openDashboard">Open Dashboard</button>
-  <button type="button" class="btn btn-secondary" id="openSettings">Settings</button>
-  <button type="button" class="btn btn-secondary" id="supportBtn" style="margin-bottom:12px">Support ☕</button>
+  <button type="button" class="btn btn-primary" id="openDashboard" data-i18n="popup_open_dashboard">Open Dashboard</button>
+  <button type="button" class="btn btn-secondary" id="openSettings" data-i18n="settings">Settings</button>
+  <button type="button" class="btn btn-secondary" id="supportBtn" data-i18n="popup_support">Support ☕</button>
   <script src="popup.js"></script>
 </body>
 </html>

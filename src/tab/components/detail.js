@@ -3,8 +3,8 @@
 // so it always reflects the latest server state (no local copies to patch).
 import { t } from '../../shared/i18n.js'
 import { logger } from '../../shared/logger.js'
-import { h, img, mount } from '../core/dom.js'
-import { svg } from '../core/icons.js'
+import { h, img, mount } from '../../shared/dom.js'
+import { svg } from '../../shared/icons.js'
 import { getState, getUi, setUi, subscribe } from '../core/store.js'
 import { safeRender } from '../core/errorBoundary.js'
 import { openModal, closeModal, confirmDialog } from '../ui/modal.js'
