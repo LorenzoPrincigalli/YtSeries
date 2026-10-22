@@ -153,7 +153,7 @@ export function openCollectionEditor({ name, series, collections, mode, onSave }
         { ids, destination: nameInput.value.trim() || destination.value });
       dialog.close();
     } catch (err) {
-      error.textContent = err.message === 'COLLECTION_EXISTS' ? t('collection_exists') : t('collection_save_error');
+      error.textContent = err?.code === 'COLLECTION_EXISTS' ? t('collection_exists') : t('collection_save_error');
     } finally { pending = false; save.disabled = cancel.disabled = false; }
   });
   dialog.append(form);

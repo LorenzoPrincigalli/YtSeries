@@ -1,362 +1,323 @@
-import { EVENTS } from '../../shared/events.js'
+// @ts-check
+// Series detail dialog. Renders from the store whenever ui.detailId is set,
+// so it always reflects the latest server state (no local copies to patch).
 import { t } from '../../shared/i18n.js'
+import { logger } from '../../shared/logger.js'
+import { h, img, mount } from '../core/dom.js'
+import { svg } from '../core/icons.js'
+import { getState, getUi, setUi, subscribe } from '../core/store.js'
+import { safeRender } from '../core/errorBoundary.js'
+import { openModal, closeModal, confirmDialog } from '../ui/modal.js'
+import * as actions from '../actions.js'
+import { collectionNames, watchedCount, nextEpisode, findNewEpisode, isNewEpisode, latestEpisode, watchUrl, formatDuration } from '../seriesView.js'
 
-class DetailPage {
+const log = logger.child('detail')
+const MODAL_ID = 'detailModal'
+
+const SORTS = {
+  default: null,
+  date_desc: (a, b) => (b.publishedAt || '').localeCompare(a.publishedAt || ''),
+  date_asc: (a, b) => (a.publishedAt || '').localeCompare(b.publishedAt || ''),
+  unwatched_first: (a, b) => Number(a.watched) - Number(b.watched),
+  watched_first: (a, b) => Number(b.watched) - Number(a.watched)
+}
+const SORT_LABELS = { default: 'sort_default', date_desc: 'sort_date_desc', date_asc: 'sort_date_asc', unwatched_first: 'sort_unwatched', watched_first: 'sort_watched' }
+
+/** @param {string | undefined} iso */
+const shortDate = iso => (iso ? new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '')
+
+export class DetailView {
   constructor() {
-    this._ensureModal()
-    this.series = null
-    this.callbacks = {}
+    this.renderedId = null
+    this.sort = 'default'
+    /** @type {Map<string, Promise<any[]>>} channel playlists, fetched once per session */
+    this.channelCache = new Map()
+    this.closeFolderPicker = null
+    this.body = this.ensureModal()
+    subscribe(() => this.sync())
   }
 
-  _ensureModal() {
-    if (document.getElementById('detailModal')) return
-
-    const modal = document.createElement('div')
-    modal.id = 'detailModal'
-    modal.className = 'modal-overlay hidden'
-
-    const backdrop = document.createElement('div')
-    backdrop.className = 'modal-backdrop'
-    modal.appendChild(backdrop)
-
-    const content = document.createElement('div')
-    content.className = 'modal modal-detail'
-
-    const header = document.createElement('div')
-    header.className = 'modal-header modal-header-detail'
-
-    const close = document.createElement('button')
-    close.className = 'modal-close'
-    close.id = 'detailModalClose'
-    close.innerHTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>'
-    close.addEventListener('click', () => this.close())
-    header.appendChild(close)
-
-    content.appendChild(header)
-
-    const body = document.createElement('div')
-    body.className = 'modal-body modal-detail-body'
-    body.id = 'detailModalBody'
-    content.appendChild(body)
-
-    modal.appendChild(content)
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal || e.target === backdrop) this.close()
-    })
-
-    document.body.appendChild(modal)
+  ensureModal() {
+    let body = document.getElementById('detailModalBody')
+    if (body) return body
+    body = h('div', { class: 'modal-body modal-detail-body', id: 'detailModalBody' })
+    document.body.append(h('div', { id: MODAL_ID, class: 'modal-overlay hidden' },
+      h('div', { class: 'modal-backdrop' }),
+      h('div', { class: 'modal modal-detail' },
+        h('div', { class: 'modal-header modal-header-detail' },
+          h('h2', { class: 'visually-hidden', id: 'detailModalTitle' }),
+          h('button', { type: 'button', class: 'modal-close', 'aria-label': t('close'), onClick: () => closeModal(MODAL_ID) }, svg('close'))),
+        body)))
+    return body
   }
 
-  async render(series, { onWatch, onUnwatch, onBack, onRefresh, onCompleteToggle, onCollectionSet, onAddSeries, collections }) {
-    this._closeFolderPicker?.(false)
-    this.callbacks = { onWatch, onUnwatch, onBack, onRefresh, onCompleteToggle, onCollectionSet, onAddSeries, collections }
-    this.series = series
-
-    const body = document.getElementById('detailModalBody')
-    body.innerHTML = ''
-
-    body.appendChild(this._renderInfo(series))
-    const newEp = this._findNewEpisode(series)
-    if (newEp) {
-      body.appendChild(this._renderNewEpisodeHighlight(series, newEp))
+  /** Opens, re-renders or closes to match ui.detailId. */
+  sync() {
+    const { detailId } = getUi()
+    const series = detailId ? getState()?.series?.[detailId] : null
+    if (!series) {
+      if (this.renderedId) this.hide()
+      return
     }
-    body.appendChild(this._renderEpisodes(series, this.callbacks))
-    body.appendChild(this._renderMoreSection(series))
-
-    document.getElementById('detailModal').classList.remove('hidden')
-    document.body.style.overflow = 'hidden'
-
-    this._observeRelatedSection(series)
-  }
-
-  // Trova il primo episodio "nuovo" (pubblicato negli ultimi 7 giorni e non visto)
-  _findNewEpisode(series) {
-    const now = new Date()
-    return series.videos.find(v => {
-      if (!v.publishedAt || v.watched) return false
-      const pubDate = new Date(v.publishedAt)
-      const diffDays = (now - pubDate) / (1000 * 60 * 60 * 24)
-      return diffDays <= 7
-    })
-  }
-
-  // Rende la sezione in evidenza per il nuovo episodio
-  _renderNewEpisodeHighlight(series, video) {
-    const section = document.createElement('div')
-    section.className = 'detail-new-highlight'
-
-    const accent = document.createElement('div')
-    accent.className = 'new-accent-bar'
-    section.appendChild(accent)
-
-    const body = document.createElement('div')
-    body.className = 'detail-new-highlight-body'
-    section.appendChild(body)
-
-    const img = document.createElement('img')
-    img.src = video.thumbnail || ''
-    img.alt = video.title
-    img.className = 'detail-new-highlight-thumb'
-    body.appendChild(img)
-
-    const info = document.createElement('div')
-    info.className = 'detail-new-highlight-info'
-
-    const title = document.createElement('div')
-    const badge = document.createElement('span')
-    badge.className = 'new-badge'
-    badge.textContent = t('new_episode')
-    title.appendChild(badge)
-    title.className = 'detail-new-highlight-title'
-    info.appendChild(title)
-
-    const epTitle = document.createElement('div')
-    epTitle.textContent = video.title
-    epTitle.className = 'detail-new-highlight-episode'
-    info.appendChild(epTitle)
-
-    if (video.publishedAt) {
-      const dateEl = document.createElement('div')
-      const d = new Date(video.publishedAt)
-      dateEl.textContent = d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
-      dateEl.className = 'detail-new-highlight-date'
-      info.appendChild(dateEl)
+    const firstOpen = this.renderedId !== detailId
+    if (firstOpen) this.sort = 'default'
+    const scrollTop = firstOpen ? 0 : this.body.scrollTop
+    safeRender(this.body, 'detail', () => this.render(series))
+    this.body.scrollTop = scrollTop
+    if (firstOpen) {
+      this.renderedId = detailId
+      openModal(MODAL_ID, { onClose: () => { this.renderedId = null; this.closeFolderPicker?.(false); setUi({ detailId: null }) } })
     }
+  }
 
-    const btn = document.createElement('button')
-    btn.className = 'btn-primary'
-    btn.textContent = t('watch_now')
-    btn.addEventListener('click', () => {
-      window.open(`https://www.youtube.com/watch?v=${video.id}&list=${series.playlistId}`, '_blank', 'noopener')
-    })
-    info.appendChild(btn)
+  hide() {
+    this.renderedId = null
+    closeModal(MODAL_ID)
+  }
 
-    body.appendChild(info)
+  /** @param {any} series */
+  render(series) {
+    this.closeFolderPicker?.(false)
+    const title = document.getElementById('detailModalTitle')
+    if (title) title.textContent = series.title
+    const newEpisode = findNewEpisode(series)
+    mount(this.body,
+      this.renderInfo(series),
+      newEpisode && this.renderNewEpisode(series, newEpisode),
+      this.renderEpisodes(series),
+      this.renderRelated(series))
+  }
+
+  /** @param {any} series */
+  renderInfo(series) {
+    const total = series.videos.length
+    const watched = watchedCount(series)
+    const percent = total ? (watched / total) * 100 : 0
+    const next = nextEpisode(series)
+    const latest = latestEpisode(series)
+
+    const meta = [`${total} ${total === 1 ? t('episode') : t('episodes')}`, `${watched}/${total} ${t('watched')} (${Math.round(percent)}%)`]
+    if (latest) meta.push(`${t('last_video')}: ${shortDate(latest.publishedAt)}`)
+
+    const folderButton = h('button', {
+      type: 'button',
+      class: ['folder-icon-btn', series.collection && 'assigned'],
+      title: t('collection'),
+      'aria-label': series.collection ? `${t('collection')}: ${series.collection}` : t('collection'),
+      'aria-haspopup': 'dialog',
+      'aria-expanded': 'false'
+    }, svg('folder'))
+    folderButton.addEventListener('click', () => this.openFolderPicker(series, folderButton))
+
+    return h('div', { class: 'detail-info' },
+      h('div', { class: 'detail-hero' },
+        img({ class: 'detail-hero-img', src: series.videos[0]?.thumbnail || series.thumbnail, loading: 'eager' }),
+        h('div', { class: 'detail-hero-gradient' }),
+        h('div', { class: 'detail-hero-content' },
+          h('h1', { class: 'detail-hero-title' }, series.title),
+          series.channelTitle && series.channelId && h('button', {
+            type: 'button',
+            class: 'detail-hero-channel',
+            dataset: { channelId: series.channelId },
+            onClick: () => this.openChannelModal(series)
+          }, series.channelTitle))),
+      h('div', { class: 'detail-info-body' },
+        h('div', { class: 'detail-meta-row' }, meta.join(' · ')),
+        h('div', { class: 'detail-progress-bar', role: 'progressbar', 'aria-label': t('watched'), 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': String(Math.round(percent)) },
+          h('div', { class: 'detail-progress-fill', style: { '--progress': `${percent}%` } })),
+        series.description && h('p', { class: 'detail-hero-desc' }, series.description),
+        h('div', { class: 'detail-actions' },
+          next && h('button', { type: 'button', class: 'btn-primary', onClick: () => actions.continueWatching(series) },
+            `▶ ${t('continue_ep', { n: series.videos.indexOf(next) + 1 })}`),
+          h('button', { type: 'button', class: 'btn-secondary', onClick: () => actions.toggleComplete(series.playlistId) },
+            series.completed ? t('mark_incomplete') : t('mark_complete')),
+          h('button', { type: 'button', class: 'btn-secondary', title: t('refresh'), 'aria-label': t('refresh'), onClick: event => this.refresh(series, event.currentTarget) }, '↻'),
+          folderButton,
+          h('button', { type: 'button', class: 'btn-secondary text-error', title: t('delete'), 'aria-label': t('delete'), onClick: () => this.confirmDelete(series) }, svg('trash')))))
+  }
+
+  /** @param {any} series @param {HTMLButtonElement} button */
+  async refresh(series, button) {
+    button.disabled = true
+    button.setAttribute('aria-busy', 'true')
+    await actions.refreshSeries(series.playlistId)
+    if (button.isConnected) { button.disabled = false; button.removeAttribute('aria-busy') }
+  }
+
+  /** @param {any} series @param {any} video */
+  renderNewEpisode(series, video) {
+    return h('div', { class: 'detail-new-highlight' },
+      h('div', { class: 'new-accent-bar' }),
+      h('div', { class: 'detail-new-highlight-body' },
+        img({ class: 'detail-new-highlight-thumb', src: video.thumbnail }),
+        h('div', { class: 'detail-new-highlight-info' },
+          h('div', { class: 'detail-new-highlight-title' }, h('span', { class: 'new-badge' }, t('new_episode'))),
+          h('div', { class: 'detail-new-highlight-episode' }, video.title),
+          video.publishedAt && h('div', { class: 'detail-new-highlight-date' }, shortDate(video.publishedAt)),
+          h('a', { class: 'btn-primary', href: watchUrl(video.id, series.playlistId), target: '_blank', rel: 'noopener noreferrer' }, t('watch_now')))))
+  }
+
+  /** @param {any} series */
+  renderEpisodes(series) {
+    const grid = h('div', { class: 'episode-grid' })
+    const draw = () => {
+      const compare = SORTS[this.sort]
+      const videos = compare ? [...series.videos].sort(compare) : series.videos
+      grid.replaceChildren(...videos.map(video => this.episodeCard(series, video, series.videos.indexOf(video))))
+    }
+    const select = h('select', { class: 'episode-sort', 'aria-label': t('sort_episodes') },
+      Object.keys(SORTS).map(key => h('option', { value: key, selected: key === this.sort }, t(SORT_LABELS[key]))))
+    select.addEventListener('change', () => { this.sort = select.value; draw() })
+    draw()
+    return h('div', { class: 'detail-episodes' },
+      h('div', { class: 'episodes-header' }, h('h3', null, t('episodes_title')), h('div', { class: 'episodes-header-right' }, select)),
+      grid)
+  }
+
+  /** @param {any} series @param {any} video @param {number} index */
+  episodeCard(series, video, index) {
+    const href = watchUrl(video.id, series.playlistId, video.watched ? 0 : video.resumeTime)
+    const number = `${t('episode')} ${index + 1}${video.duration ? ` · ${formatDuration(video.duration)}` : ''}`
+    return h('div', { class: 'episode-card', dataset: { videoId: video.id }, onClick: () => window.open(href, '_blank', 'noopener') },
+      img({ class: 'episode-thumb', src: video.thumbnail }),
+      video.progress > 0 && !video.watched && h('div', { class: 'episode-progress-overlay' },
+        h('div', { class: 'episode-progress-bar', style: { '--progress': `${video.progress}%` } })),
+      h('div', { class: 'episode-info' },
+        h('div', { class: 'episode-number' }, number),
+        h('div', { class: 'episode-title' },
+          h('a', { class: 'episode-title-link', href, target: '_blank', rel: 'noopener noreferrer', onClick: event => event.stopPropagation() },
+            isNewEpisode(video) && h('span', { class: 'new-dot' }, t('new_short')),
+            isNewEpisode(video) ? ` ${video.title}` : video.title)),
+        video.publishedAt && h('div', { class: 'episode-date' }, shortDate(video.publishedAt)),
+        h('button', {
+          type: 'button',
+          class: ['episode-status', video.watched ? 'episode-status-watched' : 'episode-status-unwatched'],
+          'aria-pressed': String(Boolean(video.watched)),
+          'aria-label': video.watched ? t('mark_unwatched_named', { title: video.title }) : t('mark_watched_named', { title: video.title }),
+          onClick: event => { event.stopPropagation(); actions.setEpisodeWatched(series.playlistId, video.id, !video.watched) }
+        }, video.watched ? `✓ ${t('watched')}` : `● ${t('unwatched')}`)))
+  }
+
+  /** @param {any} series */
+  renderRelated(series) {
+    const status = h('div', { class: 'more-loading', role: 'status' }, series.channelId ? t('loading') : t('no_channel_info'))
+    const section = h('div', { class: 'detail-more', id: 'detailMoreSection' },
+      h('h3', null, t('more_from', { channel: series.channelTitle || t('this_channel') })),
+      status)
+    if (!series.channelId) return section
+
+    // Load lazily, only when the user scrolls near the section.
+    const observer = new IntersectionObserver(async entries => {
+      if (!entries[0].isIntersecting) return
+      observer.disconnect()
+      try {
+        const playlists = await this.channelPlaylists(series.channelId, series.playlistId)
+        if (!section.isConnected) return
+        if (!playlists.length) { status.textContent = t('no_related_found'); return }
+        status.replaceWith(h('div', { class: 'more-row' }, playlists.map(playlist => this.relatedCard(playlist, () => actions.addPlaylistById(playlist.playlistId)))))
+      } catch (err) {
+        log.warn('Related playlists failed', err)
+        status.textContent = t('related_error')
+      }
+    }, { root: this.body, rootMargin: '100px' })
+    queueMicrotask(() => observer.observe(section))
     return section
   }
 
-  close() {
-    this._closeFolderPicker?.(false)
-    document.getElementById('detailModal').classList.add('hidden')
-    document.body.style.overflow = ''
-    this.series = null
+  /** @param {string} channelId @param {string} excludeId */
+  channelPlaylists(channelId, excludeId) {
+    if (!this.channelCache.has(channelId)) {
+      const pending = actions.fetchChannelPlaylists(channelId)
+      pending.catch(() => this.channelCache.delete(channelId)) // never cache a failure
+      this.channelCache.set(channelId, pending)
+    }
+    return /** @type {Promise<any[]>} */ (this.channelCache.get(channelId)).then(list => list.filter(p => p.playlistId !== excludeId))
   }
 
-  _renderInfo(series) {
-    const watchedCount = series.videos.filter(v => v.watched).length
-    const progress = series.videos.length > 0 ? (watchedCount / series.videos.length) * 100 : 0
-    const nextEpisode = series.videos.find(v => !v.watched)
-    const nextIndex = nextEpisode ? series.videos.indexOf(nextEpisode) + 1 : series.videos.length
-
-    const heroImage = series.videos[0]?.thumbnail || series.thumbnail || ''
-
-    const container = document.createElement('div')
-    container.className = 'detail-info'
-
-    const hero = document.createElement('div')
-    hero.className = 'detail-hero'
-
-    const heroImg = document.createElement('img')
-    heroImg.className = 'detail-hero-img'
-    heroImg.src = heroImage
-    heroImg.alt = series.title
-    heroImg.onerror = function () { this.style.display = 'none' }
-    hero.appendChild(heroImg)
-
-    const heroGradient = document.createElement('div')
-    heroGradient.className = 'detail-hero-gradient'
-    hero.appendChild(heroGradient)
-
-    const heroContent = document.createElement('div')
-    heroContent.className = 'detail-hero-content'
-
-    const heroTitle = document.createElement('h1')
-    heroTitle.className = 'detail-hero-title'
-    heroTitle.textContent = series.title
-    heroContent.appendChild(heroTitle)
-
-    if (series.channelTitle && series.channelId) {
-      const heroChannel = document.createElement('span')
-      heroChannel.className = 'detail-hero-channel'
-      heroChannel.textContent = series.channelTitle
-      heroChannel.dataset.channelId = series.channelId
-      heroChannel.addEventListener('click', (e) => {
-        e.stopPropagation()
-        this._openChannelModal(series.channelId, series.channelTitle, series.playlistId, this.callbacks.onRefresh)
-      })
-      heroContent.appendChild(heroChannel)
-    }
-
-    hero.appendChild(heroContent)
-    container.appendChild(hero)
-
-    const info = document.createElement('div')
-    info.className = 'detail-info-body'
-
-    const meta = document.createElement('div')
-    meta.className = 'detail-meta-row'
-
-    const eps = document.createElement('span')
-    const epLabel = series.videos.length !== 1 ? t('episodes') : t('episode')
-    eps.textContent = `${series.videos.length} ${epLabel}`
-    meta.appendChild(eps)
-
-    const dot = document.createElement('span')
-    dot.textContent = ' \u00B7 '
-    meta.appendChild(dot)
-
-    const pct = document.createElement('span')
-    pct.textContent = `${watchedCount}/${series.videos.length} ${t('watched')} (${Math.round(progress)}%)`
-    meta.appendChild(pct)
-
-    if (series.videos.length > 0) {
-      const lastVideo = series.videos.reduce((latest, v) => {
-        return !latest || (v.publishedAt && v.publishedAt > latest.publishedAt) ? v : latest
-      })
-      if (lastVideo && lastVideo.publishedAt) {
-        const date = new Date(lastVideo.publishedAt)
-        const dateStr = date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
-        const dot2 = document.createElement('span')
-        dot2.textContent = ' \u00B7 '
-        meta.appendChild(dot2)
-        const lastEp = document.createElement('span')
-        lastEp.textContent = `${t('last_video')}: ${dateStr}`
-        meta.appendChild(lastEp)
-      }
-    }
-
-    info.appendChild(meta)
-
-    const progressContainer = document.createElement('div')
-    progressContainer.className = 'detail-progress-bar'
-
-    const progressFill = document.createElement('div')
-    progressFill.className = 'detail-progress-fill'
-    progressFill.style.width = `${progress}%`
-    progressContainer.appendChild(progressFill)
-
-    info.appendChild(progressContainer)
-
-    if (series.description) {
-      const desc = document.createElement('p')
-      desc.className = 'detail-hero-desc'
-      desc.textContent = series.description
-      info.appendChild(desc)
-    }
-
-    const actions = document.createElement('div')
-    actions.className = 'detail-actions'
-
-    if (nextEpisode) {
-      const resume = document.createElement('button')
-      resume.className = 'btn-primary'
-      resume.textContent = `\u25B6 ${t('continue_ep', { n: nextIndex })}`
-      resume.addEventListener('click', () => {
-        const resumeAt = Number.isFinite(nextEpisode.resumeTime) && nextEpisode.resumeTime > 0 ? `&t=${Math.floor(nextEpisode.resumeTime)}` : ''
-        window.open(`https://www.youtube.com/watch?v=${nextEpisode.id}&list=${series.playlistId}${resumeAt}`, '_blank', 'noopener')
-      })
-      actions.appendChild(resume)
-    }
-
-    const completeBtn = document.createElement('button')
-    completeBtn.className = 'btn-secondary'
-    completeBtn.textContent = series.completed ? t('mark_incomplete') : t('mark_complete')
-    completeBtn.addEventListener('click', () => this.callbacks.onCompleteToggle(series.playlistId))
-    actions.appendChild(completeBtn)
-
-    const refresh = document.createElement('button')
-    refresh.className = 'btn-secondary'
-    refresh.textContent = '\u21BB'
-    refresh.title = t('refresh')
-    refresh.addEventListener('click', () => this.callbacks.onRefresh(series.playlistId))
-    actions.appendChild(refresh)
-
-    const folderButton = document.createElement('button')
-    folderButton.type = 'button'
-    folderButton.className = `folder-icon-btn${series.collection ? ' assigned' : ''}`
-    folderButton.title = t('collection')
-    folderButton.setAttribute('aria-label', t('collection'))
-    folderButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 6.5A2.5 2.5 0 0 1 6 4h4l2 2h6a2.5 2.5 0 0 1 2.5 2.5v8A2.5 2.5 0 0 1 18 19H6a2.5 2.5 0 0 1-2.5-2.5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>'
-    folderButton.addEventListener('click', () => this._openFolderPicker(series, folderButton))
-    actions.appendChild(folderButton)
-
-    const del = document.createElement('button')
-    del.className = 'btn-secondary text-error'
-    del.title = t('delete')
-    del.setAttribute('aria-label', t('delete'))
-    del.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14m-9 0V5h4v2m-7 0 1 13h8l1-13m-6 3v7m4-7v7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
-    del.addEventListener('click', () => this._confirmDelete(series))
-    actions.appendChild(del)
-
-    info.appendChild(actions)
-    container.appendChild(info)
-    return container
+  /** @param {any} playlist @param {() => void} onAdd */
+  relatedCard(playlist, onAdd) {
+    return h('button', { type: 'button', class: 'related-card', 'aria-label': t('add_named_series', { title: playlist.title }), onClick: onAdd },
+      img({ class: 'related-card-thumb', src: playlist.thumbnail }),
+      h('span', { class: 'related-card-title' }, playlist.title),
+      h('span', { class: 'related-card-count' }, `${playlist.videoCount || '?'} ${playlist.videoCount === 1 ? t('video') : t('videos')}`))
   }
 
-  _openFolderPicker(series, anchor) {
-    this._closeFolderPicker?.(false)
-    const picker = document.createElement('div')
-    picker.id = 'folderPicker'
-    picker.className = 'folder-picker'
-    picker.setAttribute('role', 'dialog')
-    picker.setAttribute('aria-label', t('collection'))
-    const heading = document.createElement('strong')
-    heading.textContent = t('folder_picker')
-    picker.appendChild(heading)
+  /** @param {any} series */
+  async openChannelModal(series) {
+    document.getElementById('channelModal')?.remove()
+    const body = h('div', { class: 'modal-body' }, h('div', { class: 'more-loading', role: 'status' }, t('loading')))
+    const overlay = h('div', { class: 'modal-overlay hidden', id: 'channelModal' },
+      h('div', { class: 'modal-backdrop' }),
+      h('div', { class: 'modal modal-channel' },
+        h('div', { class: 'modal-header' },
+          h('button', { type: 'button', class: 'modal-close channel-close-btn', 'aria-label': t('close'), onClick: () => closeModal('channelModal') }, svg('close')),
+          h('h2', null, t('more_from', { channel: series.channelTitle }))),
+        body))
+    document.body.append(overlay)
+    openModal('channelModal', { onClose: () => overlay.remove() })
+    try {
+      const playlists = await this.channelPlaylists(series.channelId, series.playlistId)
+      mount(body, playlists.length
+        ? h('div', { class: 'channel-grid' }, playlists.map(playlist => this.relatedCard(playlist, () => {
+          closeModal('channelModal')
+          actions.addPlaylistById(playlist.playlistId)
+        })))
+        : h('div', { class: 'more-loading' }, t('no_related_found')))
+    } catch (err) {
+      log.warn('Channel playlists failed', err)
+      mount(body, h('div', { class: 'more-loading', role: 'alert' }, t('related_error')))
+    }
+  }
 
-    const apply = (folder) => {
-      this._closeFolderPicker()
-      this.callbacks.onCollectionSet(series.playlistId, folder)
+  /** @param {any} series */
+  async confirmDelete(series) {
+    if (await confirmDialog(t('delete_confirm', { title: series.title }), { confirmLabel: t('delete'), danger: true })) {
+      await actions.deleteSeries(series.playlistId)
     }
-    const clear = document.createElement('button')
-    clear.type = 'button'
-    clear.className = 'folder-picker-option'
-    clear.textContent = t('no_folder')
-    clear.addEventListener('click', () => apply(''))
-    picker.appendChild(clear)
-    for (const folder of this.callbacks.collections || []) {
-      const option = document.createElement('button')
-      option.type = 'button'
-      option.className = `folder-picker-option${folder === series.collection ? ' selected' : ''}`
-      option.textContent = folder
-      option.addEventListener('click', () => apply(folder))
-      picker.appendChild(option)
+  }
+
+  /** @param {any} series @param {HTMLButtonElement} anchor */
+  openFolderPicker(series, anchor) {
+    this.closeFolderPicker?.(false)
+    const apply = folder => {
+      this.closeFolderPicker?.()
+      actions.setSeriesCollection(series.playlistId, folder)
     }
-    const create = document.createElement('div')
-    create.className = 'folder-picker-create'
-    const input = document.createElement('input')
-    input.maxLength = 40
-    input.placeholder = t('new_folder')
-    input.setAttribute('aria-label', t('new_folder'))
-    const button = document.createElement('button')
-    button.type = 'button'
-    button.textContent = t('create_folder')
-    button.addEventListener('click', () => { if (input.value.trim()) apply(input.value.trim()) })
-    input.addEventListener('keydown', event => { if (event.key === 'Enter' && input.value.trim()) apply(input.value.trim()) })
-    create.append(input, button)
-    picker.appendChild(create)
-    document.body.appendChild(picker)
+    const input = h('input', { maxLength: 40, placeholder: t('new_folder'), 'aria-label': t('new_folder') })
+    const create = () => { if (input.value.trim()) apply(input.value.trim()) }
+    input.addEventListener('keydown', event => { if (event.key === 'Enter') create() })
+
+    const picker = h('div', { id: 'folderPicker', class: 'folder-picker', role: 'dialog', 'aria-label': t('collection') },
+      h('strong', null, t('folder_picker')),
+      h('button', { type: 'button', class: 'folder-picker-option', onClick: () => apply('') }, t('no_folder')),
+      collectionNames(getState()).map(folder => h('button', {
+        type: 'button',
+        class: ['folder-picker-option', folder === series.collection && 'selected'],
+        'aria-pressed': String(folder === series.collection),
+        onClick: () => apply(folder)
+      }, folder)),
+      h('div', { class: 'folder-picker-create' }, input, h('button', { type: 'button', onClick: create }, t('create_folder'))))
+    document.body.append(picker)
+
     const rect = anchor.getBoundingClientRect()
-    picker.style.top = `${Math.max(12, Math.min(window.innerHeight - picker.offsetHeight - 12, rect.bottom + 8))}px`
-    picker.style.left = `${Math.max(12, Math.min(window.innerWidth - picker.offsetWidth - 12, rect.left))}px`
-    const outside = event => {
-      if (!picker.contains(event.target) && !anchor.contains(event.target)) this._closeFolderPicker(false)
-    }
+    picker.style.setProperty('--picker-top', `${Math.max(12, Math.min(window.innerHeight - picker.offsetHeight - 12, rect.bottom + 8))}px`)
+    picker.style.setProperty('--picker-left', `${Math.max(12, Math.min(window.innerWidth - picker.offsetWidth - 12, rect.left))}px`)
+
+    const outside = event => { if (!picker.contains(event.target) && !anchor.contains(event.target)) this.closeFolderPicker?.(false) }
     const keyboard = event => {
-      if (event.key === 'Escape') {
-        event.preventDefault()
-        event.stopImmediatePropagation()
-        this._closeFolderPicker()
-      }
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      event.stopImmediatePropagation() // close the picker, not the detail dialog
+      this.closeFolderPicker?.()
     }
-    const resize = () => this._closeFolderPicker(false)
-    this._closeFolderPicker = (restoreFocus = true) => {
+    const resize = () => this.closeFolderPicker?.(false)
+    this.closeFolderPicker = (restoreFocus = true) => {
       document.removeEventListener('pointerdown', outside)
       document.removeEventListener('keydown', keyboard, true)
       window.removeEventListener('resize', resize)
       picker.remove()
       anchor.setAttribute('aria-expanded', 'false')
-      this._closeFolderPicker = null
+      this.closeFolderPicker = null
       if (restoreFocus && anchor.isConnected) anchor.focus()
     }
     anchor.setAttribute('aria-expanded', 'true')
@@ -365,446 +326,4 @@ class DetailPage {
     window.addEventListener('resize', resize)
     input.focus()
   }
-
-  _renderEpisodes(series, callbacks) {
-    const section = document.createElement('div')
-    section.className = 'detail-episodes'
-
-    const header = document.createElement('div')
-    header.className = 'episodes-header'
-
-    const h3 = document.createElement('h3')
-    h3.textContent = t('episodes_title')
-    header.appendChild(h3)
-
-    const rightGroup = document.createElement('div')
-    rightGroup.className = 'episodes-header-right'
-
-    const sortSelect = document.createElement('select')
-    sortSelect.className = 'episode-sort'
-    const sorts = ['default', 'date_desc', 'date_asc', 'unwatched_first', 'watched_first']
-    const sortLabels = {
-      default: t('sort_default'),
-      date_desc: t('sort_date_desc'),
-      date_asc: t('sort_date_asc'),
-      unwatched_first: t('sort_unwatched'),
-      watched_first: t('sort_watched')
-    }
-    for (const key of sorts) {
-      const opt = document.createElement('option')
-      opt.value = key
-      opt.textContent = sortLabels[key]
-      sortSelect.appendChild(opt)
-    }
-    rightGroup.appendChild(sortSelect)
-
-    header.appendChild(rightGroup)
-    section.appendChild(header)
-
-    const grid = document.createElement('div')
-    grid.className = 'episode-grid'
-
-    const renderEpisodes = (sortMode) => {
-      grid.innerHTML = ''
-      let videos = [...series.videos]
-      switch (sortMode) {
-        case 'date_desc':
-          videos.sort((a, b) => (b.publishedAt || '').localeCompare(a.publishedAt || ''))
-          break
-        case 'date_asc':
-          videos.sort((a, b) => (a.publishedAt || '').localeCompare(b.publishedAt || ''))
-          break
-        case 'unwatched_first':
-          videos.sort((a, b) => (a.watched === b.watched ? 0 : a.watched ? 1 : -1))
-          break
-        case 'watched_first':
-          videos.sort((a, b) => (a.watched === b.watched ? 0 : a.watched ? -1 : 1))
-          break
-      }
-      videos.forEach((v, i) => {
-        const originalIndex = series.videos.indexOf(v)
-        grid.appendChild(this._createEpisodeCard(series, v, originalIndex >= 0 ? originalIndex : i, callbacks))
-      })
-    }
-
-    renderEpisodes(sortSelect.value)
-    sortSelect.addEventListener('change', () => renderEpisodes(sortSelect.value))
-
-    section.appendChild(grid)
-    return section
-  }
-
-  _createEpisodeCard(series, video, index, callbacks = {}) {
-
-    const card = document.createElement('div')
-    card.className = 'episode-card'
-    card.dataset.videoId = video.id
-
-    card.addEventListener('click', () => {
-      window.open(`https://www.youtube.com/watch?v=${video.id}&list=${series.playlistId}`, '_blank', 'noopener')
-    })
-
-    const img = document.createElement('img')
-    img.className = 'episode-thumb'
-    img.src = video.thumbnail || ''
-    img.alt = video.title
-    img.loading = 'lazy'
-    img.onerror = function () { this.onerror = null; this.removeAttribute('src') }
-    card.appendChild(img)
-
-    // Progress bar overlay
-    if (video.progress > 0 && !video.watched) {
-      const progressOverlay = document.createElement('div')
-      progressOverlay.className = 'episode-progress-overlay'
-      const progressBar = document.createElement('div')
-      progressBar.className = 'episode-progress-bar'
-      progressBar.style.width = `${video.progress}%`
-      progressOverlay.appendChild(progressBar)
-      card.appendChild(progressOverlay)
-    }
-
-    const info = document.createElement('div')
-    info.className = 'episode-info'
-
-    const num = document.createElement('div')
-    num.className = 'episode-number'
-    const dur = video.duration ? this._formatDuration(video.duration) : ''
-    num.textContent = `${t('episode')} ${index + 1}${dur ? ` \u00B7 ${dur}` : ''}`
-    info.appendChild(num)
-
-    const title = document.createElement('div')
-    title.className = 'episode-title'
-    // Evidenzia "nuovo" se pubblicato negli ultimi 7 giorni e non visto
-    let isNew = false
-    if (video.publishedAt && !video.watched) {
-      const pubDate = new Date(video.publishedAt)
-      const now = new Date()
-      const diffDays = (now - pubDate) / (1000 * 60 * 60 * 24)
-      if (diffDays <= 7) isNew = true
-    }
-    if (isNew) {
-      const badge = document.createElement('span')
-      badge.className = 'new-dot'
-      badge.textContent = 'new'
-      const wrapper = document.createElement('span')
-      wrapper.appendChild(badge)
-      wrapper.appendChild(document.createTextNode(' ' + video.title))
-      title.appendChild(wrapper)
-    } else {
-      title.textContent = video.title
-    }
-    info.appendChild(title)
-
-    if (video.publishedAt) {
-      const dateEl = document.createElement('div')
-      dateEl.className = 'episode-date'
-      const d = new Date(video.publishedAt)
-      dateEl.textContent = d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
-      info.appendChild(dateEl)
-    }
-
-    const status = document.createElement('span')
-    status.className = `episode-status ${video.watched ? 'episode-status-watched' : 'episode-status-unwatched'}`
-    status.textContent = video.watched ? `\u2713 ${t('watched')}` : `\u25CF ${t('unwatched')}`
-    status.addEventListener('click', (e) => {
-      e.stopPropagation()
-      if (video.watched) {
-        if (callbacks.onUnwatch) callbacks.onUnwatch(series.playlistId, video.id)
-      } else {
-        if (callbacks.onWatch) callbacks.onWatch(series.playlistId, video.id)
-      }
-    })
-    info.appendChild(status)
-
-    card.appendChild(info)
-    return card
-  }
-
-  _observeRelatedSection(series) {
-    if (!series.channelId) {
-      const section = document.getElementById('detailMoreSection')
-      if (section) {
-        const loader = section.querySelector('.more-loading')
-        if (loader) loader.textContent = t('no_channel_info')
-      }
-      return
-    }
-
-    const section = document.getElementById('detailMoreSection')
-    if (!section) return
-
-    const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting) {
-        observer.disconnect()
-        this._loadRelatedPlaylists(series)
-      }
-    }, { root: document.getElementById('detailModalBody'), rootMargin: '100px' })
-
-    observer.observe(section)
-  }
-
-  _renderMoreSection(series) {
-    const section = document.createElement('div')
-    section.className = 'detail-more'
-    section.id = 'detailMoreSection'
-
-    const h3 = document.createElement('h3')
-    h3.textContent = t('more_from', { channel: series.channelTitle || t('this_channel') })
-    section.appendChild(h3)
-
-    const loader = document.createElement('div')
-    loader.className = 'more-loading'
-    loader.textContent = t('loading')
-    section.appendChild(loader)
-
-    return section
-  }
-
-  async _loadRelatedPlaylists(series) {
-    if (!series.channelId) {
-      const section = document.getElementById('detailMoreSection')
-      if (section) {
-        const loader = section.querySelector('.more-loading')
-        if (loader) {
-          loader.textContent = t('no_channel_info')
-        }
-      }
-      return
-    }
-
-    try {
-      const response = await chrome.runtime.sendMessage({
-        type: EVENTS.FETCH_CHANNEL_PLAYLISTS,
-        payload: { channelId: series.channelId, excludePlaylistId: series.playlistId }
-      })
-
-      const section = document.getElementById('detailMoreSection')
-      if (!section) return
-
-      const loader = section.querySelector('.more-loading')
-      if (!loader) return
-
-      if (response.success && response.playlists && response.playlists.length > 0) {
-        loader.remove()
-
-        const row = document.createElement('div')
-        row.className = 'more-row'
-
-        for (const pl of response.playlists) {
-          row.appendChild(this._createRelatedCard(pl))
-        }
-
-        section.appendChild(row)
-      } else {
-        loader.textContent = t('no_related_found')
-      }
-    } catch (err) {
-      const loader = document.querySelector('#detailMoreSection .more-loading')
-      if (loader) loader.textContent = t('related_error')
-    }
-  }
-
-  _buildPlaylistCard(playlist) {
-    const card = document.createElement('div')
-    card.className = 'related-card'
-
-    const img = document.createElement('img')
-    img.className = 'related-card-thumb'
-    img.src = playlist.thumbnail || ''
-    img.alt = playlist.title
-    img.loading = 'lazy'
-    img.onerror = function () { this.src = '' }
-    card.appendChild(img)
-
-    const title = document.createElement('div')
-    title.className = 'related-card-title'
-    title.textContent = playlist.title
-    card.appendChild(title)
-
-    const count = document.createElement('div')
-    count.className = 'related-card-count'
-    const vidLabel = playlist.videoCount !== 1 ? t('videos') : t('video')
-    count.textContent = `${playlist.videoCount || '?'} ${vidLabel}`
-    card.appendChild(count)
-
-    return card
-  }
-
-  _createRelatedCard(playlist) {
-    const card = this._buildPlaylistCard(playlist)
-    card.addEventListener('click', () => {
-      if (this.callbacks.onAddSeries) this.callbacks.onAddSeries(playlist.playlistId)
-    })
-    return card
-  }
-
-  _createChannelCard(playlist) {
-    const card = this._buildPlaylistCard(playlist)
-    card.addEventListener('click', () => {
-      const overlay = document.getElementById('channelModal')
-      if (overlay) overlay.remove()
-      window.dispatchEvent(new CustomEvent('yt-series-add', { detail: { playlistId: playlist.playlistId } }))
-    })
-    return card
-  }
-
-  _confirmDelete(series) {
-    const existing = document.getElementById('confirmDeleteModal')
-    if (existing) existing.remove()
-
-    const overlay = document.createElement('div')
-    overlay.className = 'modal-overlay'
-    overlay.id = 'confirmDeleteModal'
-
-    const backdrop = document.createElement('div')
-    backdrop.className = 'modal-backdrop'
-    overlay.appendChild(backdrop)
-
-    const modal = document.createElement('div')
-    modal.className = 'modal'
-
-    const header = document.createElement('div')
-    header.className = 'modal-header'
-    const h2 = document.createElement('h2')
-    h2.textContent = t('delete_series')
-    header.appendChild(h2)
-    modal.appendChild(header)
-
-    const body = document.createElement('div')
-    body.className = 'modal-body'
-    const p = document.createElement('p')
-    p.textContent = t('delete_confirm', { title: series.title })
-    body.appendChild(p)
-    modal.appendChild(body)
-
-    const footer = document.createElement('div')
-    footer.className = 'modal-footer'
-    const cancelBtn = document.createElement('button')
-    cancelBtn.className = 'btn-secondary'
-    cancelBtn.id = 'cancelDeleteBtn'
-    cancelBtn.textContent = t('cancel')
-    const confirmBtn = document.createElement('button')
-    confirmBtn.className = 'btn-primary'
-    confirmBtn.id = 'confirmDeleteBtn'
-    confirmBtn.textContent = t('delete')
-    footer.appendChild(cancelBtn)
-    footer.appendChild(confirmBtn)
-    modal.appendChild(footer)
-
-    overlay.appendChild(modal)
-
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) overlay.remove()
-    })
-    document.body.appendChild(overlay)
-
-    cancelBtn.addEventListener('click', () => overlay.remove())
-    confirmBtn.addEventListener('click', async () => {
-      overlay.remove()
-      this.close()
-      this.callbacks.onBack()
-      window.dispatchEvent(new CustomEvent('yt-series-delete', { detail: { playlistId: series.playlistId } }))
-    })
-  }
-
-  async _openChannelModal(channelId, channelTitle, excludePlaylistId, onRefresh) {
-    const existing = document.getElementById('channelModal')
-    if (existing) existing.remove()
-
-    this._channelCache = this._channelCache || {}
-
-    const overlay = document.createElement('div')
-    overlay.className = 'modal-overlay'
-    overlay.id = 'channelModal'
-
-    const backdrop = document.createElement('div')
-    backdrop.className = 'modal-backdrop'
-    overlay.appendChild(backdrop)
-
-    const modal = document.createElement('div')
-    modal.className = 'modal modal-channel'
-
-    const header = document.createElement('div')
-    header.className = 'modal-header'
-    const closeBtn = document.createElement('button')
-    closeBtn.className = 'modal-close channel-close-btn'
-    closeBtn.innerHTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>'
-    header.appendChild(closeBtn)
-    const h2 = document.createElement('h2')
-    h2.textContent = t('more_from', { channel: channelTitle })
-    header.appendChild(h2)
-    modal.appendChild(header)
-
-    const body = document.createElement('div')
-    body.className = 'modal-body'
-    const loader = document.createElement('div')
-    loader.className = 'more-loading'
-    loader.textContent = t('loading')
-    body.appendChild(loader)
-    modal.appendChild(body)
-
-    overlay.appendChild(modal)
-
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay || e.target.closest('.channel-close-btn')) overlay.remove()
-    })
-    document.body.appendChild(overlay)
-
-    if (this._channelCache[channelId]) {
-      this._renderChannelPlaylists(overlay, this._channelCache[channelId])
-      return
-    }
-
-    try {
-      const response = await chrome.runtime.sendMessage({
-        type: EVENTS.FETCH_CHANNEL_PLAYLISTS,
-        payload: { channelId, excludePlaylistId }
-      })
-
-      if (response.success && response.playlists) {
-        this._channelCache[channelId] = response.playlists
-        this._renderChannelPlaylists(overlay, response.playlists)
-      } else {
-        const loader = overlay.querySelector('.more-loading')
-        if (loader) loader.textContent = t('no_related_found')
-      }
-    } catch (err) {
-      const loader = overlay.querySelector('.more-loading')
-      if (loader) loader.textContent = t('related_error')
-    }
-  }
-
-  _renderChannelPlaylists(overlay, playlists) {
-    const body = overlay.querySelector('.modal-body')
-    if (!body) return
-    body.innerHTML = ''
-
-    if (playlists.length === 0) {
-      body.innerHTML = '';
-      const div = document.createElement('div');
-      div.className = 'more-loading';
-      div.textContent = t('no_related_found');
-      body.appendChild(div);
-      return
-    }
-
-    const grid = document.createElement('div')
-    grid.className = 'channel-grid'
-
-    for (const pl of playlists) {
-      grid.appendChild(this._createChannelCard(pl))
-    }
-
-    body.appendChild(grid)
-  }
-
-  _formatDuration(seconds) {
-    const h = Math.floor(seconds / 3600)
-    const m = Math.floor((seconds % 3600) / 60)
-    const s = seconds % 60
-    if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-    return `${m}:${String(s).padStart(2, '0')}`
-  }
 }
-
-export { DetailPage }

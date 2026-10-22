@@ -8,6 +8,8 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const dist = join(dirname(fileURLToPath(import.meta.url)), '..', 'dist')
+// Optional: SMOKE_SCREENSHOTS=<dir> saves screenshots for visual review.
+const shots = process.env.SMOKE_SCREENSHOTS || ''
 const profile = await mkdtemp(join(tmpdir(), 'yts-smoke-'))
 const failures = []
 const check = (ok, label) => { console.log(`${ok ? '✓' : '✗'} ${label}`); if (!ok) failures.push(label) }
@@ -55,10 +57,48 @@ try {
   check(theme?.settings?.theme === 'light', 'SETTINGS_UPDATE persists theme')
 
   await page.reload()
-  await page.waitForLoadState('networkidle')
-  await page.waitForTimeout(500)
-  const cards = await page.locator('.series-card, .hero, [data-playlist-id]').count()
-  check(cards > 0, `dashboard renders library (${cards} elements)`)
+  await page.waitForSelector('.series-card', { timeout: 10000 })
+  const cards = await page.locator('.series-card').count()
+  check(cards > 0, `dashboard renders library (${cards} cards)`)
+  check(await page.locator('html[data-theme="light"]').count() === 1, 'theme applied via data-theme')
+  await page.waitForTimeout(600)
+  if (shots) await page.screenshot({ path: join(shots, 'home-light.png'), fullPage: false })
+
+  // Detail dialog: open from a card title (keyboard path), toggle an episode, close with Escape.
+  await page.locator('.series-row .card-title-btn').first().click()
+  await page.waitForSelector('#detailModal:not(.hidden) .episode-card', { timeout: 5000 })
+  check(await page.locator('#detailModal .modal[role="dialog"][aria-modal="true"]').count() === 1, 'detail opens as an accessible dialog')
+  const status = page.locator('#detailModal .episode-status').first()
+  const before = await status.getAttribute('aria-pressed')
+  await status.click()
+  await page.waitForFunction(prev => document.querySelector('#detailModal .episode-status')?.getAttribute('aria-pressed') !== prev, before, { timeout: 5000 })
+  check(true, 'episode watched toggle re-renders from server state')
+  if (shots) await page.screenshot({ path: join(shots, 'detail.png') })
+  await page.keyboard.press('Escape')
+  await page.waitForSelector('#detailModal.hidden', { state: 'attached', timeout: 3000 })
+  check(true, 'Escape closes the detail dialog')
+
+  // Settings: switch theme from the UI.
+  await page.click('#settingsBtn')
+  await page.waitForSelector('#settingsModal:not(.hidden)')
+  await page.selectOption('#themeSelect', 'ocean-blue')
+  await page.waitForSelector('html[data-theme="ocean-blue"]', { timeout: 5000 })
+  check(true, 'theme select updates the dashboard')
+  await page.keyboard.press('Escape')
+
+  // Local search filter.
+  await page.fill('#searchInput', 'cooking')
+  await page.waitForFunction(() => document.querySelectorAll('.series-card').length >= 1 && document.querySelector('.search-header-title'))
+  const filtered = await page.locator('.series-card').count()
+  check(filtered >= 1 && filtered < cards, `search filters the library (${filtered} cards)`)
+  await page.waitForTimeout(600) // let theme/modal transitions settle
+  if (shots) await page.screenshot({ path: join(shots, 'search-dark.png') })
+  await page.fill('#searchInput', '')
+
+  // Saved library view.
+  await page.click('.nav-link[data-view="saved"]')
+  await page.waitForSelector('.collections-section')
+  check(await page.locator('.collection-library-grid .series-card').count() > 0, 'saved library renders')
 
   const reset = await send('STORAGE_RESET')
   check(reset?.success === true, 'STORAGE_RESET succeeds')

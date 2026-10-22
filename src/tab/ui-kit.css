@@ -1,0 +1,129 @@
+/* UI kit: utilities and states used by the JS micro-kit (core/dom.js, ui/*).
+   Dynamic values reach CSS only through custom properties (--progress,
+   --picker-top, …), never through inline style declarations. */
+
+/* ── Accessibility utilities ──────────────────────────────────────────── */
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: fixed;
+  top: var(--space-sm);
+  left: var(--space-sm);
+  z-index: calc(var(--z-toast) + 1);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius);
+  background: var(--primary);
+  color: var(--text-on-primary);
+  font-weight: 600;
+  transform: translateY(-200%);
+  transition: transform var(--transition);
+}
+.skip-link:focus { transform: translateY(0); }
+
+#mainContent:focus { outline: none; }
+
+body.modal-open { overflow: hidden; }
+
+/* Buttons that must look like the text they replace (keyboard access
+   without changing the visual design). */
+.card-title-btn,
+.hero-title-btn,
+.detail-hero-channel,
+.related-card {
+  appearance: none;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+/* Size and weight come from the element's own class (.card-title, …);
+   these two have none of their own, so they take the parent's font. */
+.card-title-btn { display: -webkit-box; width: 100%; color: inherit; }
+.hero-title-btn { color: inherit; font: inherit; letter-spacing: inherit; }
+.related-card { display: flex; flex-direction: column; align-items: stretch; }
+.episode-title-link { color: inherit; text-decoration: none; }
+.episode-title-link:hover,
+.episode-title-link:focus-visible { text-decoration: underline; }
+
+/* Hero text always sits on artwork, so it is light in every theme; the
+   scrim keeps it legible on bright thumbnails and in the light theme. */
+.hero-title { color: #ffffff; text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6); }
+.hero-gradient { background: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.45) 55%, var(--bg) 100%); }
+
+/* ── Progress bars driven by --progress ───────────────────────────────── */
+.card-progress-bar,
+.hero-progress-bar,
+.detail-progress-fill,
+.episode-progress-bar { width: var(--progress, 0%); }
+
+/* ── Interaction states ───────────────────────────────────────────────── */
+.carousel-grid.is-dragging { cursor: grabbing; user-select: none; }
+.carousel-grid.is-dragging * { pointer-events: none; }
+.hero-dot { border: 0; padding: 0; }
+.img-failed { visibility: hidden; }
+.folder-picker { top: var(--picker-top, 12px); left: var(--picker-left, 12px); }
+
+/* ── Feedback ─────────────────────────────────────────────────────────── */
+.toast-region {
+  position: fixed;
+  right: var(--space-lg);
+  bottom: var(--space-lg);
+  z-index: var(--z-toast);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  max-width: min(480px, calc(100vw - 2 * var(--space-md)));
+}
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-elevated);
+  border-left: 4px solid var(--text-muted);
+  font-size: 14px;
+  animation: fadeIn 0.2s ease;
+}
+.toast-error { border-left-color: var(--danger); }
+.toast-success { border-left-color: var(--success); }
+.toast-message { flex: 1; }
+.toast-action {
+  padding: 6px 14px;
+  border: 0;
+  border-radius: var(--radius-xl);
+  background: var(--primary);
+  color: var(--text-on-primary);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.search-header-error { color: var(--danger); }
+.section-error { margin: var(--space-2xl) auto; }
+
+/* ── Settings ─────────────────────────────────────────────────────────── */
+.settings-divider { border: 0; border-top: 1px solid var(--border); margin: var(--space-md) 0; }
+.settings-actions-row { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
+#syncMessage { color: var(--danger); }
+
+@media (max-width: 480px) {
+  .toast-region { right: var(--space-md); left: var(--space-md); bottom: var(--space-md); }
+}
