@@ -5,11 +5,16 @@
 1. `npm install`
 2. `npm run setup` — interactive wizard for config.js and firebase.config.js
 3. `npm run icons` — generate extension icons from SVG
-4. Load unpacked in Chrome: `chrome://extensions` → Developer mode → Load unpacked
+4. `npm run build` — bundles into `dist/` (esbuild, same layout as `src/`)
+5. Load unpacked in Chrome: `chrome://extensions` → Developer mode → Load unpacked → select **`dist/`** (the repo root no longer loads: the content script imports shared modules)
 
 ## Daily development
 
 - **Test**: `npm test` (Vitest; keep the current count in the final report rather than this page)
+- **Build**: `npm run build` (or `npm run build:watch` for JS; rerun build after HTML/CSS changes)
+- **Lint**: `npm run lint` (ESLint flat config; forbids `innerHTML`, empty catch, thrown literals, external writes to `store._state`)
+- **Typecheck**: `npm run typecheck` (`tsc` on JSDoc; files opt in with `// @ts-check`)
+- **All gates**: `npm run check`
 - **Reload**: Click refresh on extension card in `chrome://extensions`
 - **Debug**: Right-click icon → Inspect popup, or open tab and use DevTools
 
