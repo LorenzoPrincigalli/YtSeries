@@ -2,7 +2,8 @@
 // Settings dialog: appearance, overlays, notifications, cloud sync, data
 // management (export / import / backups / reset) and dev tools.
 import { EVENTS } from '../../shared/events.js'
-import { EXTENSION_ID, SUPPORT_URL } from '../../shared/constants.js'
+import { SUPPORT_URL } from '../../shared/constants.js'
+import { isStoreInstall } from '../../shared/environment.js'
 import { t } from '../../shared/i18n.js'
 import { logger } from '../../shared/logger.js'
 import { h, byId, mount, setField } from '../../shared/dom.js'
@@ -45,8 +46,8 @@ function populate() {
   setField('nextEpisodeOverlayToggle', settings.nextEpisodeOverlay !== false)
   setField('autoRefreshToggle', Boolean(settings.autoRefresh))
   renderSync()
-  // Dev tools exist only in unpacked builds (no store EXTENSION_ID yet).
-  for (const el of document.querySelectorAll('[data-section="dev"]')) el.classList.toggle('hidden', Boolean(EXTENSION_ID))
+  // Dev tools exist only in unpacked development builds, never in store installs.
+  for (const el of document.querySelectorAll('[data-section="dev"]')) el.classList.toggle('hidden', isStoreInstall())
 }
 
 // ── Cloud sync ───────────────────────────────────────────────────────────

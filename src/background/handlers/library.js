@@ -1,6 +1,7 @@
 // @ts-check
 import { EVENTS } from '../../shared/events.js'
-import { STORAGE_KEYS, EXTENSION_ID } from '../../shared/constants.js'
+import { STORAGE_KEYS } from '../../shared/constants.js'
+import { isStoreInstall } from '../../shared/environment.js'
 import { AppError } from '../../shared/errors.js'
 import { s } from '../../shared/schema.js'
 import { normalizeSeries, normalizeSeriesBackup } from '../../shared/seriesValidation.js'
@@ -55,9 +56,9 @@ async function resetStorage(ctx) {
   return { success: true, syncStatus: ctx.sync.status() }
 }
 
-/** Development-only sample library; disabled once EXTENSION_ID marks a store build. @param {Ctx} ctx */
+/** Development-only sample library; never available in Chrome Web Store installs. @param {Ctx} ctx */
 async function loadDemoData(ctx) {
-  if (EXTENSION_ID) throw new AppError('NOT_IN_DEV_MODE')
+  if (isStoreInstall()) throw new AppError('NOT_IN_DEV_MODE')
   const seriesMap = {}
   for (const series of generateMockSeries()) seriesMap[series.playlistId] = normalizeSeries(series, series.playlistId)
   await commit(ctx, store => { store.replaceSeries(seriesMap) })

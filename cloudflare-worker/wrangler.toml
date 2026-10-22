@@ -18,3 +18,4 @@ simple = { limit = 120, period = 60 }
 #   YT_API_KEY             YouTube Data API key
 #   ALLOWED_ORIGINS        comma-separated, e.g. chrome-extension://<EXTENSION_ID>
 #   YT_SERIES_CLIENT_TOKEN optional override of the public client token
+#   RATE_LIMIT_SALT        random string; rate-limit keys are SHA-256(salt:IP), IPs are never stored

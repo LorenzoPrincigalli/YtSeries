@@ -129,3 +129,12 @@ describe('dom URL policy', async () => {
     }
   })
 })
+
+describe('isStoreInstall', async () => {
+  const { isStoreInstall } = await import('../environment.js')
+
+  it('detects Chrome Web Store installs by update_url', () => {
+    expect(isStoreInstall({ update_url: 'https://clients2.google.com/service/update2/crx' })).toBe(true)
+    expect(isStoreInstall({})).toBe(false)
+  })
+})

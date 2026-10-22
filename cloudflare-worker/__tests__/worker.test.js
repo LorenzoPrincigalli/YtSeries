@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { handleRequest } from '../index.js'
-import { validateApiRequest, DEFAULT_CLIENT_TOKEN } from '../security.js'
+import { validateApiRequest, DEFAULT_CLIENT_TOKEN, clientKey } from '../security.js'
 
 const ORIGIN = 'chrome-extension://abcdefghijklmnop'
 
@@ -108,7 +108,9 @@ describe('worker', () => {
     const { call, fetchMock } = setup({ env: { RATE_LIMITER: { limit } } })
     const response = await call('/videos?part=contentDetails&id=a')
     expect(response.status).toBe(429)
-    expect(limit).toHaveBeenCalledWith({ key: '1.2.3.4' })
+    const [{ key }] = limit.mock.calls[0]
+    expect(key).toMatch(/^[0-9a-f]{32}$/) // salted hash, never the raw IP
+    expect(key).not.toContain('1.2.3.4')
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
@@ -116,11 +118,19 @@ describe('worker', () => {
     const limit = vi.fn(async () => ({ success: true }))
     const { call } = setup({ env: { RATE_LIMITER: { limit } } })
     await call('/videos?part=contentDetails&id=a', { headers: { 'CF-Connecting-IP': '', 'X-Forwarded-For': '9.9.9.9' } })
-    expect(limit).toHaveBeenCalledWith({ key: 'unknown' })
+    const spoofed = await clientKey(new Request('https://x', { headers: { 'X-Forwarded-For': '9.9.9.9' } }), {})
+    const unknown = await clientKey(new Request('https://x'), {})
+    expect(spoofed).toBe(unknown)
+    expect(limit.mock.calls[0][0].key).toBe(unknown)
   })
 
   it('rejects non-GET methods', async () => {
     const { call } = setup()
     expect((await call('/videos?part=contentDetails&id=a', { method: 'POST' })).status).toBe(405)
+  })
+
+  it('salts the client key so hashes cannot be reversed with a table of IPs', async () => {
+    const request = () => new Request('https://x', { headers: { 'CF-Connecting-IP': '1.2.3.4' } })
+    expect(await clientKey(request(), { RATE_LIMIT_SALT: 'a' })).not.toBe(await clientKey(request(), { RATE_LIMIT_SALT: 'b' }))
   })
 })

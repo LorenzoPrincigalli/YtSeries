@@ -22,7 +22,7 @@
 </head>
 <body>
   <h1>Privacy Policy</h1>
-  <p><strong>Last updated:</strong> May 28, 2026 (Cloud Sync section)</p>
+  <p><strong>Last updated:</strong> October 23, 2026 (API relay rate limiting, permissions)</p>
 
   <h2>Overview</h2>
   <p>YT Series ("the Extension") lets you manage YouTube playlists as TV series with progress tracking. This policy explains what data the Extension collects, how it is used, and your rights.</p>
@@ -52,10 +52,10 @@
   <p>The Extension communicates externally only with:</p>
   <ul>
     <li><code>www.googleapis.com</code> – YouTube Data API requests</li>
-    <li><code>shy-snowflake-0680.lollo-princigalli.workers.dev</code> – YouTube API proxy (transparent relay, no data logged or stored)</li>
+    <li><code>shy-snowflake-0680.lollo-princigalli.workers.dev</code> – YouTube API proxy (relays playlist, video and search requests; responses are cached without any user identifier)</li>
     <li><code>identitytoolkit.googleapis.com</code>, <code>securetoken.googleapis.com</code>, <code>firestore.googleapis.com</code> – Cloud Sync only, when you are signed in</li>
   </ul>
-  <p>No analytics, no advertising trackers, and no third-party scripts in the Extension UI. The Cloudflare Worker relay does not log or store personal data.</p>
+  <p>No analytics, no advertising trackers, and no third-party scripts in the Extension UI. The Cloudflare Worker relay does not log or store personal data. To prevent abuse it counts requests per client using a <strong>salted one-way hash</strong> of the connecting IP address; the IP itself is never stored, and the counters expire automatically within 24 hours.</p>
 
   <h2>Data Retention & Deletion</h2>
   <p>All data persists in <code>chrome.storage</code> until you either:</p>
@@ -73,7 +73,8 @@
     <li><strong>notifications</strong> – needed to alert you when new episodes are found</li>
     <li><strong>tabs</strong> – needed to open the Extension's tab interface</li>
     <li><strong>identity</strong> – needed for optional Google sign-in (Cloud Sync)</li>
-    <li><strong>youtube.com</strong> – needed to inject the sidebar shortcut on YouTube pages</li>
+    <li><strong>scripting</strong> – needed to refresh the YouTube integration in already-open YouTube tabs after the Extension is installed or updated</li>
+    <li><strong>youtube.com</strong> – needed for the sidebar shortcut, the "Add to Series" button, the "Next Episode" overlay and episode progress tracking on YouTube pages</li>
     <li><strong>googleapis.com</strong> – needed for YouTube Data API requests</li>
     <li><strong>shy-snowflake-0680.lollo-princigalli.workers.dev</strong> – needed to relay YouTube API requests without exposing your API key</li>
   </ul>

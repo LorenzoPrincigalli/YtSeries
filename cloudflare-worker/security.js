@@ -133,17 +133,28 @@ function validateWorkerClient(request, env) {
  * to a best-effort daily KV counter, which is eventually consistent and may
  * let a burst slightly exceed the limit.
  */
+/**
+ * Rate-limit key for a client: a salted SHA-256 of the IP, so no IP address is
+ * ever written to KV or sent to the limiter in clear (privacy policy promise).
+ * The salt comes from the RATE_LIMIT_SALT secret.
+ */
+async function clientKey(request, env) {
+  const data = new TextEncoder().encode(`${env?.RATE_LIMIT_SALT || ''}:${getClientIp(request)}`)
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', data))
+  return [...digest.slice(0, 16)].map(byte => byte.toString(16).padStart(2, '0')).join('')
+}
+
 async function checkRateLimit(request, env) {
-  const ip = getClientIp(request)
+  const key = await clientKey(request, env)
   if (env?.RATE_LIMITER?.limit) {
-    const { success } = await env.RATE_LIMITER.limit({ key: ip })
+    const { success } = await env.RATE_LIMITER.limit({ key })
     return success ? { ok: true } : { ok: false, status: 429, error: 'RATE_LIMITED' }
   }
   if (!env?.CACHE_KV) return { ok: true }
-  const key = `rl:${ip}:${new Date().toISOString().slice(0, 10)}`
-  const count = parseInt(await env.CACHE_KV.get(key) || '0', 10)
+  const kvKey = `rl:${key}:${new Date().toISOString().slice(0, 10)}`
+  const count = parseInt(await env.CACHE_KV.get(kvKey) || '0', 10)
   if (count >= RATE_LIMIT_PER_DAY) return { ok: false, status: 429, error: 'RATE_LIMITED' }
-  await env.CACHE_KV.put(key, String(count + 1), { expirationTtl: 86400 })
+  await env.CACHE_KV.put(kvKey, String(count + 1), { expirationTtl: 86400 })
   return { ok: true }
 }
 
@@ -156,5 +167,6 @@ export {
   validateApiRequest,
   validateOrigin,
   validateWorkerClient,
-  checkRateLimit
+  checkRateLimit,
+  clientKey
 }

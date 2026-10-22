@@ -1,5 +1,27 @@
 const CHANGELOG = [
   {
+    version: '1.2.0',
+    date: '2026-10-23',
+    items: [
+      'Faster, more reliable dashboard: rebuilt from the ground up with automatic retries when YouTube is slow or unavailable',
+      'Clear error messages instead of silent failures (no connection, YouTube daily limit, playlist not found)',
+      'Episode progress is now always saved, even when the browser suspends the extension',
+      'Redesigned watched toggle, better contrast in every theme and full keyboard support',
+      'YouTube integration: one "Add to Series" button that updates live, readable sidebar link, settings respected immediately',
+      'Recommendations refresh when you add series from new channels; JSON export fixed',
+      'Stronger privacy and security: stricter validation everywhere, hardened API proxy and cloud rules'
+    ],
+    items_it: [
+      'Dashboard più veloce e affidabile: riscritta da zero, con nuovi tentativi automatici quando YouTube è lento o non disponibile',
+      'Messaggi di errore chiari invece di errori silenziosi (nessuna connessione, limite giornaliero di YouTube, playlist non trovata)',
+      'Il progresso degli episodi viene sempre salvato, anche quando il browser sospende l\'estensione',
+      'Pulsante visto/non visto ridisegnato, contrasto migliore in ogni tema e uso completo da tastiera',
+      'Integrazione con YouTube: un solo pulsante "Aggiungi a Serie" che si aggiorna in tempo reale, link laterale leggibile, impostazioni applicate subito',
+      'I consigli si aggiornano quando aggiungi serie di nuovi canali; corretta l\'esportazione JSON',
+      'Privacy e sicurezza rafforzate: validazione più rigorosa, proxy API e regole cloud blindati'
+    ]
+  },
+  {
     version: '1.1.1',
     date: '2026-06-16',
     items: [
