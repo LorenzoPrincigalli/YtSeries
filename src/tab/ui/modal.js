@@ -4,7 +4,7 @@ import { h } from '../../shared/dom.js'
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
-/** @type {{ el: HTMLElement, opener: Element | null, onKeydown: (e: KeyboardEvent) => void }[]} */
+/** @type {{ el: HTMLElement, opener: Element | null, returnFocus?: () => Element | null, onKeydown: (e: KeyboardEvent) => void }[]} */
 const stack = []
 /** @type {WeakMap<HTMLElement, (() => void) | undefined>} */
 const closeHandlers = new WeakMap()
@@ -19,9 +19,10 @@ function focusables(el) {
  * accessible dialog: role/aria-modal, initial focus, Tab trapped inside,
  * Escape and backdrop click close it, focus returns to the opener.
  * @param {string} id
- * @param {{ onClose?: () => void }} [options]
+ * @param {{ onClose?: () => void, returnFocus?: () => Element | null }} [options]
+ *   returnFocus: where focus goes on close when the opener was re-rendered away
  */
-export function openModal(id, { onClose } = {}) {
+export function openModal(id, { onClose, returnFocus } = {}) {
   const el = document.getElementById(id)
   if (!el || stack.some(entry => entry.el === el)) return
   const dialog = el.querySelector('.modal') || el
@@ -48,7 +49,7 @@ export function openModal(id, { onClose } = {}) {
     }
   }
   el.onclick = event => { if (event.target === el || /** @type {Element} */ (event.target).classList?.contains('modal-backdrop')) closeModal(id) }
-  stack.push({ el, opener: document.activeElement, onKeydown })
+  stack.push({ el, opener: document.activeElement, returnFocus, onKeydown })
   closeHandlers.set(el, onClose)
   document.addEventListener('keydown', onKeydown)
   el.classList.remove('hidden')
@@ -68,7 +69,8 @@ export function closeModal(id) {
   for (const msg of el.querySelectorAll('.error-msg')) { msg.classList.add('hidden'); msg.textContent = '' }
   if (!stack.length) document.body.classList.remove('modal-open')
   closeHandlers.get(el)?.()
-  if (entry.opener instanceof HTMLElement && entry.opener.isConnected) entry.opener.focus()
+  const target = entry.opener instanceof HTMLElement && entry.opener.isConnected ? entry.opener : entry.returnFocus?.()
+  if (target instanceof HTMLElement) target.focus()
 }
 
 /** Wires close buttons declared in markup as <button data-modal="modalId">. */

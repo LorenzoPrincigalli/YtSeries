@@ -161,8 +161,8 @@
 }
 
 .settings-tab.active {
-  background: var(--primary);
-  color: white;
+  background: var(--primary-fill);
+  color: var(--text-on-primary);
 }
 
 .settings-content {

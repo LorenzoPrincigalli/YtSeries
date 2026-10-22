@@ -14,6 +14,7 @@
 - **Build**: `npm run build` (or `npm run build:watch` for JS; rerun build after HTML/CSS changes)
 - **Lint**: `npm run lint` (ESLint flat config — forbids `innerHTML`, empty catch, thrown literals, external writes to `store._state` — plus `scripts/lint-css.mjs`)
 - **Smoke**: `npm run smoke` (after build) loads `dist/` in Chromium via Playwright: message API, dashboard flows, content script on stubbed youtube.com, popup, axe audit. `SMOKE_SCREENSHOTS=<dir>` saves screenshots
+- **E2E**: `npm run e2e` (after build) drives every dashboard feature, the popup and the content script with a stubbed YouTube Worker (no network): add/search/detail/collections/activity/settings/import-export/backups/reset/footer, error states (outage, quota, not found), keyboard paths, 375 px layout, axe in all four themes. `E2E_ARTIFACTS=<dir>` keeps screenshots; failures are screenshotted and the run continues
 - **Typecheck**: `npm run typecheck` (`tsc` on JSDoc; files opt in with `// @ts-check`)
 - **All gates**: `npm run check`
 - **Reload**: Click refresh on extension card in `chrome://extensions`

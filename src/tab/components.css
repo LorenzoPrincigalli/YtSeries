@@ -23,8 +23,8 @@
   padding: var(--space-sm) 20px;
   border: none;
   border-radius: 20px;
-  background: var(--primary);
-  color: var(--text-on-primary, #fff);
+  background: var(--primary-fill);
+  color: var(--text-on-primary);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -34,8 +34,17 @@
     transform 0.1s;
 }
 
+/* Links styled as buttons (e.g. "Watch now", which opens YouTube). */
+a.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
 .btn-primary:hover {
-  background: var(--primary-hover);
+  background: var(--primary-fill-hover);
 }
 
 .btn-primary:active {
@@ -122,14 +131,26 @@ select option {
 
 /* toggle */
 .toggle-label {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
   cursor: pointer;
 }
 
+/* Visually hidden but still focusable and operable with Space. */
 .toggle-label input {
-  display: none;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.toggle-label input:focus-visible + .toggle-slider {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }
 
 .toggle-slider {
@@ -478,12 +499,12 @@ body::before {
 .folder-picker-option:hover, .folder-picker-option.selected { background: var(--hover-overlay-strong); }
 .folder-picker-create { display: flex; gap: 6px; margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--border); }
 .folder-picker-create input { min-width: 0; flex: 1; padding: 7px; border: 1px solid var(--border); border-radius: 4px; color: var(--text); background: var(--surface); }
-.folder-picker-create button { padding: 7px 10px; border: 0; border-radius: 4px; color: var(--text-on-primary); background: var(--primary); cursor: pointer; }
+.folder-picker-create button { padding: 7px 10px; border: 0; border-radius: 4px; color: var(--text-on-primary); background: var(--primary-fill); cursor: pointer; }
 
 .activity-menu-container { position: relative; }
 .activity-btn { position: relative; }
 .activity-btn svg { display: block; width: 20px; height: 20px; }
-.activity-badge { position: absolute; top: 2px; right: 1px; min-width: 15px; height: 15px; padding: 0 3px; border: 2px solid var(--bg); border-radius: 999px; color: var(--text-on-primary); background: var(--primary); font-size: 9px; font-weight: 700; line-height: 11px; text-align: center; }
+.activity-badge { position: absolute; top: 2px; right: 1px; min-width: 15px; height: 15px; padding: 0 3px; border: 2px solid var(--bg); border-radius: 999px; color: var(--text-on-primary); background: var(--primary-fill); font-size: 9px; font-weight: 700; line-height: 11px; text-align: center; }
 .activity-panel { position: absolute; top: calc(100% + 10px); right: 0; z-index: var(--z-dropdown); width: min(360px, calc(100vw - 28px)); padding: 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--modal-bg); box-shadow: 0 18px 50px rgba(0,0,0,.38); }
 .activity-panel::before { content: ''; position: absolute; top: -6px; right: 16px; width: 10px; height: 10px; border-top: 1px solid var(--border); border-left: 1px solid var(--border); background: var(--modal-bg); transform: rotate(45deg); }
 .activity-panel-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }

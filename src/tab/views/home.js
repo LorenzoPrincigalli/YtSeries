@@ -16,7 +16,8 @@ const log = logger.child('home')
 const ROW_LIMIT = 10
 
 let disposeHero = null
-let recommendationsRequested = false
+/** Which channel set the recommendations were loaded (or are loading) for. */
+const recommendations = { loadedKey: null, loadingKey: null }
 
 /** @param {any} series */
 const openDetail = series => setUi({ detailId: series.playlistId })
@@ -102,29 +103,42 @@ function home(all, ui) {
   return sections
 }
 
+/** Recommendations depend only on which channels are saved. @param {any[]} all */
+const channelKey = all => [...new Set(all.map(s => s.channelId).filter(Boolean))].sort().join(',')
+
 /** @param {any[]} all @param {import('../core/store.js').UiState} ui */
 function recommendedSection(all, ui) {
-  if (ui.recommended) return playlistRow(t('recommended'), ui.recommended, addFromSearch)
-  if (!recommendationsRequested) {
-    recommendationsRequested = true
-    loadRecommendations(all)
+  const key = channelKey(all)
+  // Reload when the saved channels change; keep showing the previous list meanwhile.
+  if (key && recommendations.loadingKey !== key && recommendations.loadedKey !== key) {
+    recommendations.loadingKey = key
+    loadRecommendations(all, key)
   }
-  return null
+  const saved = new Set(all.map(s => s.playlistId))
+  const visible = (ui.recommended || []).filter(playlist => !saved.has(playlist.playlistId))
+  return visible.length ? playlistRow(t('recommended'), visible, addFromSearch) : null
 }
 
-/** Fetches channel playlists for saved channels (failures are skipped, not fatal). @param {any[]} all */
-async function loadRecommendations(all) {
+/**
+ * Fetches channel playlists for saved channels. Individual failures are
+ * skipped; if every request fails nothing is cached, so the next render retries.
+ * @param {any[]} all @param {string} key
+ */
+async function loadRecommendations(all, key) {
   /** @type {Record<string, number>} */
   const weights = {}
   for (const series of all) if (series.channelId) weights[series.channelId] = (weights[series.channelId] || 0) + 1
   const channelIds = Object.keys(weights)
-  if (!channelIds.length) return
   const settled = await Promise.allSettled(channelIds.map(id => actions.fetchChannelPlaylists(id)))
+  if (recommendations.loadingKey !== key) return // superseded by a newer load
+  recommendations.loadingKey = null
   const byChannel = new Map()
   settled.forEach((result, i) => {
     if (result.status === 'fulfilled') byChannel.set(channelIds[i], result.value)
     else log.warn('Recommendations: channel fetch failed', channelIds[i], result.reason)
   })
+  if (!byChannel.size) return
+  recommendations.loadedKey = key
   setUi({ recommended: pickRecommendations(byChannel, weights, new Set(all.map(s => s.playlistId))) })
 }
 

@@ -6,8 +6,9 @@
 /** Assigned as properties rather than attributes so live state is correct. */
 const PROPERTIES = new Set(['value', 'checked', 'disabled', 'hidden', 'readOnly', 'required', 'maxLength', 'tabIndex', 'loading', 'decoding', 'selected', 'open'])
 const URL_ATTRIBUTES = new Set(['href', 'src'])
-// https, mailto, chrome-extension and scheme-less relative paths only.
-const SAFE_URL = /^(?:https:|mailto:|chrome-extension:|(?![a-z][a-z0-9+.-]*:))/i
+// https, mailto, chrome-extension, blob (object URLs we create, e.g. exports)
+// and scheme-less relative paths only — never javascript:, data: or http:.
+const SAFE_URL = /^(?:https:|mailto:|chrome-extension:|blob:|(?![a-z][a-z0-9+.-]*:))/i
 
 /** @param {unknown} value */
 export function isSafeUrl(value) {

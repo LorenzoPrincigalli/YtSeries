@@ -113,3 +113,19 @@ describe('logger', () => {
     expect(last.data[0]).toEqual({ name: 'AppError', message: 'boom', code: 'X' })
   })
 })
+
+describe('dom URL policy', async () => {
+  const { isSafeUrl } = await import('../dom.js')
+
+  it('allows https, mailto, extension, blob and relative URLs', () => {
+    for (const url of ['https://i.ytimg.com/a.jpg', 'mailto:a@b.c', 'chrome-extension://id/x', 'blob:chrome-extension://id/uuid', '../../icons/a.png', '#top']) {
+      expect(isSafeUrl(url), url).toBe(true)
+    }
+  })
+
+  it('blocks script, data and plain-http URLs', () => {
+    for (const url of ['javascript:alert(1)', ' JavaScript:alert(1)', 'data:text/html,x', 'http://example.com', 'vbscript:x']) {
+      expect(isSafeUrl(url), url).toBe(false)
+    }
+  })
+})

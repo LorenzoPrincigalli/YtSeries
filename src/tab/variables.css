@@ -115,6 +115,9 @@
   --primary: #d40000;
   --primary-rgb: 212, 0, 0;
   --primary-hover: #b30000;
+  /* Filled controls with white text (≥ 4.5:1); --primary stays the accent. */
+  --primary-fill: #d40000;
+  --primary-fill-hover: #b30000;
   --text: #1a1a1a;
   --text-muted: #6b6b6b;
   --text-on-primary: #ffffff;
@@ -169,6 +172,8 @@
   --primary: #ff0000;
   --primary-rgb: 255, 0, 0;
   --primary-hover: #cc0000;
+  --primary-fill: #cc0000;
+  --primary-fill-hover: #a80000;
   --text: #f1f1f1;
   --text-muted: #aaaaaa;
   --card-bg: #1a1a1a;
@@ -184,6 +189,8 @@
   --primary: #1e90ff;
   --primary-rgb: 30, 144, 255;
   --primary-hover: #187bda;
+  --primary-fill: #1565c0;
+  --primary-fill-hover: #0d4fa0;
   --text: #e0e8f0;
   --text-muted: #8796a8;
   --card-bg: #152540;
@@ -199,6 +206,8 @@
   --primary: #2ecc71;
   --primary-rgb: 46, 204, 113;
   --primary-hover: #27ae60;
+  --primary-fill: #1e7e46;
+  --primary-fill-hover: #176238;
   --text: #e0f0e0;
   --text-muted: #84a484;
   --card-bg: #1f301f;

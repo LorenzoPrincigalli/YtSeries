@@ -22,7 +22,7 @@
   z-index: calc(var(--z-toast) + 1);
   padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius);
-  background: var(--primary);
+  background: var(--primary-fill);
   color: var(--text-on-primary);
   font-weight: 600;
   transform: translateY(-200%);
@@ -102,7 +102,7 @@ body.modal-open { overflow: hidden; }
   padding: 6px 14px;
   border: 0;
   border-radius: var(--radius-xl);
-  background: var(--primary);
+  background: var(--primary-fill);
   color: var(--text-on-primary);
   font: inherit;
   font-size: 12px;

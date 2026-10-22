@@ -150,12 +150,12 @@ export function heroCarousel(seriesList, onContinue, onOpen) {
   const goTo = index => {
     if (index === current) return
     slides[current].classList.remove('active')
-    slides[current].setAttribute('aria-hidden', 'true')
+    slides[current].inert = true // hidden slides must not be reachable with Tab
     dots[current].classList.remove('active')
     dots[current].setAttribute('aria-current', 'false')
     current = index
     slides[current].classList.add('active')
-    slides[current].setAttribute('aria-hidden', 'false')
+    slides[current].inert = false
     dots[current].classList.add('active')
     dots[current].setAttribute('aria-current', 'true')
     restart()
@@ -168,7 +168,7 @@ export function heroCarousel(seriesList, onContinue, onOpen) {
 
   seriesList.forEach((series, i) => {
     const label = isInProgress(series) ? t('continue_watching') : t('start')
-    slides.push(h('div', { class: ['hero-carousel-slide', i === 0 && 'active'], dataset: { index: i }, 'aria-hidden': String(i !== 0), onClick: () => onOpen(series) },
+    slides.push(h('div', { class: ['hero-carousel-slide', i === 0 && 'active'], dataset: { index: i }, inert: i !== 0, onClick: () => onOpen(series) },
       img({ class: 'hero-backdrop', src: series.thumbnail, loading: i === 0 ? 'eager' : 'lazy' }),
       h('div', { class: 'hero-gradient' }),
       h('div', { class: 'hero-content' },
