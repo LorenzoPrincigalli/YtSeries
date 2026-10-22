@@ -88,7 +88,7 @@ class FirebaseAuthService {
       }
     )
 
-    const data = await resp.json()
+    const data = await resp.json().catch(() => ({}))
     if (!resp.ok) {
       throw new AppError('AUTH_FAILED', data.error?.message || 'Firebase sign-in failed')
     }
@@ -152,11 +152,19 @@ class FirebaseAuthService {
       }
     )
 
-    const data = await resp.json()
+    const data = await resp.json().catch(() => ({}))
     if (!resp.ok) {
-      logger.warn('FirebaseAuth: token refresh failed:', data.error?.message)
-      await this.logout()
-      return null
+      // 400 means the refresh token is revoked, expired or the user disabled:
+      // the session is really over. 429/5xx are transient — keep the session.
+      if (resp.status === 400) {
+        logger.warn('FirebaseAuth: refresh token rejected, signing out:', data.error?.message)
+        await this.logout()
+        return null
+      }
+      throw new AppError('AUTH_REFRESH_UNAVAILABLE', data.error?.message || `Token refresh failed (${resp.status})`, {
+        status: resp.status,
+        retryable: resp.status === 429 || resp.status >= 500
+      })
     }
 
     const session = {

@@ -1,4 +1,5 @@
-import { AppError } from '../../shared/errors.js'
+import { AppError, toAppError } from '../../shared/errors.js'
+import { withRetry } from '../../shared/resilience.js'
 import { getFirebaseConfig } from './FirebaseConfig.js'
 import { SYNC_MAX_CONFLICT_RETRIES, SYNC_STORAGE_KEYS } from '../../shared/constants.js'
 import { encodeFields, decodeDocument } from './firestoreRest.js'
@@ -96,9 +97,10 @@ function isConflict(response, body) {
 }
 
 class FirebaseSyncService {
-  constructor(authService) {
+  constructor(authService, { sleep } = {}) {
     this._auth = authService
     this._queueChain = Promise.resolve()
+    this._sleep = sleep
   }
 
   _baseUrl(uid) {
@@ -112,9 +114,25 @@ class FirebaseSyncService {
     return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
   }
 
+  /**
+   * Firestore REST call with retry on network failures, 429 and 5xx. Writes
+   * carry updateTime/exists preconditions, so a retried write can only fail
+   * the precondition, never double-apply.
+   */
   async _request(url, options) {
-    const response = await fetch(url, { ...options, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) })
-    return { response, body: await response.json().catch(() => ({})) }
+    return withRetry(async () => {
+      let response
+      try {
+        response = await fetch(url, { ...options, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) })
+      } catch (err) {
+        throw toAppError(err, 'NETWORK_ERROR')
+      }
+      const body = await response.json().catch(() => ({}))
+      if (response.status === 429 || response.status >= 500) {
+        throw firestoreError('FIRESTORE_UNAVAILABLE', response, body, 'Firestore is unavailable')
+      }
+      return { response, body }
+    }, { retries: 2, label: 'Firestore request', sleep: this._sleep })
   }
 
   _documentUrl(uid, playlistId) { return `${this._baseUrl(uid)}/${encodeURIComponent(playlistId)}` }
