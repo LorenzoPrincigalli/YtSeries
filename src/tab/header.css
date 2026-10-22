@@ -37,6 +37,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  white-space: nowrap;
   color: var(--text-muted);
   text-decoration: none;
   font-size: 13px;
@@ -107,6 +108,7 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  white-space: nowrap;
   padding: 5px 12px;
   border: 1px solid var(--primary);
   border-radius: 20px;
@@ -121,7 +123,7 @@
 
 .header-pro-btn:hover {
   background: var(--primary);
-  color: #fff;
+  color: var(--text-on-primary);
 }
 
 

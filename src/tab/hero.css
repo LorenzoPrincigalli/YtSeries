@@ -25,7 +25,8 @@
   left: 0;
   right: 0;
   height: 50%;
-  background: linear-gradient(transparent, var(--bg));
+  /* Darkens behind the text first, then fades into the page background. */
+  background: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.45) 55%, var(--bg) 100%);
 }
 
 .hero-content {
@@ -41,6 +42,8 @@
   margin-bottom: 12px;
   max-width: 600px;
   letter-spacing: -0.02em;
+  color: var(--text-on-media); /* always over artwork, in every theme */
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
 }
 
 .hero-subtitle {
@@ -83,8 +86,8 @@
 }
 
 .hero-btn-play {
-  background: #fff;
-  color: #000;
+  background: var(--surface-on-media);
+  color: var(--text-on-surface-media);
 }
 
 .hero-btn-play:hover {
@@ -154,7 +157,7 @@
 }
 
 .hero-dot.active {
-  background: #fff;
+  background: var(--surface-on-media);
   transform: scale(1.25);
 }
 

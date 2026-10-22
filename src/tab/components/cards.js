@@ -175,7 +175,7 @@ export function heroCarousel(seriesList, onContinue, onOpen) {
         h('h1', { class: 'hero-title' },
           h('button', { type: 'button', class: 'hero-title-btn', onClick: event => { event.stopPropagation(); onOpen(series) } }, series.title)),
         h('p', { class: 'hero-subtitle' }, series.channelTitle || ''),
-        h('div', { class: 'hero-progress', role: 'progressbar', 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': String(Math.round(heroProgress(series))) },
+        h('div', { class: 'hero-progress', role: 'progressbar', 'aria-label': t('watched'), 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': String(Math.round(heroProgress(series))) },
           h('div', { class: 'hero-progress-bar', style: progressStyle(heroProgress(series)) })),
         h('div', { class: 'hero-btn-group' },
           h('button', { type: 'button', class: 'hero-btn hero-btn-play', onClick: event => { event.stopPropagation(); onContinue(series) } }, `▶ ${label}`)))))

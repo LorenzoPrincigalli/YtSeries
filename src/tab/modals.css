@@ -272,7 +272,7 @@
 }
 
 .detail-hero-channel:hover {
-  color: #fff;
+  color: var(--text-on-media);
 }
 
 .detail-hero-channel::after {

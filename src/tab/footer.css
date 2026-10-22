@@ -33,12 +33,6 @@
   color: var(--text);
 }
 
-/* FAQ */
-.faq-section {
-  border-top: 1px solid var(--card-bg);
-  padding-top: var(--space-md);
-}
-
 .faq-list {
   display: flex;
   flex-direction: column;

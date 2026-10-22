@@ -58,7 +58,7 @@
   border: none;
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.7);
-  color: #fff;
+  color: var(--text-on-media);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -108,7 +108,7 @@
   background: rgba(0,0,0,0.6);
   font-size: 48px;
   font-weight: 300;
-  color: #fff;
+  color: var(--text-on-media);
   opacity: 0;
   transition: opacity 0.2s;
   cursor: pointer;

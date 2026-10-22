@@ -93,7 +93,16 @@
   --z-card-hover: 5;
   --z-modal: 200;
   --z-header: 100;
+  --z-dropdown: 250;
   --z-toast: 300;
+  --z-popover: 400;
+
+  /* Content drawn on top of artwork (thumbnails, hero) is theme-independent. */
+  --text-on-media: #ffffff;
+  --surface-on-media: #ffffff;
+  --text-on-surface-media: #000000;
+  --badge-new-bg: #b33600;
+  --badge-done-bg: #157a33;
 
   /* Transition */
   --transition: 0.2s ease;

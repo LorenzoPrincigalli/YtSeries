@@ -2,7 +2,7 @@
 // exercises the service worker message API, renders the dashboard and fails
 // on any uncaught page error. Run after `npm run build`:  npm run smoke
 import { chromium } from 'playwright'
-import { mkdtemp, rm } from 'node:fs/promises'
+import { mkdtemp, rm, readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url'
 const dist = join(dirname(fileURLToPath(import.meta.url)), '..', 'dist')
 // Optional: SMOKE_SCREENSHOTS=<dir> saves screenshots for visual review.
 const shots = process.env.SMOKE_SCREENSHOTS || ''
+const axeSource = await readFile(join(dirname(fileURLToPath(import.meta.url)), '..', 'node_modules', 'axe-core', 'axe.min.js'), 'utf8')
 const profile = await mkdtemp(join(tmpdir(), 'yts-smoke-'))
 const failures = []
 const check = (ok, label) => { console.log(`${ok ? '✓' : '✗'} ${label}`); if (!ok) failures.push(label) }
@@ -64,6 +65,19 @@ try {
   await page.waitForTimeout(600)
   if (shots) await page.screenshot({ path: join(shots, 'home-light.png'), fullPage: false })
 
+  // Accessibility audit (axe-core): no serious or critical violations.
+  const audit = async (label, include) => {
+    // Extension pages forbid inline/remote scripts, so axe is evaluated as a string.
+    await page.evaluate(axeSource)
+    const result = await page.evaluate(async scope => {
+      const { violations } = await window.axe.run(scope ? document.querySelector(scope) : document, { resultTypes: ['violations'] })
+      return violations.filter(v => v.impact === 'serious' || v.impact === 'critical')
+        .map(v => `${v.id} (${v.nodes.length}): ${v.nodes.slice(0, 2).map(n => n.target.join(' ')).join(', ')}`)
+    }, include)
+    check(result.length === 0, `a11y ${label}: no serious/critical axe violations${result.length ? '\n    ' + result.join('\n    ') : ''}`)
+  }
+  await audit('home')
+
   // Detail dialog: open from a card title (keyboard path), toggle an episode, close with Escape.
   await page.locator('.series-row .card-title-btn').first().click()
   await page.waitForSelector('#detailModal:not(.hidden) .episode-card', { timeout: 5000 })
@@ -73,6 +87,7 @@ try {
   await status.click()
   await page.waitForFunction(prev => document.querySelector('#detailModal .episode-status')?.getAttribute('aria-pressed') !== prev, before, { timeout: 5000 })
   check(true, 'episode watched toggle re-renders from server state')
+  await audit('detail dialog', '#detailModal')
   if (shots) await page.screenshot({ path: join(shots, 'detail.png') })
   await page.keyboard.press('Escape')
   await page.waitForSelector('#detailModal.hidden', { state: 'attached', timeout: 3000 })

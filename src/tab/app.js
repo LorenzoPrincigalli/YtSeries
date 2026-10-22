@@ -4,7 +4,7 @@ import { EVENTS } from '../shared/events.js'
 import { t } from '../shared/i18n.js'
 import { logger } from '../shared/logger.js'
 import { byId, h, mount } from '../shared/dom.js'
-import { getState, setServer, setUi, subscribe } from './core/store.js'
+import { getState, getUi, setServer, setUi, subscribe } from './core/store.js'
 import { safeRender, installGlobalErrorHandlers } from './core/errorBoundary.js'
 import { initModalTriggers } from './ui/modal.js'
 import { applyCachedTheme, applyTheme } from './theme.js'
@@ -37,6 +37,15 @@ function applySettings() {
     translateStatic()
   }
 }
+
+/** Everything renderMain() reads; compared by reference between frames. */
+function mainInputs() {
+  const { section, filter, collection, search, searchResults, searchStatus, searchError, recommended } = getUi()
+  return { state: getState(), language: appliedLanguage, section, filter, collection, search, searchResults, searchStatus, searchError, recommended }
+}
+
+/** @param {Record<string, unknown>} a @param {Record<string, unknown>} b */
+const shallowEqual = (a, b) => Object.keys(a).every(key => a[key] === b[key])
 
 function renderLoadError() {
   mount(/** @type {HTMLElement} */ (byId('mainContent')), h('div', { class: 'empty-state', role: 'alert' },
@@ -82,8 +91,14 @@ function init() {
   translateStatic()
 
   const main = /** @type {HTMLElement} */ (byId('mainContent'))
+  let rendered = null
   subscribe(() => {
     applySettings()
+    // Re-render the main area only when its inputs changed: opening the detail
+    // dialog must not rebuild the page underneath (and reset the hero carousel).
+    const inputs = mainInputs()
+    if (rendered && shallowEqual(rendered, inputs)) return
+    rendered = inputs
     safeRender(main, 'main', () => renderMain(main))
   })
 
