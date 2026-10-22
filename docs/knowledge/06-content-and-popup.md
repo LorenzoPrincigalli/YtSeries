@@ -1,88 +1,27 @@
 # Content script and popup
 
-These contexts **cannot use ES module imports** from the extension tree (manifest loads them as classic scripts).
+Both are bundled by esbuild as classic (IIFE) scripts, so they import `src/shared/*` like the rest of the extension.
 
-## Content script (`src/content/index.js`)
+## Content script (`src/content/`)
 
-Runs on all `https://www.youtube.com/*` pages.
+Runs on `https://www.youtube.com/*` with `content.css`.
 
-### Responsibilities
+| Module | Responsibility |
+|--------|----------------|
+| `index.js` | Bootstrap: settings (`CONTENT_SETTINGS_GET` at start, then broadcasts), SPA navigation (`yt-navigate-finish`), DOM observer throttled to one pass per frame |
+| `messaging.js` | `send()` that never throws; detects "Extension context invalidated" and shuts the integration down |
+| `playbackSession.js` | One object per (video, playlist): binds `<video>`, progress every 5 s (3 s debounce, ≥ 10 s between writes), `ended` → `EPISODE_WATCH`, triggers the overlay in the last 30 s; `dispose()` releases every timer/listener |
+| `nextEpisodeOverlay.js` | "Watch next" card: lookup via `PLAYLIST_EXISTS` + `GET_NEXT_EPISODE`, stale-request tokens, Escape/close dismiss for the session, follows fullscreen/theater/mini modes |
+| `pageInjections.js` | Sidebar link and "Add to Series" button (playlist pages) with navigation tokens against stale callbacks |
+| `youtubeDom.js` | **All YouTube selectors** — update here after a YouTube redesign |
+| `toast.js` | Small page notices |
 
-1. **Sidebar link** — inject “YT Series” into YouTube guide; click → `OPEN_SERIES_TAB`
-2. **Video end detection** — on `ended`, send `EPISODE_WATCH` with `videoId` + `playlistId` from URL `list=` param
-3. **SPA navigation** — listen `yt-navigate-finish`, re-run injection and video setup
-4. **Playlist button** — inject “Add to Series” button on playlist pages; checks `PLAYLIST_EXISTS` to show correct text
-5. **Progress tracking** — send `EPISODE_PROGRESS` periodically (throttled to 10s with 3s debounce)
-6. **Next Episode overlay** — show overlay 30s before video end with “Watch Next” button. It has a close control and `Escape`; closing suppresses it only for that video/playlist session. It is removed on pause, seek, ad playback, navigation and when the setting changes.
+The content script may call only the routes marked C in [02-message-protocol.md](02-message-protocol.md) and never receives library data.
 
-The playlist button starts from `handlePageNavigation()` only. A request generation token invalidates stale `PLAYLIST_EXISTS` callbacks after SPA navigation; the callback checks the current playlist, connected target and existing button before inserting. The DOM observer retries when YouTube replaces the action bar, while a pending request prevents duplicate checks.
+## Popup (`src/popup/`)
 
-### Duplicated EVENTS
+Shows series / unwatched / new counts, sync indicator, and shortcuts (dashboard, settings via `?settings=1`, support). Uses `data-theme` and the dashboard's `variables.css`; strings come from `i18n.js`.
 
-Content script defines local EVENTS object (must stay in sync with `src/shared/events.js`):
+## Testing
 
-- `OPEN_SERIES_TAB`
-- `EPISODE_WATCH`
-- `EPISODE_PROGRESS`
-- `GET_NEXT_EPISODE`
-- `PLAYLIST_ADD`
-- `PLAYLIST_EXISTS`
-- `STATE_GET`
-- `STATE_UPDATED` (background sends the reduced state to YouTube tabs so the overlay reacts immediately to settings/deletions)
-
-### Fragile DOM selectors
-
-YouTube changes UI often. Current selectors include:
-
-- `.video-stream`, `.html5-main-video` (player)
-- `ytd-guide-section-renderer` (sidebar)
-
-Expect breakage after YouTube updates; test on watch and browse pages.
-
-### Error handling
-
-`chrome.runtime.sendMessage` failures are caught silently (extension reload, context invalidated).
-
-### i18n
-
-Sidebar label is hardcoded English (`YT Series`). Tab uses full i18n.
-
-## Popup (`src/popup/popup.js`)
-
-Non-module script bound in `popup.html`.
-
-### Actions
-
-| Button | Message / action |
-|--------|------------------|
-| Open Dashboard | `{ type: 'OPEN_SERIES_TAB' }` (string literal) |
-| Settings | Opens tab URL with `?settings=1` (not handled in app.js) |
-| Buy Pro | Opens Lemon Squeezy checkout URL |
-
-### Stats
-
-On load: `STATE_GET` → counts series, unwatched episodes, new episodes (Pro only for `newEpisodesCount`).
-
-Uses `state.license?.isPro` for badge — same UI vs enforcement caveat as tab.
-
-## Comparison table
-
-| | Tab | Content | Popup |
-|---|-----|---------|-------|
-| ES modules | Yes | No | No |
-| Imports `events.js` | Yes | No | No |
-| Mutates store | No | No | No |
-| Listens `STATE_UPDATED` | Yes | Yes | No |
-
-## Agent checklist
-
-- [ ] If new content message: add to `events.js` **and** content `EVENTS` object
-- [ ] If new popup action: use exact string matching background handler
-- [ ] Test on YouTube watch page with `?v=` and `&list=` for episode watch
-- [ ] Test after extension reload (content script reinjection)
-- [ ] Do not import from `src/shared/` in content/popup without manifest change (e.g. bundler)
-
-## Related
-
-- [02-message-protocol.md](02-message-protocol.md)
-- [01-architecture.md](01-architecture.md)
+`npm run smoke` serves stub YouTube markup through Playwright routing, so the real content script is exercised (sidebar link, add button state, `ended` → watched) without network access. After YouTube DOM changes also test manually on a real watch page with `&list=` and after an extension reload.

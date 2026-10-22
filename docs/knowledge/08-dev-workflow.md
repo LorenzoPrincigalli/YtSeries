@@ -12,7 +12,8 @@
 
 - **Test**: `npm test` (Vitest; keep the current count in the final report rather than this page)
 - **Build**: `npm run build` (or `npm run build:watch` for JS; rerun build after HTML/CSS changes)
-- **Lint**: `npm run lint` (ESLint flat config; forbids `innerHTML`, empty catch, thrown literals, external writes to `store._state`)
+- **Lint**: `npm run lint` (ESLint flat config — forbids `innerHTML`, empty catch, thrown literals, external writes to `store._state` — plus `scripts/lint-css.mjs`)
+- **Smoke**: `npm run smoke` (after build) loads `dist/` in Chromium via Playwright: message API, dashboard flows, content script on stubbed youtube.com, popup, axe audit. `SMOKE_SCREENSHOTS=<dir>` saves screenshots
 - **Typecheck**: `npm run typecheck` (`tsc` on JSDoc; files opt in with `// @ts-check`)
 - **All gates**: `npm run check`
 - **Reload**: Click refresh on extension card in `chrome://extensions`
@@ -21,8 +22,7 @@
 ## Key architecture decisions
 
 - **Search**: Enter triggers YouTube API search. Typing filters local series instantly.
-- **Theme**: `applyTheme()` sets all CSS variables for dark/light. Toolbar icon follows theme.
-- **Upsell**: Banner once/day, dismissible. No toast spam.
+- **Theme**: colours live in `variables.css` `[data-theme]` blocks; `theme.js` only sets the attribute. Toolbar icon follows theme.
 - **Notifications**: "New Episode Notifications" toggle is available to every user.
 
 ## Manual Cloud Sync smoke test
@@ -41,13 +41,13 @@ Run this on two Chrome profiles after any change to sync:
 
 See `PUBLISH-CHECKLIST.md`.
 
-Quick zip:
+Quick zip (after `npm run build`):
 ```bash
-zip -r yt-series.zip . -x "node_modules/*" ".git/*" ".agents/*" "scripts/*" "pw-profile/*" "docs/*" "*.zip" "AGENTS.md" "vitest.config.js" "package-lock.json"
+cd dist && zip -r ../yt-series.zip . -x "*.map"
 ```
 
 ## Post-publish
 
-1. Set `EXTENSION_ID` in `src/shared/constants.js`
-2. Update `activate.html` with hosted URL
-3. Set `externally_connectable` in `manifest.json`
+1. Set `EXTENSION_ID` in `src/shared/constants.js` (disables dev tools / demo data)
+2. Confirm with `wrangler tail` that Worker requests carry `Origin: chrome-extension://<id>`, then `wrangler secret put ALLOWED_ORIGINS`
+3. Deploy `firestore.rules` (`firebase deploy --only firestore:rules`)

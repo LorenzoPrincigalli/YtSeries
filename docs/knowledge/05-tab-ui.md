@@ -1,90 +1,47 @@
 # Tab UI — Dashboard
 
-The main UI lives in `src/tab/` and renders the full dashboard.
+## Structure
 
-## File structure
+| Path | Responsibility |
+|------|----------------|
+| `app.js` | Bootstrap only: subscribes renderers to the store, wires features, deep links (`?settings=1`, `?series=<id>`) |
+| `core/store.js` | Read-only mirror of server state + UI state (`section`, `filter`, `collection`, `search*`, `recommended`, `detailId`); renders coalesced per animation frame |
+| `core/api.js` | `send()` (never rejects) / `request()` (throws `AppError` on `success:false`) |
+| `core/errorBoundary.js` | `safeRender()` fallback with Retry, `guarded()` for handlers, global error handlers |
+| `actions.js` | All user intents → background commands; applies returned `state`, shows translated error toasts |
+| `seriesView.js` | Pure derivations (filters, sort, hero, this-week, progress, URLs) — unit-tested |
+| `views/home.js` | Main area: home rows, search results, saved library |
+| `components/cards.js` | Cards, carousel rows, hero carousel, channel results |
+| `components/detail.js` | Series dialog (re-renders from store; keeps scroll/sort), folder picker, channel dialog |
+| `components/collections.js`, `collectionEditor.js` | Collection shelf and editor dialog |
+| `features/*` | Header/search, activity bell, settings (sync, backups, import/export, reset, dev), add-playlist, footer dialogs, collection management |
+| `ui/modal.js` | Accessible modals (focus trap, Escape, focus restore) and `confirmDialog()` |
+| `ui/feedback.js` | Toasts (`role=status`) and `errorMessage(code)` |
+| `theme.js`, `i18nDom.js` | `data-theme` switch (colours live in CSS); declarative `data-i18n` / `data-i18n-attr` translation |
 
-| File | Purpose |
-|------|---------|
-| `index.html` | Shell: header, modals (settings, add playlist, FAQ, changelog, bug report), footer |
-| `app.js` | App logic: state, rendering, events, theme, modals, search |
-| `variables.css` | CSS custom properties (themes, spacing, z-index, shadows) |
-| `base.css` | Body, empty states, loading skeleton, search header |
-| `header.css` | Fixed header with logo, nav, search, Pro button |
-| `hero.css` | Hero carousel with crossfade |
-| `cards.css` | Series cards with hover effects, badges, progress |
-| `carousel.css` | Carousel rows with L/R arrows |
-| `episodes.css` | Episode list in detail view |
-| `components.css` | Buttons, toggles, badges, license UI, upsell cards, free-tier banner |
-| `modals.css` | All modals: settings, detail, confirm, FAQ, changelog |
-| `footer.css` | Footer bar |
-| `responsive.css` | Mobile/tablet breakpoints |
+DOM is built with `h()` / `svg()` from `src/shared/dom.js` and `src/shared/icons.js`. Dynamic values reach CSS only through custom properties (`--progress`, `--picker-top`).
 
-## Components
+## Data flow
 
-| Component | File |
-|-----------|------|
-| `HomePage` | `components/home.js` — hero carousel, series rows, search results |
-| `DetailPage` | `components/detail.js` — series detail with episode list |
-| `ModalManager` | `components/modal.js` — open/close/confirm modals |
+Server state is never patched locally. A command's response `state` (or the following `STATE_UPDATED` broadcast) replaces the mirror; subscribers re-render. The main area re-renders only when its inputs change (opening the detail dialog does not rebuild the page).
 
-## Collections
+## Design system
 
-The create dialog includes a thumbnail grid of **all saved series**, independent of current folder/search, with native checkboxes and a live selected count. Creation submits name and selected playlist IDs in one background command. Selecting zero keeps the collection empty; selected series move from their previous collection (explained in the dialog). These are whole-series assignments, not individual episode bookmarks.
+- `variables.css`: spacing, radii, z-index (`--z-dropdown`, `--z-modal`, `--z-toast`, `--z-popover`), on-media colours, badge colours, and the four themes as `:root[data-theme=…]` blocks (single source of truth, shared with the popup).
+- `ui-kit.css`: accessibility utilities, button resets for keyboard-reachable titles, toast, progress bars.
+- Contrast: text tokens meet WCAG AA in every theme; verified by the axe audit in `npm run smoke`.
 
-Collection assignments remain stored with each series and participate in Cloud Sync. Existing folder assignments require no migration. The square plus card in Saved creates a collection with only a name, even with an empty library. Explicitly created names persist locally independently of series and appear in the detail picker and bulk-move destinations; empty collections can be renamed. The plus has the same dimensions as collection covers, only a centered plus visible, and a localized accessible label. Standalone empty names are not yet transferred by Google sync or series-only backups.
+## Accessibility
 
-The **Saved / Salvati** navigation section is separate from Home. `components/collections.js` shows collection covers (up to four series thumbnails), names and counts only in Saved. “All saved” displays a grid of the entire saved library, including unassigned series; it never renders the Home hero, recommendation rows or YouTube search results. Named collections restrict that grid. Search in Saved is local-only; switching to Home/status navigation clears the collection scope. Empty libraries and empty collections have dedicated messages. The shelf combines explicit locally persisted collection names with names derived from series assignments. Each series belongs to at most one collection.
+- Skip link, landmark `<main>`, `aria-current` nav, labelled icon buttons.
+- Cards: whole card clickable by mouse; title is a real `<button>` (no nested interactive roles).
+- Dialogs: `role=dialog`, `aria-modal`, focus trap, Escape, focus restore; settings sidebar follows the tabs pattern (arrow keys).
+- Hero carousel pauses on hover/focus and does not auto-advance with `prefers-reduced-motion`.
 
-## Recent activity and resume
+## Collections, activity, backups
 
-Selected collections expose **Edit collection** (rename, choose a thumbnail cover or restore automatic mosaic) and **Move series** (checkbox selection, existing/new destination or remove assignment). `collectionEditor.js` uses a native modal dialog with focus containment, Escape/cancel and inline validation. It lists all collection members independently of dashboard search/status filters. Covers use existing HTTPS thumbnails, not uploaded files.
-
-Activity entries with an existing series open its details; entries with an existing episode are ordinary new-tab YouTube links with a resume timestamp for unfinished episodes. Deleted/unavailable targets and library-level events remain non-clickable history entries.
-
-The header bell opens the retained local activity history (up to 100 actions) in a scrollable panel. Its badge counts only unread entries. Opening it sends `ACTIVITY_MARK_READ` with the newest displayed timestamp; background persistence keeps it read across reloads, without deleting history or acknowledging later arrivals. Failed acknowledgement displays an error. Relative times use the language chosen in the extension settings. The “Continue” controls add YouTube's `t=` parameter when the next unwatched episode has a saved resume time.
-
-New-episode notifications are grouped by each automatic refresh. Clicking the notification opens the first newly discovered episode instead of only the dashboard.
-
-The Reset section exposes the five automatic snapshots. A series deletion shows a short-lived Undo action; the full backup list is available for larger recovery. The My Series row no longer truncates the library at 20 cards.
-
-## Themes
-
-Four themes: Classic Red, Ocean Blue, Forest Green, Light ("Tema chiaro").
-
-- `applyTheme()` in `app.js` sets all CSS custom properties including dark/light variants
-- Toolbar icon follows selected theme (dark/light variant)
-- Popup also supports all themes via `applyPopupTheme()`
+Behaviour unchanged from 1.1: collections are whole-series assignments synced with the series; the bell shows up to 100 local activity entries and marks them read via `ACTIVITY_MARK_READ`; five automatic backups (before delete/import/restore/reset) are listed under Settings → Reset Data.
 
 ## Search
 
-- **Local filtering**: filters displayed series in real-time while typing (no API call)
-- **YouTube search**: triggered on Enter key
-- **Hint**: "Press Enter to search" appears below search title after 2s of typing
-- **Rate limit**: 3s cooldown between YouTube API calls; previous results preserved during cooldown
-
-## Settings panels
-
-| Panel | i18n key | Notes |
-|-------|----------|-------|
-| Theme | `theme` | 4 options, translated |
-| Language | `language` | System / EN / IT |
-| Overlays | `settings_overlay` | Next Episode overlay toggle |
-| License Key | `license_key` | Pro activation |
-| Cloud Sync | `sync_title` | Firebase sign-in |
-| Reset Data | `settings_reset` | Clear + backup/restore JSON |
-| Dev Tools | `settings_dev` | Hidden when EXTENSION_ID is set |
-| Notifications | `auto_refresh` | "New Episode Notifications" toggle (Pro only, hidden for free) |
-
-## Free tier banner
-
-- Appears on main dashboard (all filter, no search)
-- Once per day, dismissible with X button
-- Shows "Free plan (X/3)" or "Limit reached — Get Pro"
-# Frontend: responsive e filtri (2026-09-06)
-
-- Sotto 1200 px la testata diventa sticky con navigazione su una riga dedicata; sotto 600 px la ricerca occupa tutta la larghezza. Il contenuto segue l'altezza reale della testata.
-- `src/tab/seriesView.js` centralizza la classificazione “In visione”: include anche il primo episodio parzialmente iniziato, esclude serie completate o interamente viste. Il pulsante hero usa lo stesso criterio.
-- Il filtro “In visione” mostra una sola lista; “Nuove uscite” non tronca più a dieci serie. Le raccomandazioni sono limitate alla Home senza filtro cartella. Una cartella scomparsa viene deselezionata e i filtri senza risultati mostrano un messaggio localizzato.
-- Il picker cartelle rimuove i listener alla chiusura, si chiude con clic esterno/Escape e alla chiusura o ricostruzione del dettaglio. Escape restituisce il focus all'icona; il pannello è contenuto nel viewport e scorre con molte cartelle.
-- La campanella supporta Escape con ritorno del focus. Il timer hero viene fermato prima di ricostruire la Home.
+Typing filters locally; Enter queries YouTube (`PLAYLIST_SEARCH`, 3 s server cooldown). Loading and failure are explicit states (`searchStatus`); previous results stay visible on failure.

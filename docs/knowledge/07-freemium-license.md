@@ -33,7 +33,7 @@ The old Lemon Squeezy freemium model was removed but **kept as dead code stubs**
 | `src/shared/constants.js` | `PRO_CHECKOUT`, `LICENSE_STORE_ID`, `API.LICENSE_VERIFY` removed |
 | `src/state/store.js` | `isPro()` → true, `canAddSeries()` → true, `setLicense()` removed |
 | `src/background/index.js` | All license handlers and `isPro()` checks removed |
-| `activate.html` | Preserved but unused (can be removed post-publish) |
+| `activate.html` | Removed |
 | `cloudflare-worker/index.js` | Cleaned up — LS validation removed, now pure YouTube API proxy |
 | Privacy policies | Still reference LS — update before publish |
 

@@ -1,31 +1,34 @@
 # Known issues and backlog
 
-> Last updated: 19 October 2026
+> Last updated: 22 October 2026 (enterprise refactor, branch `refactor/enterprise`)
 
-## Fixed (verified)
+## Fixed in the refactor
 
-| Item | Status |
-|------|--------|
-| Light theme incomplete | Fixed — all CSS variables, toolbar icon, all screens |
-| innerHTML XSS risk | Fixed — createElement + textContent in dynamic UI |
-| Search triggered on every keystroke | Fixed — Enter to search, local filter while typing |
-| Search rate-limit cleared results | Fixed — previous results preserved during cooldown |
-| Settings hardcoded English | Fixed — all sections use data-i18n |
-| Duplicate "new episode alerts" in popup | Fixed — 3 distinct features |
-| Lemon Squeezy / Pro gating removed | Fixed — donation-only model |
-| Worker open proxy abuse | Fixed — client token header + daily KV rate limit |
-| Import success shown as error toast | Fixed — success toast styling |
-| Stale playlistId on episode progress | Fixed — `resolvePlaylistForVideo` fallback |
-| Dead license / activate.html | Fixed — removed; manifest `externally_connectable` removed |
+| Item | Fix |
+|------|-----|
+| Episode progress kept only in memory (lost on SW suspend) | `EPISODE_PROGRESS` persisted via `commit()` |
+| Overlay/language setting ignored on YouTube until first broadcast | `CONTENT_SETTINGS_GET` at content-script start |
+| Any youtube.com renderer could call every route (reset, import, state dump) | Router sender-context authorisation |
+| Worker proxied any YouTube endpoint/parameter; `refresh`/`key` passthrough; CORS `*`; upstream messages leaked | Allowlist, Origin check, atomic rate limit, sanitized errors |
+| Firestore accepted arbitrary documents | Shape/size validation in `firestore.rules` |
+| Token refresh signed users out on transient 5xx | Sign-out only on 400 |
+| Storage quota fallback deleted the previous value | Throws `STORAGE_QUOTA_EXCEEDED`, keeps data |
+| Search/channel errors shown as "no results" | Errors propagate; explicit loading/error states |
+| Settings `populate()` relied on ASI and threw | Rewritten with `setField()` |
+| Orphan CSS declarations made the browser drop a rule | Removed; `scripts/lint-css.mjs` |
+| AA contrast failures (badges, chips, light-theme hero, muted text) | Tokens fixed; axe audit in smoke |
+| Notification click passed an object as tab URL | Fixed |
 
 ## Open
 
 | Priority | Issue |
 |----------|-------|
-| 🔴 | `EXTENSION_ID` empty — set after CWS publish (blocks demo data in production builds) |
-| 🟡 | Content script ES modules — needs bundler (EVENTS subset guarded by `contentEventsSync.test.js`) |
-| 🟢 | Deploy Worker after pull — requires `X-YT-Series-Client` header (extension 1.1.1+) |
+| 🔴 | `EXTENSION_ID` empty — set after CWS publish (also enables Worker `ALLOWED_ORIGINS`) |
+| 🟠 | Deploy Worker + `firestore.rules`; verify in `wrangler tail` that requests carry `Origin: chrome-extension://<id>` **before** setting `ALLOWED_ORIGINS` |
+| 🟡 | Circuit-breaker state is per service-worker lifetime (not persisted across suspension) |
+| 🟡 | Content-script overlay path is covered by manual testing only (needs a playable stub video) |
+| 🟢 | `components/collections.js` and `collectionEditor.js` still use raw `createElement` (safe, but not yet on `h()`) |
 
 ## Pre-publish
 
-See `PUBLISH-CHECKLIST.md` in project root.
+See `PUBLISH-CHECKLIST.md` in the project root.

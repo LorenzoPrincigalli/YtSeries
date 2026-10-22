@@ -2,65 +2,56 @@
 
 ## What this is
 
-**YT Series** — Chrome **Manifest V3** extension that turns YouTube playlists into a TV series tracker.
+**YT Series** — Chrome **Manifest V3** extension that turns YouTube playlists into a TV-series tracker.
 
 ## Stack
 
 | Item | Choice |
 |------|--------|
-| Language | Vanilla JavaScript |
-| Modules | ES modules in background + tab; **no bundler** |
-| UI | HTML + CSS + DOM APIs (`src/tab/`) |
-| State | In-memory `store` + `chrome.storage` |
-| APIs | YouTube Data API v3 (via Cloudflare Worker by default), Lemon Squeezy |
+| Language | Vanilla JavaScript (ES2023), JSDoc types, `// @ts-check` on core modules |
+| Build | **esbuild** → `dist/` (same layout as `src/`); load `dist/` unpacked |
+| UI | DOM micro-kit (`src/shared/dom.js` `h()`), no framework, no HTML strings |
+| State | Service-worker `store` + `chrome.storage`; tab keeps a read-only mirror |
+| APIs | YouTube Data API v3 via Cloudflare Worker; optional Firebase Cloud Sync |
+| Quality gates | `npm run check` = ESLint + CSS lint + `tsc` + Vitest + build + Playwright smoke (incl. axe) |
 
 ## Entry points
 
-| Context | Path | Module? |
-|---------|------|---------|
-| Service worker | `src/background/index.js` | Yes |
-| Dashboard (main UI) | `src/tab/index.html` + `app.js` | Yes |
-| Toolbar popup | `src/popup/popup.html` + `popup.js` | No |
-| Content script | `src/content/index.js` (on `youtube.com`) | No |
-| License page | `activate.html` (hosted externally) | N/A |
+| Context | Path | Notes |
+|---------|------|-------|
+| Service worker | `src/background/index.js` | Wiring only; logic in `router.js` + `handlers/*` |
+| Dashboard | `src/tab/index.html` + `app.js` | Bootstrap; features in `features/`, views in `views/` |
+| Toolbar popup | `src/popup/popup.html` + `popup.js` | Bundled (IIFE), shares i18n/events/theme |
+| Content script | `src/content/index.js` on `youtube.com` | Bundled (IIFE), restricted message set |
 
 ## Golden rule
 
 ```
-UI / content / popup  --sendMessage-->  background  --mutates-->  store  --save-->  chrome.storage
-                                              |
-                                              +-- broadcast STATE_UPDATED --> tab listeners
+tab / popup / content --sendMessage--> router (schema + sender check) --> handler
+                                           --> commit(): store.transaction + save --> sync queue --> STATE_UPDATED
 ```
 
-Never mutate `store` or `chrome.storage` from tab, popup, or content script.
+Never mutate `store` or `chrome.storage` outside the service worker.
 
-## Key files (ownership)
+## Key files
 
 | Concern | File |
 |---------|------|
-| Message routing | `src/background/index.js` |
+| Message routing, validation, authorisation | `src/background/router.js` |
+| Domain handlers | `src/background/handlers/{series,episodes,collections,settings,library,app}.js` |
+| Mutation helper | `commit()` in `src/background/context.js` |
 | State + persistence | `src/state/store.js` |
-| Message constants | `src/shared/events.js` |
-| URLs, limits, themes | `src/shared/constants.js` |
+| Errors / logging / resilience / schemas | `src/shared/{errors,logger,resilience,schema}.js` |
 | YouTube HTTP | `src/services/youtube.js` |
-| License HTTP | `src/services/license.js` |
-| Main UX | `src/tab/app.js` + `components/` |
+| Dashboard intents | `src/tab/actions.js` |
 
-## Default API path
+## Run it
 
-Production uses **Cloudflare Worker** (`API.WORKER_BASE` in `constants.js`). Extension does not ship an API key.
+```bash
+npm install
+npm run build        # then chrome://extensions → Load unpacked → dist/
+npm run check        # all gates
+```
 
-Dev fallback: copy `src/shared/config.example.js` → `config.js` (gitignored) and clear `WORKER_BASE` if testing direct API.
-
-## Reload after edits
-
-1. `chrome://extensions` → reload extension
-2. Refresh dashboard tab and YouTube tab (content script)
-
-## Next
-
-Read [01-architecture.md](01-architecture.md) before touching more than one context.
-
-## Pre-publish
-
-See `PUBLISH-CHECKLIST.md` in the project root for the full pre-publish checklist.
+Next: [01-architecture.md](01-architecture.md), then [09-agent-playbook.md](09-agent-playbook.md).
+Pre-publish: `PUBLISH-CHECKLIST.md`.

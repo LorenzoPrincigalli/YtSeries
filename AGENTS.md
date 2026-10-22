@@ -18,8 +18,10 @@ Istruzioni e riferimenti rapidi per AI coding agents che lavorano su questo prog
 ## Comandi utili
 - Installazione dipendenze: `npm install`
 - Generazione icone: `npm run icons`
-- Build/pack: vedi [08-dev-workflow.md](docs/knowledge/08-dev-workflow.md)
+- Build: `npm run build` → `dist/` (caricare **`dist/`** come estensione unpacked; la root non è più caricabile)
 - Test: `npm test` (Vitest — run `npm test` for current file/test counts)
+- Gate completo: `npm run check` (ESLint + CSS lint + typecheck + test + build + smoke Playwright con audit axe)
+- Dettagli build/pack: [08-dev-workflow.md](docs/knowledge/08-dev-workflow.md)
 - API key in `src/shared/config.js` — NON inserire chiavi reali (vanno nel bundle)
 
 ## Documentazione chiave
