@@ -1,3 +1,4 @@
+import { AppError } from '../../shared/errors.js'
 import { getFirebaseConfig, isFirebaseConfigured } from './FirebaseConfig.js'
 import { SYNC_STORAGE_KEYS } from '../../shared/constants.js'
 import { logger } from '../../shared/logger.js'
@@ -51,17 +52,17 @@ class FirebaseAuthService {
 
   async login() {
     if (!this.isConfigured()) {
-      throw { code: 'SYNC_NOT_CONFIGURED', message: 'Firebase is not configured' }
+      throw new AppError('SYNC_NOT_CONFIGURED', 'Firebase is not configured')
     }
 
     const googleToken = await new Promise((resolve, reject) => {
       chrome.identity.getAuthToken({ interactive: true }, (token) => {
         if (chrome.runtime.lastError) {
-          reject(new Error(chrome.runtime.lastError.message))
+          reject(new AppError('OAUTH_FAILED', chrome.runtime.lastError.message))
           return
         }
         if (!token) {
-          reject(new Error('No OAuth token returned'))
+          reject(new AppError('OAUTH_FAILED', 'No OAuth token returned'))
           return
         }
         resolve(token)
@@ -89,7 +90,7 @@ class FirebaseAuthService {
 
     const data = await resp.json()
     if (!resp.ok) {
-      throw { code: 'AUTH_FAILED', message: data.error?.message || 'Firebase sign-in failed' }
+      throw new AppError('AUTH_FAILED', data.error?.message || 'Firebase sign-in failed')
     }
 
     const session = {
@@ -110,7 +111,10 @@ class FirebaseAuthService {
     try {
       if (chrome.identity.clearAllCachedAuthTokens) await chrome.identity.clearAllCachedAuthTokens()
       else if (this._googleAccessToken) await chrome.identity.removeCachedAuthToken({ token: this._googleAccessToken })
-    } catch (_) {}
+    } catch (err) {
+      // Token revocation is best effort; local sign-out below must still happen.
+      logger.warn('FirebaseAuth: could not clear cached Google token:', err)
+    }
 
     this._googleAccessToken = null
     this._session = null

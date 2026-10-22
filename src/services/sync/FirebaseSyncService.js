@@ -1,3 +1,4 @@
+import { AppError } from '../../shared/errors.js'
 import { getFirebaseConfig } from './FirebaseConfig.js'
 import { SYNC_MAX_CONFLICT_RETRIES, SYNC_STORAGE_KEYS } from '../../shared/constants.js'
 import { encodeFields, decodeDocument } from './firestoreRest.js'
@@ -7,6 +8,15 @@ const REQUEST_TIMEOUT_MS = 15_000
 const number = (value, fallback = 0) => Number.isFinite(value) ? value : fallback
 const progressUpdatedAt = video => Math.max(number(video.progressUpdatedAt), number(video.watchedAt), number(video.lastWatchedAt))
 const seriesLocalUpdatedAt = series => Math.max(number(series.localUpdatedAt), number(series.completedUpdatedAt), number(series.addedAt))
+
+/** Firestore REST failure; 429 and 5xx are transient and safe to retry. */
+function firestoreError(code, response, body, fallbackMessage) {
+  const status = response?.status
+  return new AppError(code, body?.error?.message || fallbackMessage, {
+    status,
+    retryable: status === 429 || status >= 500
+  })
+}
 
 function seriesToFirestorePayload(series) {
   const progress = {}
@@ -98,7 +108,7 @@ class FirebaseSyncService {
 
   async _authHeaders() {
     const token = await this._auth.getValidIdToken()
-    if (!token) throw { code: 'NOT_AUTHENTICATED', message: 'Not logged in' }
+    if (!token) throw new AppError('NOT_AUTHENTICATED', 'Not logged in')
     return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
   }
 
@@ -118,7 +128,7 @@ class FirebaseSyncService {
       url.searchParams.set('pageSize', '100')
       if (pageToken) url.searchParams.set('pageToken', pageToken)
       const { response, body } = await this._request(url, { headers })
-      if (!response.ok) throw { code: 'FIRESTORE_LIST_FAILED', message: body.error?.message || 'Failed to list series' }
+      if (!response.ok) throw firestoreError('FIRESTORE_LIST_FAILED', response, body, 'Failed to list series')
       docs.push(...(body.documents || []).map(doc => ({
         playlistId: decodeURIComponent(doc.name.split('/').pop()), ...decodeDocument(doc), __updateTime: doc.updateTime || null
       })))
@@ -130,7 +140,7 @@ class FirebaseSyncService {
   async _getRemoteSeries(uid, playlistId, headers) {
     const { response, body } = await this._request(this._documentUrl(uid, playlistId), { headers })
     if (response.status === 404) return null
-    if (!response.ok) throw { code: 'FIRESTORE_READ_FAILED', message: body.error?.message || 'Failed to read series' }
+    if (!response.ok) throw firestoreError('FIRESTORE_READ_FAILED', response, body, 'Failed to read series')
     return { playlistId, ...decodeDocument(body), __updateTime: body.updateTime || null }
   }
 
@@ -141,7 +151,7 @@ class FirebaseSyncService {
     const { response, body } = await this._request(url, { method: 'PATCH', headers, body: JSON.stringify(encodeFields(payload)) })
     if (!response.ok) {
       if (isConflict(response, body)) return { conflict: true }
-      throw { code: 'FIRESTORE_WRITE_FAILED', message: body.error?.message || 'Failed to save series' }
+      throw firestoreError('FIRESTORE_WRITE_FAILED', response, body, 'Failed to save series')
     }
     return { conflict: false, updateTime: body.updateTime || null }
   }
@@ -160,7 +170,7 @@ class FirebaseSyncService {
         return { deleted: false, updatedAt: payload.updatedAt }
       }
     }
-    throw { code: 'SYNC_CONFLICT', message: 'The series changed on another device; retry sync' }
+    throw new AppError('SYNC_CONFLICT', 'The series changed on another device; retry sync')
   }
 
   async _pushTombstone(uid, playlistId, deletedAt) {
@@ -171,20 +181,20 @@ class FirebaseSyncService {
       const result = await this._writeDocument(uid, playlistId, { deleted: true, deletedAt, updatedAt: deletedAt, progress: {} }, remote, headers)
       if (!result.conflict) return
     }
-    throw { code: 'SYNC_CONFLICT', message: 'Could not record remote deletion' }
+    throw new AppError('SYNC_CONFLICT', 'Could not record remote deletion')
   }
 
   async deleteSeries(uid, playlistId) {
     const headers = await this._authHeaders()
     const { response, body } = await this._request(this._documentUrl(uid, playlistId), { method: 'DELETE', headers })
     if (response.status === 404) return
-    if (!response.ok) throw { code: 'FIRESTORE_DELETE_FAILED', message: body.error?.message || 'Failed to delete series' }
+    if (!response.ok) throw firestoreError('FIRESTORE_DELETE_FAILED', response, body, 'Failed to delete series')
   }
 
   async deleteAllSeries(uid) {
     for (const doc of await this.listRemoteSeries(uid)) await this.deleteSeries(uid, doc.playlistId)
     const { response } = await this._request(this._collectionsUrl(uid), { method: 'DELETE', headers: await this._authHeaders() })
-    if (!response.ok && response.status !== 404) throw new Error('Failed to delete collection registry')
+    if (!response.ok && response.status !== 404) throw firestoreError('FIRESTORE_DELETE_FAILED', response, {}, 'Failed to delete collection registry')
   }
 
   _collectionsUrl(uid) { return this._baseUrl(uid).replace(/\/series$/, '/collectionState/registry') }
@@ -193,7 +203,7 @@ class FirebaseSyncService {
     const headers = await this._authHeaders()
     for (let attempt = 0; attempt < SYNC_MAX_CONFLICT_RETRIES; attempt++) {
       const { response, body } = await this._request(this._collectionsUrl(uid), { headers })
-      if (!response.ok && response.status !== 404) throw new Error(body.error?.message || 'Failed to read collections')
+      if (!response.ok && response.status !== 404) throw firestoreError('FIRESTORE_READ_FAILED', response, body, 'Failed to read collections')
       const remote = response.status === 404 ? null : decodeDocument(body)
       store.mergeCollectionRecords(remote?.records || [])
       const records = store.getState().collectionRecords
@@ -203,9 +213,9 @@ class FirebaseSyncService {
       url.searchParams.set(response.status === 404 ? 'currentDocument.exists' : 'currentDocument.updateTime', response.status === 404 ? 'false' : body.updateTime)
       const result = await this._request(url, { method: 'PATCH', headers, body: JSON.stringify(encodeFields({ records })) })
       if (result.response.ok) return
-      if (!isConflict(result.response, result.body)) throw new Error(result.body.error?.message || 'Failed to save collections')
+      if (!isConflict(result.response, result.body)) throw firestoreError('FIRESTORE_WRITE_FAILED', result.response, result.body, 'Failed to save collections')
     }
-    throw new Error('Collections changed on another device; retry sync')
+    throw new AppError('SYNC_CONFLICT', 'Collections changed on another device; retry sync')
   }
 
   _withQueueLock(operation) {
@@ -298,7 +308,7 @@ class FirebaseSyncService {
         videos: [], lastEpisodeIndex: remoteDoc.lastEpisodeIndex ?? 0, newEpisodesCount: 0, completed: Boolean(remoteDoc.completed),
         addedAt: number(remoteDoc.updatedAt), lastRefreshedAt: 0, localUpdatedAt: number(remoteDoc.updatedAt),
         syncUpdatedAt: 0, completedUpdatedAt: number(remoteDoc.completedAt) || number(remoteDoc.updatedAt) }
-      store._state.series[playlistId] = series
+      store.insertRemoteSeries(series)
       mergeRemoteIntoSeries(series, remoteDoc)
       return { playlistId, needsHydration: true, pushLocal: false, changed: true }
     }

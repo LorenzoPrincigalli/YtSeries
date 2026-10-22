@@ -1,3 +1,4 @@
+import { AppError } from '../shared/errors.js'
 import { API, YOUTUBE_API_MAX_RESULTS, WORKER_CLIENT_TOKEN } from '../shared/constants.js'
 import { logger } from '../shared/logger.js'
 
@@ -45,7 +46,7 @@ class YouTubeApiService {
   async fetchPlaylist(playlistUrl) {
     const playlistId = this._extractPlaylistId(playlistUrl)
     if (!playlistId) {
-      throw { code: 'INVALID_URL', message: 'Invalid YouTube playlist URL' }
+      throw new AppError('INVALID_URL', 'Invalid YouTube playlist URL')
     }
 
     const playlist = await this._getPlaylistDetails(playlistId)
@@ -202,7 +203,7 @@ class YouTubeApiService {
     }))
 
     if (!data.items || data.items.length === 0) {
-      throw { code: 'PLAYLIST_NOT_FOUND', message: 'Playlist not found' }
+      throw new AppError('PLAYLIST_NOT_FOUND', 'Playlist not found')
     }
 
     return data.items[0]

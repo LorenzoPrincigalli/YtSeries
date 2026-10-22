@@ -1,3 +1,4 @@
+import { AppError } from '../../shared/errors.js'
 import { loadFirebaseConfig, isFirebaseConfigured } from './FirebaseConfig.js'
 import { firebaseAuthService } from './FirebaseAuthService.js'
 import { FirebaseSyncService, mergeRemoteIntoSeries, seriesLocalUpdatedAt } from './FirebaseSyncService.js'
@@ -52,7 +53,7 @@ async function _assertOwner(store, allowAccountChange) {
   if (owner && owner !== uid && (Object.keys(store.getSeries()).length || store.getState().collectionRecords?.length || store.getState().collections?.length) && !allowAccountChange) {
     await firebaseAuthService.logout()
     _updateStatus({ loggedIn: false, email: null, lastError: 'This browser already contains data from another Google account.' })
-    throw { code: 'ACCOUNT_CHANGED', message: 'Confirm account change before merging this library' }
+    throw new AppError('ACCOUNT_CHANGED', 'Confirm account change before merging this library')
   }
   await chrome.storage.local.set({ [SYNC_STORAGE_KEYS.OWNER]: uid })
 }
@@ -161,7 +162,7 @@ function retrySync(store, storageService, youTubeApiService, onStateChanged, opt
 }
 
 async function login(store, storageService, youTubeApiService, onStateChanged, { allowAccountChange = false } = {}) {
-  if (!isFirebaseConfigured()) throw { code: 'SYNC_NOT_CONFIGURED', message: 'Firebase is not configured' }
+  if (!isFirebaseConfigured()) throw new AppError('SYNC_NOT_CONFIGURED', 'Firebase is not configured')
   await firebaseAuthService.login()
   await _assertOwner(store, allowAccountChange)
   _updateStatus({ loggedIn: true, email: firebaseAuthService.getEmail(), lastError: null })
@@ -169,7 +170,7 @@ async function login(store, storageService, youTubeApiService, onStateChanged, {
   for (const playlistId of Object.keys(store.getSeries())) await firebaseSyncService.enqueuePush(playlistId)
   await _refreshQueueStatus()
   const result = await retrySync(store, storageService, youTubeApiService, onStateChanged, { force: true })
-  if (!result.success) throw { code: result.error, message: getSyncStatus().lastError || 'Sync failed' }
+  if (!result.success) throw new AppError(result.error, getSyncStatus().lastError || 'Sync failed')
   await store.saveToStorage(storageService)
   onStateChanged?.()
 }
@@ -207,7 +208,7 @@ async function onStorageReset() {
 
 async function manualSync(store, storageService, youTubeApiService, onStateChanged) {
   const result = await retrySync(store, storageService, youTubeApiService, onStateChanged, { force: true })
-  if (!result.success) throw { code: result.error, message: getSyncStatus().lastError || 'Sync failed' }
+  if (!result.success) throw new AppError(result.error, getSyncStatus().lastError || 'Sync failed')
 }
 
 export { initSync, login, logout, afterSeriesMutation, afterSeriesDelete, onStorageReset, manualSync, retrySync, getSyncStatus, firebaseAuthService, isFirebaseConfigured }

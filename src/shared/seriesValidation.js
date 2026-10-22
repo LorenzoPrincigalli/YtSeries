@@ -1,9 +1,8 @@
+import { AppError } from './errors.js'
 const FORBIDDEN_KEYS = new Set(['__proto__', 'constructor', 'prototype'])
 
 function invalid(message) {
-  const error = new Error(message)
-  error.code = 'INVALID_BACKUP'
-  return error
+  return new AppError('INVALID_BACKUP', message)
 }
 
 function finiteNumber(value, fallback = 0) {

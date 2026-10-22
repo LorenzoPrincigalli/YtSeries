@@ -1,3 +1,4 @@
+import { AppError } from '../shared/errors.js'
 import { STORAGE_KEYS } from '../shared/constants.js'
 import { logger } from '../shared/logger.js'
 
@@ -52,6 +53,28 @@ class Store {
     return this._state.series[playlistId] || null
   }
 
+  /** Inserts a series created by the sync merge and returns the stored (mutable) reference. */
+  insertRemoteSeries(series) {
+    this._state.series[series.playlistId] = series
+    return series
+  }
+
+  /**
+   * Runs `mutation` atomically: if it throws or rejects (including a failed
+   * save inside it), the in-memory state is rolled back to the snapshot.
+   */
+  async transaction(mutation) {
+    const snapshot = structuredClone(this._state)
+    const savedSettings = this._savedSettings
+    try {
+      return await mutation(this)
+    } catch (err) {
+      this._state = snapshot
+      this._savedSettings = savedSettings
+      throw err
+    }
+  }
+
   getSettings() {
     return { ...this._state.settings }
   }
@@ -94,12 +117,12 @@ class Store {
             ['__proto__', 'constructor', 'prototype'].includes(id) || !value ||
             value.playlistId !== id || !Array.isArray(value.videos) ||
             value.videos.some(video => !video || typeof video.id !== 'string'))) {
-          throw new Error('Stored library is invalid; restore a valid backup before saving changes')
+          throw new AppError('STORAGE_CORRUPT', 'Stored library is invalid; restore a valid backup before saving changes')
         }
         this._state.series = localData[STORAGE_KEYS.SERIES]
       }
       if (localData[STORAGE_KEYS.ACTIVITY]) {
-        if (!Array.isArray(localData[STORAGE_KEYS.ACTIVITY])) throw new Error('Stored activity is invalid')
+        if (!Array.isArray(localData[STORAGE_KEYS.ACTIVITY])) throw new AppError('STORAGE_CORRUPT', 'Stored activity is invalid')
         this._state.activity = localData[STORAGE_KEYS.ACTIVITY].filter(event => event && typeof event.type === 'string' && Number.isFinite(event.at)).slice(0, 100)
       }
     } catch (err) {
@@ -119,7 +142,7 @@ class Store {
       await storageService.setLocal({ [STORAGE_KEYS.SERIES]: snapshot.series, [STORAGE_KEYS.ACTIVITY]: snapshot.activity, [STORAGE_KEYS.ACTIVITY_READ_AT]: snapshot.activityReadAt, [STORAGE_KEYS.COLLECTIONS]: snapshot.collections, [STORAGE_KEYS.COLLECTION_RECORDS]: snapshot.collectionRecords })
       if (settingsJson !== this._savedSettings) {
         if (new TextEncoder().encode(settingsJson).length > 8192) {
-          throw new Error('Settings exceed Chrome sync storage quota')
+          throw new AppError('STORAGE_QUOTA_EXCEEDED', 'Settings exceed Chrome sync storage quota')
         }
         await storageService.set({ [STORAGE_KEYS.SETTINGS]: snapshot.settings })
         this._savedSettings = settingsJson
@@ -212,10 +235,10 @@ class Store {
   }
 
   createCollection(name, ids = []) {
-    if (typeof name !== 'string' || !name.trim() || name.trim().length > 40) throw new Error('INVALID_COLLECTION')
+    if (typeof name !== 'string' || !name.trim() || name.trim().length > 40) throw new AppError('INVALID_COLLECTION')
     name = name.trim()
-    if (this._state.collections.includes(name) || Object.values(this._state.series).some(s => s.collection === name)) throw new Error('COLLECTION_EXISTS')
-    if (!Array.isArray(ids) || ids.some(id => typeof id !== 'string' || !Object.hasOwn(this._state.series, id))) throw new Error('INVALID_COLLECTION_MOVE')
+    if (this._state.collections.includes(name) || Object.values(this._state.series).some(s => s.collection === name)) throw new AppError('COLLECTION_EXISTS')
+    if (!Array.isArray(ids) || ids.some(id => typeof id !== 'string' || !Object.hasOwn(this._state.series, id))) throw new AppError('INVALID_COLLECTION_MOVE')
     this._state.collections.push(name)
     this._recordCollection(name, false)
     for (const id of new Set(ids)) this.setSeriesCollection(id, name)
@@ -223,13 +246,13 @@ class Store {
   }
 
   editCollection(name, nextName, cover) {
-    if (typeof name !== 'string' || !name.trim() || typeof nextName !== 'string' || !nextName.trim() || nextName.trim().length > 40) throw new Error('INVALID_COLLECTION')
+    if (typeof name !== 'string' || !name.trim() || typeof nextName !== 'string' || !nextName.trim() || nextName.trim().length > 40) throw new AppError('INVALID_COLLECTION')
     nextName = nextName.trim()
     const members = Object.values(this._state.series).filter(s => s.collection === name)
-    if (!members.length && !this._state.collections.includes(name)) throw new Error('COLLECTION_NOT_FOUND')
-    if (nextName !== name && (this._state.collections.includes(nextName) || Object.values(this._state.series).some(s => s.collection === nextName))) throw new Error('COLLECTION_EXISTS')
+    if (!members.length && !this._state.collections.includes(name)) throw new AppError('COLLECTION_NOT_FOUND')
+    if (nextName !== name && (this._state.collections.includes(nextName) || Object.values(this._state.series).some(s => s.collection === nextName))) throw new AppError('COLLECTION_EXISTS')
     const allowed = members.flatMap(s => [s.thumbnail, s.collectionCover, ...(s.videos || []).map(v => v.thumbnail)])
-    if (typeof cover !== 'string' || (cover && (!cover.startsWith('https://') || !allowed.includes(cover)))) throw new Error('INVALID_COVER')
+    if (typeof cover !== 'string' || (cover && (!cover.startsWith('https://') || !allowed.includes(cover)))) throw new AppError('INVALID_COVER')
     this._state.collections = this._state.collections.map(value => value === name ? nextName : value)
     if (name !== nextName) this._recordCollection(name, true)
     this._recordCollection(nextName, false)
@@ -243,14 +266,14 @@ class Store {
 
   moveCollectionSeries(ids, destination) {
     if (!Array.isArray(ids) || !ids.length || ids.some(id => typeof id !== 'string' || !Object.hasOwn(this._state.series, id)) ||
-      typeof destination !== 'string' || destination.trim().length > 40) throw new Error('INVALID_COLLECTION_MOVE')
+      typeof destination !== 'string' || destination.trim().length > 40) throw new AppError('INVALID_COLLECTION_MOVE')
     const unique = [...new Set(ids)].filter(id => (this._state.series[id].collection || '') !== destination.trim())
     for (const id of unique) this.setSeriesCollection(id, destination.trim())
     return unique
   }
 
   deleteCollection(name) {
-    if (typeof name !== 'string' || !name.trim()) throw new Error('INVALID_COLLECTION')
+    if (typeof name !== 'string' || !name.trim()) throw new AppError('INVALID_COLLECTION')
     const ids = Object.values(this._state.series).filter(s => s.collection === name).map(s => s.playlistId)
     this._state.collections = this._state.collections.filter(value => value !== name)
     this._recordCollection(name, true)
@@ -303,7 +326,7 @@ class Store {
   }
 
   markActivityRead(through) {
-    if (!Number.isSafeInteger(through) || through < 0) throw new Error('Invalid activity cursor')
+    if (!Number.isSafeInteger(through) || through < 0) throw new AppError('INVALID_PAYLOAD', 'Invalid activity cursor')
     const latest = Math.max(0, ...this._state.activity.map(event => event.at))
     this._state.activityReadAt = Math.max(this._state.activityReadAt, Math.min(through, latest))
     return this._state.activityReadAt

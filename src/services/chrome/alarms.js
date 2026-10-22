@@ -1,3 +1,4 @@
+import { AppError } from '../../shared/errors.js'
 import { logger } from '../../shared/logger.js'
 
 class AlarmService {
@@ -6,7 +7,7 @@ class AlarmService {
       await chrome.alarms.create(name, { periodInMinutes })
     } catch (err) {
       logger.error('AlarmService.create failed:', err)
-      throw { code: 'ALARM_CREATE_ERROR', message: 'Failed to create alarm', context: err }
+      throw new AppError('ALARM_CREATE_ERROR', 'Failed to create alarm', { cause: err })
     }
   }
 
@@ -15,7 +16,7 @@ class AlarmService {
       await chrome.alarms.clear(name)
     } catch (err) {
       logger.error('AlarmService.clear failed:', err)
-      throw { code: 'ALARM_CLEAR_ERROR', message: 'Failed to clear alarm', context: err }
+      throw new AppError('ALARM_CLEAR_ERROR', 'Failed to clear alarm', { cause: err })
     }
   }
 
