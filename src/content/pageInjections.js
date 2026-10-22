@@ -1,6 +1,10 @@
 // @ts-check
 // UI added to YouTube pages: a sidebar link and an "Add to Series" button on
 // playlist pages. Idempotent — safe to call on every (throttled) DOM change.
+//
+// Every element is stamped with the owning script instance: after an
+// extension update an orphaned copy of this script may still be on the page,
+// and only the current instance's (working) UI must remain.
 import { EVENTS } from '../shared/events.js'
 import { t } from '../shared/i18n.js'
 import { h } from '../shared/dom.js'
@@ -9,16 +13,41 @@ import { showToast } from './toast.js'
 
 const SIDEBAR_ID = 'yt-series-sidebar-section'
 const BUTTON_CLASS = 'yt-series-add-btn'
-
-/** @returns {HTMLButtonElement[]} */
-const allButtons = () => [...document.querySelectorAll(`.${BUTTON_CLASS}`)]
+const OWNED = `#${SIDEBAR_ID}, .${BUTTON_CLASS}`
+const LOOKUP_RETRY_MS = 2000
 
 export class PageInjections {
-  /** @param {{ send: (type: string, payload?: any) => Promise<any> }} messenger */
-  constructor(messenger) {
+  /**
+   * @param {{ send: (type: string, payload?: any) => Promise<any> }} messenger
+   * @param {string} instance id of the content-script instance that owns the UI
+   */
+  constructor(messenger, instance) {
     this.messenger = messenger
+    this.instance = instance
     this.lookupToken = 0     // invalidates PLAYLIST_EXISTS lookups started for an older page state
     this.pendingFor = null   // playlist id with a lookup in flight
+    this.retryAfter = 0      // after a failed lookup, wait before asking again
+  }
+
+  /** @returns {HTMLButtonElement[]} */
+  ownButtons() {
+    return /** @type {HTMLButtonElement[]} */ ([...document.querySelectorAll(`.${BUTTON_CLASS}`)])
+      .filter(button => button.dataset.owner === this.instance)
+  }
+
+  /** Removes UI left behind by an older (orphaned) instance of this script. */
+  removeForeignUi() {
+    for (const el of document.querySelectorAll(OWNED)) {
+      if (/** @type {HTMLElement} */ (el).dataset.owner !== this.instance) el.remove()
+    }
+  }
+
+  /** Removes this instance's UI (shutdown). */
+  removeOwnUi() {
+    this.lookupToken++
+    for (const el of document.querySelectorAll(OWNED)) {
+      if (/** @type {HTMLElement} */ (el).dataset.owner === this.instance) el.remove()
+    }
   }
 
   openDashboard() {
@@ -26,11 +55,12 @@ export class PageInjections {
   }
 
   injectSidebarLink() {
+    this.removeForeignUi()
     if (document.getElementById(SIDEBAR_ID)) return
     const sections = document.querySelectorAll(SELECTORS.guideSections)
     if (sections.length < 2) return
     const last = sections[sections.length - 1]
-    last.parentNode?.insertBefore(h('div', { id: SIDEBAR_ID },
+    last.parentNode?.insertBefore(h('div', { id: SIDEBAR_ID, dataset: { owner: this.instance } },
       h('div', { id: 'yt-series-section-title' }, 'YT Series'),
       h('div', { id: 'yt-series-sidebar-link' },
         h('a', { id: 'yt-series-link', href: '#', onClick: event => { event.preventDefault(); this.openDashboard() } },
@@ -38,36 +68,44 @@ export class PageInjections {
           h('span', { class: 'yt-series-label' }, 'YT Series')))), last)
   }
 
-  /** Drops every injected button (navigation to another page/playlist). */
+  /** Drops the button when navigating to another page/playlist. */
   resetButton() {
     this.lookupToken++
     this.pendingFor = null
-    for (const button of allButtons()) button.remove()
+    this.retryAfter = 0
+    for (const button of this.ownButtons()) button.remove()
   }
 
   /**
    * Keeps exactly one button, inside the playlist header the user can see.
    * YouTube keeps hidden/cached headers in the DOM and re-renders them, so
    * stray copies (other playlist, hidden header) are removed on every pass.
+   * The button only appears once the saved state is known: a failed lookup
+   * shows nothing (never a wrong "Add") and is retried shortly after.
    */
   injectAddButton() {
+    this.removeForeignUi()
     const { playlistId } = currentPageIds()
     if (!playlistId) { this.resetButton(); return }
     const container = findVisible(SELECTORS.playlistActions) || findVisible(SELECTORS.playlistHeader)
     if (!container) return
 
-    const keep = allButtons().find(button => button.dataset.playlistId === playlistId && container.contains(button))
-    for (const button of allButtons()) if (button !== keep) button.remove()
-    if (keep || this.pendingFor === playlistId) return
+    const keep = this.ownButtons().find(button => button.dataset.playlistId === playlistId && container.contains(button))
+    for (const button of this.ownButtons()) if (button !== keep) button.remove()
+    if (keep || this.pendingFor === playlistId || Date.now() < this.retryAfter) return
 
     const token = ++this.lookupToken
     this.pendingFor = playlistId
     this.messenger.send(EVENTS.PLAYLIST_EXISTS, { playlistId }).then(response => {
       if (token !== this.lookupToken) return
       this.pendingFor = null
+      if (!response.success) {
+        this.retryAfter = Date.now() + LOOKUP_RETRY_MS
+        return
+      }
       if (currentPageIds().playlistId !== playlistId || !container.isConnected) return // retried on next mutation
-      for (const button of allButtons()) button.remove()
-      container.append(this.createButton(playlistId, Boolean(response.success && response.exists)))
+      for (const button of this.ownButtons()) button.remove()
+      container.append(this.createButton(playlistId, Boolean(response.exists)))
     })
   }
 
@@ -76,7 +114,7 @@ export class PageInjections {
    * @param {Record<string, unknown>} savedIds playlist ids present in the library
    */
   syncSavedState(savedIds) {
-    for (const button of allButtons()) this.render(button, Object.hasOwn(savedIds, button.dataset.playlistId || ''))
+    for (const button of this.ownButtons()) this.render(button, Object.hasOwn(savedIds, button.dataset.playlistId || ''))
   }
 
   /** @param {HTMLButtonElement} button @param {boolean} saved */
@@ -88,7 +126,7 @@ export class PageInjections {
 
   /** @param {string} playlistId @param {boolean} saved */
   createButton(playlistId, saved) {
-    const button = h('button', { type: 'button', id: 'yt-series-add-btn', class: BUTTON_CLASS, dataset: { playlistId } })
+    const button = h('button', { type: 'button', id: 'yt-series-add-btn', class: BUTTON_CLASS, dataset: { playlistId, owner: this.instance } })
     this.render(button, saved)
     button.addEventListener('click', async () => {
       if (button.dataset.saved === 'true') { this.openDashboard(); return }

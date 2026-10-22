@@ -653,6 +653,29 @@ await step('new YouTube layout: one button in the visible header, live label, re
   await yt.close()
 })
 
+await step('re-injected content script takes over: one button, correct saved state', async () => {
+  // What the service worker does on install/update for already-open YouTube tabs.
+  const yt = await context.newPage()
+  watchErrors(yt, 'youtube-reinject')
+  await yt.goto('https://www.youtube.com/playlist?list=PLlayout0001') // saved in the previous step
+  await yt.waitForFunction(() => /View on YT Series/.test(document.querySelector('.yt-series-add-btn')?.textContent || ''))
+  const firstOwner = await yt.$eval('.yt-series-add-btn', b => b.dataset.owner)
+  await page.evaluate(async () => {
+    const [tab] = await chrome.tabs.query({ url: 'https://www.youtube.com/playlist?list=PLlayout0001' })
+    await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['src/content/index.js'] })
+  })
+  await yt.waitForFunction(owner => {
+    const buttons = document.querySelectorAll('.yt-series-add-btn')
+    return buttons.length === 1 && buttons[0].dataset.owner !== owner && /View on YT Series/.test(buttons[0].textContent)
+  }, firstOwner, { timeout: 5000 })
+  assert(await yt.locator('#yt-series-sidebar-section').count() === 1, 'duplicate sidebar link')
+  // The superseded instance must not resurrect its UI on later navigations.
+  await yt.evaluate(() => document.dispatchEvent(new Event('yt-navigate-finish')))
+  await yt.waitForTimeout(300)
+  assert(await yt.locator('.yt-series-add-btn').count() === 1, 'old instance re-injected a button')
+  await yt.close()
+})
+
 await step('no uncaught errors or console errors on any page', async () => {
   assert(!consoleErrors.length, consoleErrors.slice(0, 5).join(' | '))
 })

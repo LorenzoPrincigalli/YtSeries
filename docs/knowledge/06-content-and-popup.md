@@ -18,6 +18,14 @@ Runs on `https://www.youtube.com/*` with `content.css`.
 
 The content script may call only the routes marked C in [02-message-protocol.md](02-message-protocol.md) and never receives library data.
 
+### Extension updates and open tabs
+
+Chrome leaves the previous copy of a content script orphaned in tabs that were open when the extension is installed, updated or reloaded, and does not inject the new one. Therefore:
+
+- `background/index.js` → `injectIntoOpenYouTubeTabs()` on `onInstalled` injects the manifest's content script + CSS into open YouTube tabs (`scripting` permission; no new warning, host access already granted).
+- Each instance claims the page with `<html data-yt-series-instance>`; an instance that is no longer the claimant (or whose `chrome.runtime.id` is gone) shuts down and removes its own UI. Injected elements carry `data-owner`, and the new instance removes foreign ones.
+- A failed `PLAYLIST_EXISTS` lookup never renders a button (a wrong "Add to Series" for a saved playlist); it is retried after 2 s.
+
 ## Popup (`src/popup/`)
 
 Shows series / unwatched / new counts, sync indicator, and shortcuts (dashboard, settings via `?settings=1`, support). Uses `data-theme` and the dashboard's `variables.css`; strings come from `i18n.js`.

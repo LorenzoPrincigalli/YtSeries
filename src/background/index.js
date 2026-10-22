@@ -124,7 +124,25 @@ function runTask(name, task) {
   return ensureInit().then(task).catch(err => log.error(`${name} failed`, err))
 }
 
-chrome.runtime.onInstalled.addListener(() => runTask('install init', () => {}))
+/**
+ * Chrome does not inject content scripts into tabs that were already open
+ * when the extension is installed, updated or reloaded. Inject the current
+ * version there; it takes over from (and cleans up after) the orphaned copy.
+ */
+async function injectIntoOpenYouTubeTabs() {
+  const [script] = chrome.runtime.getManifest().content_scripts || []
+  if (!script?.js?.length) return
+  const tabs = await chrome.tabs.query({ url: 'https://www.youtube.com/*' })
+  const results = await Promise.allSettled(tabs.map(async tab => {
+    const target = { tabId: /** @type {number} */ (tab.id) }
+    if (script.css?.length) await chrome.scripting.insertCSS({ target, files: script.css })
+    await chrome.scripting.executeScript({ target, files: script.js })
+  }))
+  const failed = results.filter(r => r.status === 'rejected')
+  if (failed.length) log.warn(`Content script not injected into ${failed.length} tab(s)`, failed[0].reason)
+}
+
+chrome.runtime.onInstalled.addListener(() => runTask('install init', injectIntoOpenYouTubeTabs))
 chrome.runtime.onStartup.addListener(() => runTask('startup init', () => {}))
 chrome.action.onClicked.addListener(() => runTask('open dashboard', () => openSeriesTab(ctx)))
 
