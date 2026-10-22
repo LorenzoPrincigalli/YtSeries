@@ -456,6 +456,12 @@ class Store {
     this._state.settings = { ...this._state.settings, ...settings }
   }
 
+  removeSettings(keys) {
+    const next = { ...this._state.settings }
+    for (const key of keys) delete next[key]
+    this._state.settings = next
+  }
+
 }
 
 const store = new Store()

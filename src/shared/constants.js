@@ -6,8 +6,12 @@ const STORAGE_KEYS = {
   COLLECTION_RECORDS: 'collectionRecords',
   BACKUPS: 'backups',
   SETTINGS: 'settings',
-  LICENSE: 'license'
+  LICENSE: 'license',
+  API_KEY: 'youtubeApiKey'
 }
+
+const THEMES = Object.freeze(['classic-red', 'ocean-blue', 'forest', 'light'])
+const LANGUAGES = Object.freeze(['system', 'en', 'it'])
 
 const SYNC_STORAGE_KEYS = {
   AUTH: '_firebaseAuth',
@@ -112,6 +116,8 @@ const EXTENSION_ID = '' // Set after publishing to Chrome Web Store
 
 export {
   STORAGE_KEYS,
+  THEMES,
+  LANGUAGES,
   SYNC_STORAGE_KEYS,
   SYNC_PUSH_DEBOUNCE_MS,
   SYNC_MAX_CONFLICT_RETRIES,
