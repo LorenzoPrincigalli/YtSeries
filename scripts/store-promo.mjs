@@ -20,12 +20,12 @@ const [regular, semibold, bold, home, detail] = await Promise.all([
   font(400), font(600), font(700), shot('screenshot-01-home.png'), shot('screenshot-02-detail.png')
 ])
 
-/** The "‹YT.▢▢▢ series›" wordmark from the extension icon, as vector. @param {number} size font size in px */
+/** The "‹YT▢▢▢ series›" wordmark from the extension icon, as vector. @param {number} size font size in px */
 const wordmark = size => `
   <div class="mark" style="font-size:${size}px">
     <svg class="br" viewBox="0 0 10 24"><path d="M9 1 1 12l8 11"/></svg>
     <span class="stack">
-      <span class="yt">YT.<span class="eps"><i></i><i></i><i></i></span></span>
+      <span class="yt">YT<span class="eps"><i></i><i></i><i></i></span></span>
       <span class="series">series</span>
     </span>
     <svg class="br end" viewBox="0 0 10 24"><path d="m1 1 8 11-8 11"/></svg>
