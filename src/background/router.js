@@ -25,7 +25,7 @@ const DEFAULT_CONTEXTS = ['extension']
  * Normal answers to normal requests (e.g. progress for a video that is not in
  * any saved series): returned to the caller, logged at debug, never as errors.
  */
-const EXPECTED_OUTCOMES = new Set(['VIDEO_NOT_FOUND', 'SERIES_NOT_FOUND', 'PLAYLIST_NOT_FOUND', 'RATE_LIMITED', 'UNDO_EXPIRED'])
+const EXPECTED_OUTCOMES = new Set(['VIDEO_NOT_FOUND', 'SERIES_NOT_FOUND', 'PLAYLIST_NOT_FOUND', 'RATE_LIMITED', 'UNDO_EXPIRED', 'NOTES_LIMIT', 'NOTE_NOT_FOUND'])
 
 /**
  * Serializes commands so concurrent messages never interleave a

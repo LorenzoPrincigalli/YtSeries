@@ -10,6 +10,7 @@ import { setLanguage } from '../shared/i18n.js'
 import { createMessenger } from './messaging.js'
 import { PlaybackSession } from './playbackSession.js'
 import { PageInjections } from './pageInjections.js'
+import { NoteButton } from './noteButton.js'
 import { currentPageIds, isBlockingDialogOpen } from './youtubeDom.js'
 
 const INSTANCE = crypto.randomUUID()
@@ -22,6 +23,7 @@ let stopped = false
 
 const messenger = createMessenger({ onInvalidated: shutdown })
 const injections = new PageInjections(messenger, INSTANCE)
+const notes = new NoteButton(messenger, INSTANCE)
 
 /** False once the extension was reloaded or a newer copy of this script took over. */
 function isCurrentInstance() {
@@ -52,6 +54,7 @@ function onNavigate() {
   if (playlistId !== currentPlaylistId) injections.resetButton()
 
   const changed = videoId !== session?.videoId || playlistId !== currentPlaylistId
+  if (videoId !== notes.videoId || playlistId !== notes.playlistId) notes.setVideo(videoId, playlistId)
   currentPlaylistId = playlistId
   if (!videoId) {
     session?.dispose()
@@ -70,6 +73,7 @@ function inject() {
   if (isBlockingDialogOpen()) { setTimeout(inject, 1000); return }
   injections.injectSidebarLink()
   injections.injectAddButton()
+  notes.inject()
 }
 
 /** YouTube mutates the DOM constantly; re-check injections at most once per frame. */
@@ -89,6 +93,7 @@ function start() {
     const savedIds = message.state?.series
     if (!savedIds) return
     injections.syncSavedState(savedIds)
+    notes.lookup()
     if (session) session.untracked = false // the video may belong to a series just added
     // The series was deleted elsewhere: stop offering its next episode.
     if (currentPlaylistId && !savedIds[currentPlaylistId]) session?.overlay.hide()

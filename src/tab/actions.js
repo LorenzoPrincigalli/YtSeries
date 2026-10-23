@@ -72,6 +72,16 @@ export async function setEpisodesExcluded(playlistId, videoIds, excluded) {
   return response
 }
 
+/** @param {string} playlistId @param {string} noteId @param {string} text */
+export function updateNote(playlistId, noteId, text) {
+  return command(EVENTS.NOTE_UPDATE, { playlistId, noteId, text }, 'note_save_error')
+}
+
+/** @param {string} playlistId @param {string} noteId */
+export function deleteNote(playlistId, noteId) {
+  return command(EVENTS.NOTE_DELETE, { playlistId, noteId }, 'note_save_error')
+}
+
 /** @param {string} playlistId */
 export function toggleComplete(playlistId) {
   return command(EVENTS.SERIES_COMPLETE_TOGGLE, { playlistId }, 'something_wrong')

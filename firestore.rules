@@ -32,7 +32,7 @@ service cloud.firestore {
     }
 
     function validSeries(d) {
-      return d.keys().hasOnly(['deleted', 'deletedAt', 'metadata', 'lastEpisodeIndex', 'completed', 'completedAt', 'collectionAt', 'updatedAt', 'progress'])
+      return d.keys().hasOnly(['deleted', 'deletedAt', 'metadata', 'lastEpisodeIndex', 'completed', 'completedAt', 'collectionAt', 'updatedAt', 'progress', 'notes'])
         && d.deleted is bool
         && isTimestamp(d.updatedAt)
         && d.progress is map
@@ -42,7 +42,9 @@ service cloud.firestore {
         && (!('lastEpisodeIndex' in d) || d.lastEpisodeIndex is number)
         && (!('completed' in d) || d.completed is bool)
         && (!('completedAt' in d) || isTimestamp(d.completedAt))
-        && (!('collectionAt' in d) || isTimestamp(d.collectionAt));
+        && (!('collectionAt' in d) || isTimestamp(d.collectionAt))
+        // Episode notes and their deletion tombstones (store.addNote, MAX_NOTE_ENTRIES).
+        && (!('notes' in d) || (d.notes is map && d.notes.size() <= 400));
     }
 
     match /users/{userId}/series/{playlistId} {

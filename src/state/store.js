@@ -2,6 +2,10 @@ import { AppError } from '../shared/errors.js'
 import { STORAGE_KEYS } from '../shared/constants.js'
 import { logger } from '../shared/logger.js'
 
+/** Active notes per series; deletions are kept as tombstones so they sync. */
+const MAX_NOTES = 300
+const MAX_NOTE_ENTRIES = 400 // notes + tombstones, enforced by firestore.rules too
+
 /** Resume pointer: first counted episode not watched, else the last one. */
 function resumeIndex(series) {
   const next = series.videos.findIndex(video => !video.watched && !video.excluded)
@@ -443,6 +447,50 @@ class Store {
     }
     series.lastEpisodeIndex = resumeIndex(series)
     return changed.map(video => video.id)
+  }
+
+  /**
+   * Timestamped note on an episode. Notes live in the series (so backups and
+   * deletion carry them) as { [id]: { v: videoId, t: seconds, x: text, a: updatedAt, d?: deleted } }.
+   * @returns {string} the new note id
+   */
+  addNote(playlistId, videoId, time, text) {
+    const series = this._state.series[playlistId]
+    if (!series) throw new AppError('SERIES_NOT_FOUND')
+    if (!series.videos.some(video => video.id === videoId)) throw new AppError('VIDEO_NOT_FOUND')
+    const notes = series.notes || (series.notes = {})
+    if (Object.values(notes).filter(note => !note.d).length >= MAX_NOTES) throw new AppError('NOTES_LIMIT', `At most ${MAX_NOTES} notes per series`)
+    const id = crypto.randomUUID()
+    notes[id] = { v: videoId, t: Math.max(0, Math.floor(time)), x: text, a: this._touch(series) }
+    this._pruneNoteTombstones(series)
+    return id
+  }
+
+  updateNote(playlistId, noteId, text) {
+    const note = this._activeNote(playlistId, noteId)
+    note.x = text
+    note.a = this._touch(this._state.series[playlistId])
+  }
+
+  deleteNote(playlistId, noteId) {
+    const note = this._activeNote(playlistId, noteId)
+    note.x = ''
+    note.d = true
+    note.a = this._touch(this._state.series[playlistId])
+  }
+
+  _activeNote(playlistId, noteId) {
+    const note = this._state.series[playlistId]?.notes?.[noteId]
+    if (!note || note.d || !Object.hasOwn(this._state.series[playlistId].notes, noteId)) throw new AppError('NOTE_NOT_FOUND')
+    return note
+  }
+
+  /** Drops the oldest tombstones once notes + tombstones exceed the synced limit. */
+  _pruneNoteTombstones(series) {
+    const entries = Object.entries(series.notes || {})
+    if (entries.length <= MAX_NOTE_ENTRIES) return
+    const tombstones = entries.filter(([, note]) => note.d).sort((a, b) => a[1].a - b[1].a)
+    for (const [id] of tombstones.slice(0, entries.length - MAX_NOTE_ENTRIES)) delete series.notes[id]
   }
 
   updateEpisodeProgress(playlistId, videoId, progress, currentTime = 0, duration = 0) {

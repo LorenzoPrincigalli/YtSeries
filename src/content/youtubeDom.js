@@ -14,7 +14,9 @@ export const SELECTORS = {
   playlistHeader: 'yt-page-header-view-model div.ytPageHeaderViewModelScrollContainer',
   blockingDialog: '[aria-modal="true"], ytd-consent-bump-v2-renderer',
   genreMeta: 'meta[itemprop="genre"]',
-  playlistTitle: '#header .yt-dynamic-text-view-model'
+  playlistTitle: '#header .yt-dynamic-text-view-model',
+  // Watch page: the video title block, under the player.
+  watchTitle: 'ytd-watch-metadata #title'
 }
 
 /** First element matching `selector` that is actually rendered. @param {string} selector @returns {HTMLElement | null} */

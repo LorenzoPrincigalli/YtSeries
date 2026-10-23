@@ -4,6 +4,7 @@ import { getFirebaseConfig } from './FirebaseConfig.js'
 import { SYNC_MAX_CONFLICT_RETRIES, SYNC_STORAGE_KEYS } from '../../shared/constants.js'
 import { encodeFields, decodeDocument } from './firestoreRest.js'
 import { logger } from '../../shared/logger.js'
+import { normalizeNotes } from '../../shared/seriesValidation.js'
 
 const REQUEST_TIMEOUT_MS = 15_000
 const number = (value, fallback = 0) => Number.isFinite(value) ? value : fallback
@@ -46,7 +47,8 @@ function seriesToFirestorePayload(series) {
     completedAt: number(series.completedUpdatedAt) || seriesLocalUpdatedAt(series),
     collectionAt: number(series.collectionUpdatedAt) || seriesLocalUpdatedAt(series),
     updatedAt,
-    progress
+    progress,
+    notes: normalizeNotes(series.notes)
   }
 }
 
@@ -78,6 +80,14 @@ function mergeRemoteIntoSeries(series, remote) {
     video.lastWatchedAt = number(remoteProgress.la) || remoteProgressAt || null
     video.excluded = Boolean(remoteProgress.x)
     video.progressUpdatedAt = remoteProgressAt
+  }
+  // Notes merge one by one: the most recent edit (or deletion) of each wins.
+  const remoteNotes = normalizeNotes(remote.notes)
+  for (const [id, note] of Object.entries(remoteNotes)) {
+    const local = series.notes?.[id]
+    if (local && Object.hasOwn(series.notes, id) && local.a >= note.a) continue
+    if (!series.notes) series.notes = {}
+    series.notes[id] = note
   }
   const nextIndex = (series.videos || []).findIndex(video => !video.watched && !video.excluded)
   series.lastEpisodeIndex = nextIndex >= 0 ? nextIndex : Math.max(0, (series.videos?.length || 1) - 1)

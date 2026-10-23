@@ -172,3 +172,56 @@
   .yt-series-next-btn,
   .yt-series-toast { transition: none; }
 }
+
+/* ── Episode notes bar (watch page, under the title) ──────────────────── */
+.yt-series-notebar {
+  margin: 8px 0 4px;
+  color: inherit;
+  font-family: Roboto, Arial, sans-serif;
+}
+.yt-series-note-btn,
+.yt-series-note-save,
+.yt-series-note-cancel {
+  height: 32px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 16px;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+  color: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.yt-series-note-btn:hover,
+.yt-series-note-cancel:hover { background: color-mix(in srgb, currentColor 18%, transparent); }
+.yt-series-note-save { background: #cc0000; color: #fff; }
+.yt-series-note-btn:focus-visible,
+.yt-series-note-save:focus-visible,
+.yt-series-note-cancel:focus-visible,
+.yt-series-note-input:focus-visible { outline: 2px solid #3ea6ff; outline-offset: 2px; }
+.yt-series-note-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px;
+}
+.yt-series-note-time {
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.yt-series-note-input {
+  flex: 1 1 320px;
+  min-height: 56px;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  resize: vertical;
+}

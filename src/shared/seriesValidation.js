@@ -32,6 +32,26 @@ function normalizeVideo(video) {
   }
 }
 
+const NOTE_ID = /^[A-Za-z0-9_-]{1,64}$/
+const MAX_NOTE_ENTRIES = 400
+
+/**
+ * Episode notes from an untrusted source (backup file, cloud document):
+ * keeps well-formed entries only, never throws. Shape documented in store.addNote.
+ * @param {unknown} notes @returns {Record<string, { v: string, t: number, x: string, a: number, d?: true }>}
+ */
+function normalizeNotes(notes) {
+  const out = Object.create(null)
+  if (!notes || typeof notes !== 'object' || Array.isArray(notes)) return out
+  const entries = Object.entries(notes).filter(([id, note]) => NOTE_ID.test(id) && !FORBIDDEN_KEYS.has(id) &&
+    note && typeof note === 'object' && typeof note.v === 'string' && note.v.length <= 200 &&
+    Number.isFinite(note.t) && note.t >= 0 && typeof note.x === 'string' && note.x.length <= 1000 && Number.isFinite(note.a))
+  for (const [id, note] of entries.slice(0, MAX_NOTE_ENTRIES)) {
+    out[id] = { v: note.v, t: Math.floor(note.t), x: note.d ? '' : note.x, a: note.a, ...(note.d ? { d: true } : {}) }
+  }
+  return out
+}
+
 function normalizeSeries(series, playlistId) {
   if (!series || typeof series !== 'object' || Array.isArray(series) ||
     typeof playlistId !== 'string' || !playlistId.trim() || series.playlistId !== playlistId) {
@@ -65,7 +85,8 @@ function normalizeSeries(series, playlistId) {
     syncUpdatedAt: Math.max(0, finiteNumber(series.syncUpdatedAt)),
     completedUpdatedAt: Math.max(0, finiteNumber(series.completedUpdatedAt)),
     collectionUpdatedAt: Math.max(0, finiteNumber(series.collectionUpdatedAt)),
-    remoteUpdateTime: typeof series.remoteUpdateTime === 'string' ? series.remoteUpdateTime : undefined
+    remoteUpdateTime: typeof series.remoteUpdateTime === 'string' ? series.remoteUpdateTime : undefined,
+    notes: normalizeNotes(series.notes)
   }
 }
 
@@ -84,4 +105,4 @@ function normalizeSeriesBackup(payload) {
   return normalized
 }
 
-export { normalizeSeriesBackup, normalizeSeries }
+export { normalizeSeriesBackup, normalizeSeries, normalizeNotes }

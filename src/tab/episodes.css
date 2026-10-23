@@ -256,3 +256,121 @@
 .episode-exclude-btn[aria-pressed="true"] {
   border-style: solid;
 }
+
+/* Episode notes (series detail). */
+.detail-notes {
+  margin-bottom: var(--space-lg);
+}
+
+.notes-empty {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.notes-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.notes-episode {
+  margin: var(--space-sm) 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.note-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  gap: var(--space-md);
+  padding: 10px var(--space-md);
+  border-radius: var(--radius-sm);
+  background: var(--card-bg);
+}
+
+.note-time {
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--primary) 16%, transparent);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-decoration: none;
+}
+
+a.note-time:hover,
+a.note-time:focus-visible {
+  background: var(--primary-fill);
+  color: var(--text-on-primary);
+}
+
+.note-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.note-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.note-action {
+  padding: 2px 8px;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-primary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.note-action:hover,
+.note-action:focus-visible {
+  background: var(--hover-overlay-strong);
+  color: var(--text);
+}
+
+.note-editing {
+  grid-template-columns: auto 1fr;
+}
+
+.note-editing .note-actions {
+  grid-column: 2;
+}
+
+.note-input {
+  width: 100%;
+  padding: var(--space-sm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--input-bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  resize: vertical;
+}
+
+.note-input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.episode-notes-chip {
+  margin-left: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.notes-episode::first-letter {
+  text-transform: uppercase;
+}

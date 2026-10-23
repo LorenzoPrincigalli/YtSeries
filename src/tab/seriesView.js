@@ -2,9 +2,9 @@
 // Pure presentation logic: derives view data from the server state. No DOM,
 // no messaging, no mutation of inputs — every function here is unit-testable.
 // Excluded episodes never count (see src/shared/seriesStats.js).
-import { countedVideos, watchedCount, nextCountedEpisode } from '../shared/seriesStats.js'
+import { countedVideos, watchedCount, nextCountedEpisode, formatDuration } from '../shared/seriesStats.js'
 
-export { watchedCount }
+export { watchedCount, formatDuration }
 
 const DAY_MS = 86_400_000
 const NEW_EPISODE_WINDOW_DAYS = 7
@@ -182,13 +182,4 @@ export function formatLength(seconds) {
   const h = Math.floor(minutes / 60)
   const m = minutes % 60
   return h ? (m ? `${h} h ${m} min` : `${h} h`) : `${m} min`
-}
-
-/** @param {number} seconds */
-export function formatDuration(seconds) {
-  const h = Math.floor(seconds / 3600)
-  const m = Math.floor((seconds % 3600) / 60)
-  const s = Math.floor(seconds % 60)
-  const pad = n => String(n).padStart(2, '0')
-  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`
 }

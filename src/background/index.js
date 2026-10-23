@@ -18,6 +18,7 @@ import { episodeRoutes } from './handlers/episodes.js'
 import { collectionRoutes } from './handlers/collections.js'
 import { settingsRoutes } from './handlers/settings.js'
 import { libraryRoutes } from './handlers/library.js'
+import { noteRoutes } from './handlers/notes.js'
 import { appRoutes, openSeriesTab } from './handlers/app.js'
 
 const log = logger.child('bg')
@@ -49,7 +50,7 @@ const ctx = {
 
 const runCommand = createCommandQueue()
 const dispatch = createRouter({
-  ...appRoutes, ...seriesRoutes, ...episodeRoutes, ...collectionRoutes, ...settingsRoutes, ...libraryRoutes
+  ...appRoutes, ...seriesRoutes, ...episodeRoutes, ...collectionRoutes, ...settingsRoutes, ...libraryRoutes, ...noteRoutes
 }, runCommand)
 
 const READ_ONLY_BEFORE_INIT = new Set([EVENTS.STATE_GET])

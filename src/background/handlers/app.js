@@ -65,6 +65,13 @@ const appRoutes = {
       return { success: true, settings: { nextEpisodeOverlay: nextEpisodeOverlay !== false, language: language || 'system' } }
     }
   },
+  // Content script only: whether the video on screen is an episode of a saved series (no progress data).
+  [EVENTS.CONTENT_VIDEO_SERIES]: {
+    contexts: ['content'],
+    mode: 'read',
+    schema: s.object({ videoId: s.id(), playlistId: s.optional(s.string({ max: 200 })) }),
+    handler: (ctx, { videoId, playlistId }) => ({ success: true, saved: Boolean(ctx.store.resolvePlaylistForVideo(videoId, playlistId)) })
+  },
   [EVENTS.SYNC_STATUS]: { mode: 'read', handler: ctx => ({ success: true, syncStatus: ctx.sync.status() }) },
   [EVENTS.SYNC_LOGIN]: {
     schema: s.object({ allowAccountChange: s.optional(s.boolean()) }),

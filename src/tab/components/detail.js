@@ -11,6 +11,7 @@ import { openModal, closeModal, confirmDialog } from '../ui/modal.js'
 import * as actions from '../actions.js'
 import { collectionNames, watchedCount, nextEpisode, findNewEpisode, isNewEpisode, latestEpisode, watchUrl, formatDuration, formatLength } from '../seriesView.js'
 import { countedVideos, timeLeft, finishEstimate, suggestedExclusions } from '../../shared/seriesStats.js'
+import { notesSection, activeNotes } from './notes.js'
 
 const log = logger.child('detail')
 const MODAL_ID = 'detailModal'
@@ -96,6 +97,7 @@ export class DetailView {
       this.renderInfo(series),
       this.renderSuggestion(series),
       newEpisode && this.renderNewEpisode(series, newEpisode),
+      notesSection(series),
       this.renderEpisodes(series),
       this.renderRelated(series))
   }
@@ -197,10 +199,13 @@ export class DetailView {
   /** @param {any} series */
   renderEpisodes(series) {
     const grid = h('div', { class: 'episode-grid' })
+    /** @type {Map<string, number>} */
+    const noteCounts = new Map()
+    for (const note of activeNotes(series)) noteCounts.set(note.v, (noteCounts.get(note.v) || 0) + 1)
     const draw = () => {
       const compare = SORTS[this.sort]
       const videos = compare ? [...series.videos].sort(compare) : series.videos
-      grid.replaceChildren(...videos.map(video => this.episodeCard(series, video, series.videos.indexOf(video))))
+      grid.replaceChildren(...videos.map(video => this.episodeCard(series, video, series.videos.indexOf(video), noteCounts.get(video.id) || 0)))
     }
     const select = h('select', { class: 'episode-sort', 'aria-label': t('sort_episodes') },
       Object.keys(SORTS).map(key => h('option', { value: key, selected: key === this.sort }, t(SORT_LABELS[key]))))
@@ -211,8 +216,8 @@ export class DetailView {
       grid)
   }
 
-  /** @param {any} series @param {any} video @param {number} index */
-  episodeCard(series, video, index) {
+  /** @param {any} series @param {any} video @param {number} index @param {number} [notes] */
+  episodeCard(series, video, index, notes = 0) {
     const href = watchUrl(video.id, series.playlistId, video.watched ? 0 : video.resumeTime)
     const number = `${t('episode')} ${index + 1}${video.duration ? ` · ${formatDuration(video.duration)}` : ''}`
     return h('div', { class: ['episode-card', video.excluded && 'episode-excluded'], dataset: { videoId: video.id }, onClick: () => window.open(href, '_blank', 'noopener') },
@@ -220,7 +225,8 @@ export class DetailView {
       video.progress > 0 && !video.watched && h('div', { class: 'episode-progress-overlay' },
         h('div', { class: 'episode-progress-bar', style: { '--progress': `${video.progress}%` } })),
       h('div', { class: 'episode-info' },
-        h('div', { class: 'episode-number' }, number),
+        h('div', { class: 'episode-number' }, number,
+          notes > 0 && h('span', { class: 'episode-notes-chip', title: t('notes_chip', { n: notes }) }, `📝 ${notes}`)),
         h('div', { class: 'episode-title' },
           h('a', { class: 'episode-title-link', href, target: '_blank', rel: 'noopener noreferrer', onClick: event => event.stopPropagation() },
             isNewEpisode(video) && h('span', { class: 'new-dot' }, t('new_short')),

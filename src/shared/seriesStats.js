@@ -159,3 +159,12 @@ export function releaseForecast(series, now = Date.now()) {
 export function suggestedExclusions(series) {
   return countedVideos(series).filter(video => EXTRA_TITLE.test(video.title || '')).map(video => video.id)
 }
+
+/** Clock-style length: "4:05", "1:02:03". @param {number} seconds */
+export function formatDuration(seconds) {
+  const h = Math.floor(seconds / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  const s = Math.floor(seconds % 60)
+  const pad = n => String(n).padStart(2, '0')
+  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`
+}
