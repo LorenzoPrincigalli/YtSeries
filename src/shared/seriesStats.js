@@ -168,3 +168,12 @@ export function formatDuration(seconds) {
   const pad = n => String(n).padStart(2, '0')
   return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`
 }
+
+/** Rounded, human length: "4 h 20 min", "45 min", "< 1 min". @param {number} seconds */
+export function formatLength(seconds) {
+  const minutes = Math.round(seconds / 60)
+  if (minutes < 1) return '< 1 min'
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  return h ? (m ? `${h} h ${m} min` : `${h} h`) : `${m} min`
+}

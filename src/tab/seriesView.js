@@ -2,9 +2,9 @@
 // Pure presentation logic: derives view data from the server state. No DOM,
 // no messaging, no mutation of inputs — every function here is unit-testable.
 // Excluded episodes never count (see src/shared/seriesStats.js).
-import { countedVideos, watchedCount, nextCountedEpisode, formatDuration } from '../shared/seriesStats.js'
+import { countedVideos, watchedCount, nextCountedEpisode, formatDuration, formatLength } from '../shared/seriesStats.js'
 
-export { watchedCount, formatDuration }
+export { watchedCount, formatDuration, formatLength }
 
 const DAY_MS = 86_400_000
 const NEW_EPISODE_WINDOW_DAYS = 7
@@ -173,13 +173,4 @@ export function pickRecommendations(playlistsByChannel, channelWeights, savedIds
     ;[picked[i], picked[j]] = [picked[j], picked[i]]
   }
   return picked.slice(0, target)
-}
-
-/** Rounded, human length: "4 h 20 min", "45 min", "< 1 min". @param {number} seconds */
-export function formatLength(seconds) {
-  const minutes = Math.round(seconds / 60)
-  if (minutes < 1) return '< 1 min'
-  const h = Math.floor(minutes / 60)
-  const m = minutes % 60
-  return h ? (m ? `${h} h ${m} min` : `${h} h`) : `${m} min`
 }

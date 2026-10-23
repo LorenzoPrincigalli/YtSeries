@@ -16,7 +16,11 @@ export const SELECTORS = {
   genreMeta: 'meta[itemprop="genre"]',
   playlistTitle: '#header .yt-dynamic-text-view-model',
   // Watch page: the video title block, under the player.
-  watchTitle: 'ytd-watch-metadata #title'
+  watchTitle: 'ytd-watch-metadata #title',
+  // Playlist entries: the playlist page list and the watch-page playlist panel.
+  playlistItems: 'ytd-playlist-video-renderer, ytd-playlist-panel-video-renderer',
+  itemLink: 'a#thumbnail, a#wc-endpoint',
+  itemThumbnail: 'ytd-thumbnail, yt-thumbnail-view-model'
 }
 
 /** First element matching `selector` that is actually rendered. @param {string} selector @returns {HTMLElement | null} */

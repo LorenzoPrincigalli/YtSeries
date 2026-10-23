@@ -2,6 +2,7 @@
 import { EVENTS } from '../../shared/events.js'
 import { AppError, toAppError } from '../../shared/errors.js'
 import { s } from '../../shared/schema.js'
+import { countedVideos, watchedCount, timeLeft } from '../../shared/seriesStats.js'
 
 /** @typedef {import('../context.js').BackgroundContext} Ctx */
 
@@ -71,6 +72,22 @@ const appRoutes = {
     mode: 'read',
     schema: s.object({ videoId: s.id(), playlistId: s.optional(s.string({ max: 200 })) }),
     handler: (ctx, { videoId, playlistId }) => ({ success: true, saved: Boolean(ctx.store.resolvePlaylistForVideo(videoId, playlistId)) })
+  },
+  // Content script only: per-episode progress of one saved playlist, to draw it on YouTube.
+  [EVENTS.CONTENT_SERIES_PROGRESS]: {
+    contexts: ['content'],
+    mode: 'read',
+    schema: s.object({ playlistId: s.id() }),
+    handler: (ctx, { playlistId }) => {
+      const series = ctx.store.getSeriesById(playlistId)
+      if (!series) return { success: true, saved: false }
+      /** @type {Record<string, { w: boolean, p: number, r: number, x: boolean }>} */
+      const videos = {}
+      for (const video of series.videos) {
+        videos[video.id] = { w: Boolean(video.watched), p: Math.round(video.progress || 0), r: Math.floor(video.resumeTime || 0), x: Boolean(video.excluded) }
+      }
+      return { success: true, saved: true, total: countedVideos(series).length, watchedCount: watchedCount(series), timeLeft: timeLeft(series), videos }
+    }
   },
   [EVENTS.SYNC_STATUS]: { mode: 'read', handler: ctx => ({ success: true, syncStatus: ctx.sync.status() }) },
   [EVENTS.SYNC_LOGIN]: {

@@ -85,7 +85,7 @@ function mergeRemoteIntoSeries(series, remote) {
   const remoteNotes = normalizeNotes(remote.notes)
   for (const [id, note] of Object.entries(remoteNotes)) {
     const local = series.notes?.[id]
-    if (local && Object.hasOwn(series.notes, id) && local.a >= note.a) continue
+    if (local && Object.hasOwn(series.notes, id) && (local.a > note.a || (local.a === note.a && !note.d))) continue
     if (!series.notes) series.notes = {}
     series.notes[id] = note
   }

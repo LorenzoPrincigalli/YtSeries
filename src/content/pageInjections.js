@@ -11,6 +11,7 @@ import { h } from '../shared/dom.js'
 import { SELECTORS, currentPageIds, findVisible } from './youtubeDom.js'
 import { showToast } from './toast.js'
 import { NOTE_BAR_CLASS } from './noteButton.js'
+import { PROGRESS_UI } from './progressOverlay.js'
 
 const SIDEBAR_ID = 'yt-series-sidebar-section'
 const BUTTON_CLASS = 'yt-series-add-btn'
@@ -18,7 +19,7 @@ const BUTTON_ID = 'yt-series-add-btn'
 // Includes UI made by pre-1.2 copies of this script (id only, no class or
 // owner): an orphaned old copy keeps re-adding an "Add to Series" button.
 // Notes bar included: every piece of UI an orphaned copy may leave behind.
-const OWNED = `#${SIDEBAR_ID}, .${BUTTON_CLASS}, #${BUTTON_ID}, .${NOTE_BAR_CLASS}`
+const OWNED = `#${SIDEBAR_ID}, .${BUTTON_CLASS}, #${BUTTON_ID}, .${NOTE_BAR_CLASS}, ${PROGRESS_UI}`
 const LOOKUP_RETRY_MS = 2000
 
 export class PageInjections {

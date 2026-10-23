@@ -11,6 +11,7 @@ import { createMessenger } from './messaging.js'
 import { PlaybackSession } from './playbackSession.js'
 import { PageInjections } from './pageInjections.js'
 import { NoteButton } from './noteButton.js'
+import { ProgressOverlay } from './progressOverlay.js'
 import { currentPageIds, isBlockingDialogOpen } from './youtubeDom.js'
 
 const INSTANCE = crypto.randomUUID()
@@ -24,6 +25,7 @@ let stopped = false
 const messenger = createMessenger({ onInvalidated: shutdown })
 const injections = new PageInjections(messenger, INSTANCE)
 const notes = new NoteButton(messenger, INSTANCE)
+const progress = new ProgressOverlay(messenger, INSTANCE)
 
 /** False once the extension was reloaded or a newer copy of this script took over. */
 function isCurrentInstance() {
@@ -38,6 +40,7 @@ function shutdown() {
   observer?.disconnect()
   document.removeEventListener('yt-navigate-finish', onNavigate)
   injections.removeOwnUi()
+  progress.removeOwnUi()
 }
 
 /** @param {{ nextEpisodeOverlay?: boolean, language?: string } | undefined} next */
@@ -55,6 +58,7 @@ function onNavigate() {
 
   const changed = videoId !== session?.videoId || playlistId !== currentPlaylistId
   if (videoId !== notes.videoId || playlistId !== notes.playlistId) notes.setVideo(videoId, playlistId)
+  progress.setPlaylist(playlistId)
   currentPlaylistId = playlistId
   if (!videoId) {
     session?.dispose()
@@ -74,6 +78,7 @@ function inject() {
   injections.injectSidebarLink()
   injections.injectAddButton()
   notes.inject()
+  progress.inject()
 }
 
 /** YouTube mutates the DOM constantly; re-check injections at most once per frame. */
@@ -94,6 +99,7 @@ function start() {
     if (!savedIds) return
     injections.syncSavedState(savedIds)
     notes.lookup()
+    progress.refresh()
     if (session) session.untracked = false // the video may belong to a series just added
     // The series was deleted elsewhere: stop offering its next episode.
     if (currentPlaylistId && !savedIds[currentPlaylistId]) session?.overlay.hide()

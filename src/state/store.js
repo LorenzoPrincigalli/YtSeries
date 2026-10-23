@@ -469,14 +469,16 @@ class Store {
   updateNote(playlistId, noteId, text) {
     const note = this._activeNote(playlistId, noteId)
     note.x = text
-    note.a = this._touch(this._state.series[playlistId])
+    // Strictly newer than the version it replaces, even if another device wrote it this millisecond.
+    note.a = Math.max(this._touch(this._state.series[playlistId]), note.a + 1)
   }
 
   deleteNote(playlistId, noteId) {
     const note = this._activeNote(playlistId, noteId)
     note.x = ''
     note.d = true
-    note.a = this._touch(this._state.series[playlistId])
+    // Strictly newer than the version it replaces, even if another device wrote it this millisecond.
+    note.a = Math.max(this._touch(this._state.series[playlistId]), note.a + 1)
   }
 
   _activeNote(playlistId, noteId) {
