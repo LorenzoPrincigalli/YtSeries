@@ -43,7 +43,7 @@ function fromBase64Url(text) {
   return Uint8Array.from(binary, char => char.charCodeAt(0))
 }
 
-/** @param {Uint8Array} bytes @param {CompressionStream | DecompressionStream} stream @param {number} [limit] */
+/** @param {Uint8Array<ArrayBuffer>} bytes @param {CompressionStream | DecompressionStream} stream @param {number} [limit] */
 async function pipe(bytes, stream, limit = Infinity) {
   const writer = stream.writable.getWriter()
   writer.write(bytes).catch(() => {})
@@ -65,7 +65,7 @@ async function pipe(bytes, stream, limit = Infinity) {
 }
 
 /** @param {unknown} value @param {number} max */
-const clean = (value, max) => (typeof value === 'string' ? value.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, max) : '')
+const clean = (value, max) => (typeof value === 'string' ? value.replace(/\p{Cc}/gu, ' ').trim().slice(0, max) : '')
 
 /** First video id of a thumbnail URL like https://i.ytimg.com/vi/<id>/hqdefault.jpg, else ''. @param {unknown} url */
 export function coverVideoId(url) {
