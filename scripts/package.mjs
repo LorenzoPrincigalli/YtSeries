@@ -3,7 +3,7 @@
 // the Web Store rejects packages that carry it).
 //   npm run package   →   yt-series-<version>.zip
 import { execFileSync } from 'node:child_process'
-import { cp, readFile, rm, writeFile } from 'node:fs/promises'
+import { cp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -25,11 +25,14 @@ const zip = join(root, `yt-series-${manifest.version}.zip`)
 await rm(zip, { force: true })
 // bsdtar (Windows 10+ System32, macOS) writes zip with -a; Git Bash's GNU tar
 // cannot, so on Windows call the system one explicitly. Else fall back to Info-ZIP.
+// Entries are added by name ("manifest.json", "src/…"): archiving "." would
+// prefix every path with "./", and the Web Store then cannot find the manifest.
 const tar = process.platform === 'win32' ? join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'tar.exe') : 'tar'
+const entries = await readdir(staging)
 try {
-  execFileSync(tar, ['-a', '-c', '-f', zip, '-C', staging, '.'], { stdio: 'inherit' })
+  execFileSync(tar, ['-a', '-c', '-f', zip, '-C', staging, ...entries], { stdio: 'inherit' })
 } catch {
-  execFileSync('zip', ['-r', '-q', zip, '.'], { cwd: staging, stdio: 'inherit' })
+  execFileSync('zip', ['-r', '-q', zip, ...entries], { cwd: staging, stdio: 'inherit' })
 }
 await rm(staging, { recursive: true, force: true })
 console.log(`Packaged ${zip} (version ${manifest.version}, no "key", no source maps)`)
