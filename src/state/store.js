@@ -2,6 +2,12 @@ import { AppError } from '../shared/errors.js'
 import { STORAGE_KEYS } from '../shared/constants.js'
 import { logger } from '../shared/logger.js'
 
+/** Resume pointer: first counted episode not watched, else the last one. */
+function resumeIndex(series) {
+  const next = series.videos.findIndex(video => !video.watched && !video.excluded)
+  return next >= 0 ? next : Math.max(0, series.videos.length - 1)
+}
+
 class Store {
   constructor() {
     this._saveChain = Promise.resolve()
@@ -167,7 +173,8 @@ class Store {
       ...existing,
       ...series,
       lastEpisodeIndex: existing?.lastEpisodeIndex || 0,
-      newEpisodesCount: existing ? Math.max(0, series.videos.length - (existing.videos?.length || 0)) : 0,
+      // Count ids, not length: a channel series keeps a fixed window of videos.
+      newEpisodesCount: newVideoIds.length,
       latestNewVideoId: newVideoIds[0] || null,
       completed: existing?.completed || false,
       addedAt: existing?.addedAt ?? Date.now(),
@@ -182,7 +189,8 @@ class Store {
           resumeTime: existingVideo?.resumeTime || 0,
           totalWatchedTime: existingVideo?.totalWatchedTime || 0,
           lastWatchedAt: existingVideo?.lastWatchedAt || null,
-          progressUpdatedAt: existingVideo?.progressUpdatedAt || 0
+          progressUpdatedAt: existingVideo?.progressUpdatedAt || 0,
+          excluded: existingVideo?.excluded || false
         }
       })
     }
@@ -204,8 +212,7 @@ class Store {
     restored.completedUpdatedAt = at
     restored.collectionUpdatedAt = at
     for (const video of restored.videos) video.progressUpdatedAt = at
-    const next = restored.videos.findIndex(video => !video.watched)
-    restored.lastEpisodeIndex = next < 0 ? Math.max(0, restored.videos.length - 1) : next
+    restored.lastEpisodeIndex = resumeIndex(restored)
     this._state.series[series.playlistId] = restored
   }
 
@@ -369,7 +376,7 @@ class Store {
 
     // Find next unwatched episode starting from current position
     for (let i = currentIndex + 1; i < series.videos.length; i++) {
-      if (!series.videos[i].watched) {
+      if (!series.videos[i].watched && !series.videos[i].excluded) {
         return series.videos[i]
       }
     }
@@ -396,8 +403,7 @@ class Store {
       video.progressUpdatedAt = this._touch(series)
     }
 
-    const nextIndex = series.videos.findIndex(v => !v.watched)
-    series.lastEpisodeIndex = nextIndex >= 0 ? nextIndex : series.videos.length - 1
+    series.lastEpisodeIndex = resumeIndex(series)
 
   }
 
@@ -416,9 +422,27 @@ class Store {
       video.progressUpdatedAt = this._touch(series)
     }
 
-    const nextIndex = series.videos.findIndex(v => !v.watched)
-    series.lastEpisodeIndex = nextIndex >= 0 ? nextIndex : series.videos.length - 1
+    series.lastEpisodeIndex = resumeIndex(series)
 
+  }
+
+  /**
+   * Excludes episodes (trailers, filler) from progress, or counts them again.
+   * @returns {string[]} ids whose state actually changed
+   */
+  setEpisodesExcluded(playlistId, videoIds, excluded) {
+    const series = this._state.series[playlistId]
+    if (!series) throw new AppError('SERIES_NOT_FOUND')
+    const wanted = new Set(videoIds)
+    const changed = series.videos.filter(video => wanted.has(video.id) && Boolean(video.excluded) !== excluded)
+    if (!changed.length) return []
+    const at = this._touch(series)
+    for (const video of changed) {
+      video.excluded = excluded
+      video.progressUpdatedAt = at
+    }
+    series.lastEpisodeIndex = resumeIndex(series)
+    return changed.map(video => video.id)
   }
 
   updateEpisodeProgress(playlistId, videoId, progress, currentTime = 0, duration = 0) {

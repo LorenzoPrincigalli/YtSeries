@@ -9,7 +9,8 @@ import { getState, getUi, setUi, subscribe } from '../core/store.js'
 import { safeRender } from '../core/errorBoundary.js'
 import { openModal, closeModal, confirmDialog } from '../ui/modal.js'
 import * as actions from '../actions.js'
-import { collectionNames, watchedCount, nextEpisode, findNewEpisode, isNewEpisode, latestEpisode, watchUrl, formatDuration } from '../seriesView.js'
+import { collectionNames, watchedCount, nextEpisode, findNewEpisode, isNewEpisode, latestEpisode, watchUrl, formatDuration, formatLength } from '../seriesView.js'
+import { countedVideos, timeLeft, finishEstimate, suggestedExclusions } from '../../shared/seriesStats.js'
 
 const log = logger.child('detail')
 const MODAL_ID = 'detailModal'
@@ -25,6 +26,10 @@ const SORT_LABELS = { default: 'sort_default', date_desc: 'sort_date_desc', date
 
 /** @param {string | undefined} iso */
 const shortDate = iso => (iso ? new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '')
+/** @param {number} at */
+const dayMonth = at => new Date(at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
+/** 2 → "2", 2.33 → "2.3" @param {number} value */
+const oneDecimal = value => String(Math.round(value * 10) / 10)
 
 export class DetailView {
   constructor() {
@@ -33,6 +38,8 @@ export class DetailView {
     /** @type {Map<string, Promise<any[]>>} channel playlists, fetched once per session */
     this.channelCache = new Map()
     this.closeFolderPicker = null
+    /** Series whose "exclude trailers?" suggestion was dismissed this session. */
+    this.dismissedSuggestions = new Set()
     this.body = this.ensureModal()
     subscribe(() => this.sync())
   }
@@ -87,6 +94,7 @@ export class DetailView {
     const newEpisode = findNewEpisode(series)
     mount(this.body,
       this.renderInfo(series),
+      this.renderSuggestion(series),
       newEpisode && this.renderNewEpisode(series, newEpisode),
       this.renderEpisodes(series),
       this.renderRelated(series))
@@ -94,14 +102,23 @@ export class DetailView {
 
   /** @param {any} series */
   renderInfo(series) {
-    const total = series.videos.length
+    const total = countedVideos(series).length
+    const excluded = series.videos.length - total
     const watched = watchedCount(series)
     const percent = total ? (watched / total) * 100 : 0
     const next = nextEpisode(series)
     const latest = latestEpisode(series)
 
     const meta = [`${total} ${total === 1 ? t('episode') : t('episodes')}`, `${watched}/${total} ${t('watched')} (${Math.round(percent)}%)`]
+    if (excluded) meta.push(t('excluded_count', { n: excluded }))
     if (latest) meta.push(`${t('last_video')}: ${shortDate(latest.publishedAt)}`)
+
+    const left = series.completed ? 0 : timeLeft(series)
+    const estimate = series.completed ? null : finishEstimate(series)
+    const pace = [
+      left > 0 && t('time_left', { time: formatLength(left) }),
+      estimate && t('finish_estimate', { pace: oneDecimal(estimate.pacePerWeek), date: dayMonth(estimate.finishAt) })
+    ].filter(Boolean).join(' · ')
 
     const folderButton = h('button', {
       type: 'button',
@@ -127,6 +144,7 @@ export class DetailView {
           }, series.channelTitle))),
       h('div', { class: 'detail-info-body' },
         h('div', { class: 'detail-meta-row' }, meta.join(' · ')),
+        pace && h('div', { class: 'detail-pace-row' }, pace),
         h('div', { class: 'detail-progress-bar', role: 'progressbar', 'aria-label': t('watched'), 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': String(Math.round(percent)) },
           h('div', { class: 'detail-progress-fill', style: { '--progress': `${percent}%` } })),
         series.description && h('p', { class: 'detail-hero-desc' }, series.description),
@@ -138,6 +156,21 @@ export class DetailView {
           h('button', { type: 'button', class: 'btn-secondary', title: t('refresh'), 'aria-label': t('refresh'), onClick: event => this.refresh(series, event.currentTarget) }, '↻'),
           folderButton,
           h('button', { type: 'button', class: 'btn-secondary text-error', title: t('delete'), 'aria-label': t('delete'), onClick: () => this.confirmDelete(series) }, svg('trash')))))
+  }
+
+  /** Offers to leave trailers/teasers out of the progress, once per series and session. @param {any} series */
+  renderSuggestion(series) {
+    const ids = suggestedExclusions(series)
+    if (!ids.length || this.dismissedSuggestions.has(series.playlistId)) return null
+    return h('div', { class: 'detail-suggestion', role: 'note' },
+      h('p', { class: 'detail-suggestion-text' }, t('suggest_exclude', { n: ids.length })),
+      h('div', { class: 'detail-suggestion-actions' },
+        h('button', { type: 'button', class: 'btn-primary', onClick: () => actions.setEpisodesExcluded(series.playlistId, ids, true) }, t('exclude_them')),
+        h('button', {
+          type: 'button',
+          class: 'btn-secondary',
+          onClick: () => { this.dismissedSuggestions.add(series.playlistId); this.sync() }
+        }, t('close'))))
   }
 
   /** @param {any} series @param {HTMLButtonElement} button */
@@ -182,7 +215,7 @@ export class DetailView {
   episodeCard(series, video, index) {
     const href = watchUrl(video.id, series.playlistId, video.watched ? 0 : video.resumeTime)
     const number = `${t('episode')} ${index + 1}${video.duration ? ` · ${formatDuration(video.duration)}` : ''}`
-    return h('div', { class: 'episode-card', dataset: { videoId: video.id }, onClick: () => window.open(href, '_blank', 'noopener') },
+    return h('div', { class: ['episode-card', video.excluded && 'episode-excluded'], dataset: { videoId: video.id }, onClick: () => window.open(href, '_blank', 'noopener') },
       img({ class: 'episode-thumb', src: video.thumbnail }),
       video.progress > 0 && !video.watched && h('div', { class: 'episode-progress-overlay' },
         h('div', { class: 'episode-progress-bar', style: { '--progress': `${video.progress}%` } })),
@@ -201,7 +234,14 @@ export class DetailView {
           onClick: event => { event.stopPropagation(); actions.setEpisodeWatched(series.playlistId, video.id, !video.watched) }
         },
         h('span', { class: 'episode-status-icon', 'aria-hidden': 'true' }, svg('check')),
-        h('span', { class: 'episode-status-label' }, video.watched ? t('watched') : t('unwatched')))))
+        h('span', { class: 'episode-status-label' }, video.watched ? t('watched') : t('unwatched'))),
+        h('button', {
+          type: 'button',
+          class: 'episode-exclude-btn',
+          'aria-pressed': String(Boolean(video.excluded)),
+          'aria-label': video.excluded ? t('include_named', { title: video.title }) : t('exclude_named', { title: video.title }),
+          onClick: event => { event.stopPropagation(); actions.setEpisodesExcluded(series.playlistId, [video.id], !video.excluded) }
+        }, video.excluded ? t('include_short') : t('exclude_short'))))
   }
 
   /** @param {any} series */

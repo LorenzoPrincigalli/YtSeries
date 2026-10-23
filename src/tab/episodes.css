@@ -220,3 +220,39 @@
 .channel-close-btn {
   z-index: var(--z-base);
 }
+
+/* Excluded episodes (trailers, filler) stay listed but read as inactive. */
+.episode-excluded .episode-thumb,
+.episode-excluded .episode-title,
+.episode-excluded .episode-number {
+  opacity: 0.5;
+}
+
+.episode-excluded .episode-thumb {
+  filter: grayscale(1);
+}
+
+.episode-exclude-btn {
+  margin-left: 6px;
+  padding: 3px 10px;
+  border: 1px dashed color-mix(in srgb, var(--text-muted) 40%, transparent);
+  border-radius: 20px;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-primary);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: color var(--transition), border-color var(--transition);
+}
+
+.episode-exclude-btn:hover,
+.episode-exclude-btn:focus-visible {
+  border-color: var(--primary);
+  color: var(--text);
+}
+
+.episode-exclude-btn[aria-pressed="true"] {
+  border-style: solid;
+}

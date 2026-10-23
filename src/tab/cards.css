@@ -249,3 +249,10 @@
   color: var(--text-muted);
   margin-top: 2px;
 }
+
+.card-time-left {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-top: 2px;
+}

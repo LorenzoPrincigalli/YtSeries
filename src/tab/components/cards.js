@@ -4,7 +4,8 @@
 import { t } from '../../shared/i18n.js'
 import { h, img } from '../../shared/dom.js'
 import { svg } from '../../shared/icons.js'
-import { isInProgress, isComplete, cardProgress, heroProgress, nextEpisode, watchUrl } from '../seriesView.js'
+import { isInProgress, isComplete, cardProgress, heroProgress, nextEpisode, watchUrl, formatLength } from '../seriesView.js'
+import { timeLeft } from '../../shared/seriesStats.js'
 
 const SCROLL_STEP = 312
 const HERO_INTERVAL_MS = 10_000
@@ -16,6 +17,12 @@ const progressStyle = percent => ({ '--progress': `${Math.max(0, Math.min(100, p
 
 /** @param {number} count */
 const episodesLabel = count => `${count} ${count === 1 ? t('episode') : t('episodes')}`
+
+/** "4 h 20 min left" for a started, unfinished series; null otherwise. @param {any} series */
+const timeLeftLabel = series => {
+  const seconds = isInProgress(series) ? timeLeft(series) : 0
+  return seconds > 0 ? t('time_left', { time: formatLength(seconds) }) : null
+}
 
 /**
  * Library card. The whole card is mouse-clickable; keyboard users reach the
@@ -57,7 +64,8 @@ export function seriesCard(series, onOpen, index = 0) {
     h('div', { class: 'card-info' },
       h('button', { type: 'button', class: 'card-title card-title-btn', onClick: event => { event.stopPropagation(); open() } }, series.title || t('untitled')),
       h('div', { class: 'card-subtitle' },
-        series.channelTitle ? `${series.channelTitle} · ${episodesLabel(series.videos.length)}` : episodesLabel(series.videos.length))))
+        series.channelTitle ? `${series.channelTitle} · ${episodesLabel(series.videos.length)}` : episodesLabel(series.videos.length)),
+      timeLeftLabel(series) && h('div', { class: 'card-time-left' }, timeLeftLabel(series))))
   return card
 }
 
@@ -174,7 +182,7 @@ export function heroCarousel(seriesList, onContinue, onOpen) {
       h('div', { class: 'hero-content' },
         h('h1', { class: 'hero-title' },
           h('button', { type: 'button', class: 'hero-title-btn', onClick: event => { event.stopPropagation(); onOpen(series) } }, series.title)),
-        h('p', { class: 'hero-subtitle' }, series.channelTitle || ''),
+        h('p', { class: 'hero-subtitle' }, [series.channelTitle, timeLeftLabel(series)].filter(Boolean).join(' · ')),
         h('div', { class: 'hero-progress', role: 'progressbar', 'aria-label': t('watched'), 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': String(Math.round(heroProgress(series))) },
           h('div', { class: 'hero-progress-bar', style: progressStyle(heroProgress(series)) })),
         h('div', { class: 'hero-btn-group' },

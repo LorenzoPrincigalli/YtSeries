@@ -24,11 +24,11 @@ function seriesToFirestorePayload(series) {
   let updatedAt = Math.max(seriesLocalUpdatedAt(series), 1)
   for (const video of series.videos || []) {
     const at = progressUpdatedAt(video)
-    if (at || video.watched || video.progress || video.resumeTime) {
+    if (at || video.watched || video.progress || video.resumeTime || video.excluded) {
       progress[video.id] = {
         w: Boolean(video.watched), p: Math.min(100, Math.max(0, number(video.progress))),
         r: Math.max(0, number(video.resumeTime)), t: Math.max(0, number(video.totalWatchedTime)),
-        a: at, wa: number(video.watchedAt), la: number(video.lastWatchedAt)
+        a: at, wa: number(video.watchedAt), la: number(video.lastWatchedAt), x: Boolean(video.excluded)
       }
       updatedAt = Math.max(updatedAt, at)
     }
@@ -76,9 +76,10 @@ function mergeRemoteIntoSeries(series, remote) {
     video.totalWatchedTime = Math.max(0, number(remoteProgress.t))
     video.watchedAt = video.watched ? (number(remoteProgress.wa) || remoteProgressAt) : null
     video.lastWatchedAt = number(remoteProgress.la) || remoteProgressAt || null
+    video.excluded = Boolean(remoteProgress.x)
     video.progressUpdatedAt = remoteProgressAt
   }
-  const nextIndex = (series.videos || []).findIndex(video => !video.watched)
+  const nextIndex = (series.videos || []).findIndex(video => !video.watched && !video.excluded)
   series.lastEpisodeIndex = nextIndex >= 0 ? nextIndex : Math.max(0, (series.videos?.length || 1) - 1)
   series.syncUpdatedAt = Math.max(number(series.syncUpdatedAt), remoteAt)
   if (remote.__updateTime) series.remoteUpdateTime = remote.__updateTime

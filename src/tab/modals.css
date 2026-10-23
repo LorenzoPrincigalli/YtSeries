@@ -330,3 +330,11 @@
   gap: 10px;
   flex-wrap: wrap;
 }
+
+.detail-pace-row {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin: -4px 0 12px;
+  line-height: 1.5;
+}

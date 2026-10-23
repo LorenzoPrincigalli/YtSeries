@@ -592,3 +592,28 @@ body::before {
   font-size: 11px;
   color: var(--text-muted);
 }
+
+/* "These look like trailers — exclude them?" */
+.detail-suggestion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+  padding: var(--space-md) var(--space-lg);
+  border: 1px solid color-mix(in srgb, var(--primary) 45%, transparent);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--primary) 8%, var(--card-bg));
+}
+
+.detail-suggestion-text {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.detail-suggestion-actions {
+  display: flex;
+  gap: var(--space-sm);
+}

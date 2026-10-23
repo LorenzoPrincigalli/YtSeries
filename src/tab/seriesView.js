@@ -1,31 +1,30 @@
 // @ts-check
 // Pure presentation logic: derives view data from the server state. No DOM,
 // no messaging, no mutation of inputs — every function here is unit-testable.
+// Excluded episodes never count (see src/shared/seriesStats.js).
+import { countedVideos, watchedCount, nextCountedEpisode } from '../shared/seriesStats.js'
+
+export { watchedCount }
 
 const DAY_MS = 86_400_000
 const NEW_EPISODE_WINDOW_DAYS = 7
 
 /** @param {any} series */
 export function isInProgress(series) {
-  const videos = series.videos || []
+  const videos = countedVideos(series)
   return !series.completed && videos.some(video => !video.watched) &&
     videos.some(video => video.watched || video.resumeTime > 0 || video.progress > 0)
 }
 
 /** @param {any} series */
 export function isComplete(series) {
-  const videos = series.videos || []
+  const videos = countedVideos(series)
   return Boolean(series.completed) || (videos.length > 0 && videos.every(video => video.watched))
 }
 
-/** @param {any} series */
-export function watchedCount(series) {
-  return (series.videos || []).filter(video => video.watched).length
-}
-
-/** Next unwatched episode, or null. @param {any} series */
+/** Next unwatched counted episode, or null. @param {any} series */
 export function nextEpisode(series) {
-  return (series.videos || []).find(video => !video.watched) || null
+  return nextCountedEpisode(series)
 }
 
 /**
@@ -42,7 +41,7 @@ export function watchUrl(videoId, playlistId, resumeTime = 0) {
 
 /** Progress shown on a library card: the in-flight episode, or 100% when done. @param {any} series */
 export function cardProgress(series) {
-  const videos = series.videos || []
+  const videos = countedVideos(series)
   const inFlight = videos.find(video => !video.watched && video.progress > 0)
   if (inFlight) return inFlight.progress || 0
   return videos.length > 0 && videos.every(video => video.watched) ? 100 : 0
@@ -83,7 +82,7 @@ export function latestEpisode(series) {
 /** Default library order: unfinished first, then in-progress, then newest. @param {any} a @param {any} b */
 function compareSeries(a, b) {
   if (a.completed !== b.completed) return a.completed ? 1 : -1
-  const ratio = s => (s.videos.length ? watchedCount(s) / s.videos.length : 0)
+  const ratio = s => (countedVideos(s).length ? watchedCount(s) / countedVideos(s).length : 0)
   const aStarted = ratio(a) > 0 && ratio(a) < 1
   const bStarted = ratio(b) > 0 && ratio(b) < 1
   if (aStarted !== bStarted) return aStarted ? -1 : 1
@@ -174,6 +173,15 @@ export function pickRecommendations(playlistsByChannel, channelWeights, savedIds
     ;[picked[i], picked[j]] = [picked[j], picked[i]]
   }
   return picked.slice(0, target)
+}
+
+/** Rounded, human length: "4 h 20 min", "45 min", "< 1 min". @param {number} seconds */
+export function formatLength(seconds) {
+  const minutes = Math.round(seconds / 60)
+  if (minutes < 1) return '< 1 min'
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  return h ? (m ? `${h} h ${m} min` : `${h} h`) : `${m} min`
 }
 
 /** @param {number} seconds */

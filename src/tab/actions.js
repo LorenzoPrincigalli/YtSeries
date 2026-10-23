@@ -54,6 +54,16 @@ export function setEpisodeWatched(playlistId, videoId, watched) {
   return command(watched ? EVENTS.EPISODE_WATCH : EVENTS.EPISODE_UNWATCH, { playlistId, videoId }, 'episode_update_error')
 }
 
+/**
+ * Leaves episodes out of progress (trailers, filler) or counts them again.
+ * @param {string} playlistId @param {string[]} videoIds @param {boolean} excluded
+ */
+export async function setEpisodesExcluded(playlistId, videoIds, excluded) {
+  const response = await command(EVENTS.EPISODE_EXCLUDE, { playlistId, videoIds, excluded }, 'episode_update_error')
+  if (response?.changed > 1 && excluded) toast(t('episodes_excluded_toast', { n: response.changed }), { variant: 'success' })
+  return response
+}
+
 /** @param {string} playlistId */
 export function toggleComplete(playlistId) {
   return command(EVENTS.SERIES_COMPLETE_TOGGLE, { playlistId }, 'something_wrong')

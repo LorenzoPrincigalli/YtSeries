@@ -46,6 +46,15 @@ function setWatched(watched) {
   }
 }
 
+/** @param {Ctx} ctx @param {{ playlistId: string, videoIds: string[], excluded: boolean }} payload */
+async function setExcluded(ctx, { playlistId, videoIds, excluded }) {
+  const { ids } = await commit(ctx, store => {
+    const ids = store.setEpisodesExcluded(playlistId, videoIds, excluded)
+    return { ids, changed: ids.length ? [playlistId] : [] }
+  })
+  return { success: true, changed: ids.length, state: ctx.store.getState() }
+}
+
 const episodeRoutes = {
   [EVENTS.EPISODE_PROGRESS]: {
     contexts: ['extension', 'content'],
@@ -54,6 +63,10 @@ const episodeRoutes = {
   },
   [EVENTS.EPISODE_WATCH]: { contexts: ['extension', 'content'], schema: s.object(episodeRef), handler: setWatched(true) },
   [EVENTS.EPISODE_UNWATCH]: { schema: s.object(episodeRef), handler: setWatched(false) },
+  [EVENTS.EPISODE_EXCLUDE]: {
+    schema: s.object({ playlistId: s.id(), videoIds: s.array(s.id(), { min: 1, max: 500 }), excluded: s.boolean() }),
+    handler: setExcluded
+  },
   [EVENTS.GET_NEXT_EPISODE]: {
     contexts: ['extension', 'content'],
     mode: 'read',

@@ -27,7 +27,8 @@ function normalizeVideo(video) {
     resumeTime: Math.max(0, finiteNumber(video.resumeTime)),
     totalWatchedTime: Math.max(0, finiteNumber(video.totalWatchedTime)),
     lastWatchedAt: Number.isFinite(video.lastWatchedAt) ? video.lastWatchedAt : null,
-    progressUpdatedAt: Math.max(0, finiteNumber(video.progressUpdatedAt))
+    progressUpdatedAt: Math.max(0, finiteNumber(video.progressUpdatedAt)),
+    excluded: Boolean(video.excluded)
   }
 }
 

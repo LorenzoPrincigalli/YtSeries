@@ -27,11 +27,12 @@ const HERO_ID = LIBRARY[0].playlistId
 /**
  * Applies the staged viewing state to the series the extension fetched.
  * @param {Record<string, any>} seriesMap  STATE_GET().state.series
+ * @param {number} [now] @param {typeof LIBRARY} [plans] a subset of LIBRARY
  */
-function stageLibrary(seriesMap, now = Date.now()) {
+function stageLibrary(seriesMap, now = Date.now(), plans = LIBRARY) {
   /** @type {Record<string, any>} */
   const staged = {}
-  for (const plan of LIBRARY) {
+  for (const plan of plans) {
     const series = seriesMap[plan.playlistId]
     if (!series) throw new Error(`playlist ${plan.playlistId} was not added`)
     const watchedUntil = plan.completed ? series.videos.length : plan.watched
