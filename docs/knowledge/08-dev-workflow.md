@@ -16,6 +16,7 @@
 - **Smoke**: `npm run smoke` (after build) loads `dist/` in Chromium via Playwright: message API, dashboard flows, content script on stubbed youtube.com, popup, axe audit. `SMOKE_SCREENSHOTS=<dir>` saves screenshots
 - **E2E**: `npm run e2e` (after build) drives every dashboard feature, the popup and the content script with a stubbed YouTube Worker (no network): add/search/detail/collections/activity/settings/import-export/backups/reset/footer, error states (outage, quota, not found), keyboard paths, 375 px layout, axe in all four themes. `E2E_ARTIFACTS=<dir>` keeps screenshots; failures are screenshotted and the run continues
 - **Store screenshots**: `npm run screenshots` (after build) captures the five 1280×800 Chrome Web Store screenshots into `src/assets/store/screenshots/`, adding the real playlists in `scripts/store-library.mjs` through the live Worker (needs network)
+- **Store promo tiles**: `npm run promo` renders `src/assets/store/promo-small.png` (440×280) and `promo-marquee.png` (1400×560) from the store screenshots
 - **Typecheck**: `npm run typecheck` (`tsc` on JSDoc; files opt in with `// @ts-check`)
 - **All gates**: `npm run check`
 - **Reload**: Click refresh on extension card in `chrome://extensions`

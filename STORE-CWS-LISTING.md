@@ -50,8 +50,10 @@ English, Italian
 5. `screenshot-05-activity.png` — Recent activity, My Series and recommendations from your channels (Forest)
 
 ## Promo Images
-- Small promo tile (440x280)
-- Marquee promo (1400x560)
+24-bit PNG (no alpha), in `src/assets/store/`. Regenerate with `npm run promo` (after `npm run screenshots`: the tiles reuse the dashboard and detail screenshots).
+
+- Small promo tile (440×280): `promo-small.png`
+- Marquee promo tile (1400×560): `promo-marquee.png`
 
 ## Website
 https://github.com/LorenzoPrincigalli/YtSeries
