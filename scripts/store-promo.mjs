@@ -20,16 +20,29 @@ const [regular, semibold, bold, home, detail] = await Promise.all([
   font(400), font(600), font(700), shot('screenshot-01-home.png'), shot('screenshot-02-detail.png')
 ])
 
-/** The "‹YT▢▢▢ series›" wordmark from the extension icon, as vector. @param {number} size font size in px */
-const wordmark = size => `
-  <div class="mark" style="font-size:${size}px">
-    <svg class="br" viewBox="0 0 10 24"><path d="M9 1 1 12l8 11"/></svg>
-    <span class="stack">
-      <span class="yt">YT<span class="eps"><i></i><i></i><i></i></span></span>
-      <span class="series">series</span>
-    </span>
-    <svg class="br end" viewBox="0 0 10 24"><path d="m1 1 8 11-8 11"/></svg>
-  </div>`
+/**
+ * The "‹YT▢▢▢ / series›" wordmark, traced in vector from icons/icon_full_128.png
+ * (coordinates are that icon's pixels): the episode boxes are as tall as the
+ * capitals, "series" starts under the "‹", and its "i" dot sits after the T.
+ * textLength pins each word to the traced width whatever the font metrics.
+ * @param {number} height in px
+ */
+const wordmark = height => `
+  <svg class="mark" viewBox="5 42 92 43" height="${height}" width="${Math.round(height * 92 / 43)}" aria-label="YT Series">
+    <g fill="none" stroke="#f6f3ee" stroke-width="1.25" stroke-linejoin="miter">
+      <path d="M15.2 44.8 7.5 54l7.7 9.2"/>
+      <path d="m87 66.3 7.6 8.6-7.6 8.6"/>
+    </g>
+    <g fill="none" stroke="#f6f3ee" stroke-opacity=".62" stroke-width="1">
+      <rect x="56.5" y="44.5" width="7" height="19.5"/>
+      <rect x="65.5" y="44.5" width="7" height="19.5"/>
+      <rect x="74.5" y="44.5" width="7" height="19.5"/>
+    </g>
+    <g fill="#f6f3ee" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="26.5">
+      <text x="17" y="63.5" textLength="33.5" lengthAdjust="spacingAndGlyphs">YT</text>
+      <text x="7" y="81.5" textLength="76.5" lengthAdjust="spacingAndGlyphs">series</text>
+    </g>
+  </svg>`
 
 const BASE = `
   @font-face { font-family: Poppins; font-weight: 400; src: url(${regular}) format('woff2'); }
@@ -44,14 +57,7 @@ const BASE = `
       radial-gradient(ellipse at 10% 110%, rgba(212, 0, 0, .18), transparent 50%),
       #0d0d0d;
   }
-  .mark { display: inline-flex; align-items: center; gap: .08em; line-height: .86; font-weight: 700; color: #f2f0ec; }
-  .mark .br { width: .32em; height: .78em; align-self: flex-start; margin-top: .06em; fill: none; stroke: #d9d6d0; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
-  .mark .br.end { align-self: flex-end; margin: 0 0 .04em; }
-  .mark .stack { display: flex; flex-direction: column; }
-  .mark .yt { display: flex; align-items: flex-end; letter-spacing: -.02em; }
-  .mark .eps { display: inline-flex; gap: .07em; margin: 0 0 .1em .12em; }
-  .mark .eps i { width: .27em; height: .62em; border: .065em solid currentColor; border-radius: .05em; }
-  .mark .series { letter-spacing: -.01em; }
+  .mark { display: block; overflow: visible; }
   .accent { color: #ff2b2b; }
   /* Browser window around a real screenshot. */
   .window { position: absolute; border-radius: 14px; overflow: hidden; background: #1b1b1b;
@@ -76,7 +82,7 @@ const MARQUEE = `
       box-shadow: 0 24px 70px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.1); }
   </style>
   <div class="copy">
-    ${wordmark(46)}
+    ${wordmark(92)}
     <h1>Turn YouTube playlists<br>into <span class="accent">TV series</span></h1>
     <p>Track every episode, resume where you left off and never miss a new one.</p>
     <div class="pills"><span>Progress</span><span>Resume</span><span>New episodes</span></div>
@@ -94,7 +100,7 @@ const SMALL = `
     .shot .bar { height: 18px; gap: 5px; padding: 0 9px; } .shot .bar i { width: 7px; height: 7px; }
   </style>
   <div class="copy">
-    ${wordmark(34)}
+    ${wordmark(68)}
     <h1>YouTube playlists as <span class="accent">TV series</span></h1>
   </div>
   <div class="window shot"><div class="bar"><i></i><i></i><i></i></div><img src="${home}" alt=""></div>
