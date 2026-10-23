@@ -344,3 +344,78 @@
   flex-wrap: wrap;
   gap: var(--space-md);
 }
+
+/* Import of a shared list. */
+.modal-share {
+  width: min(560px, calc(100vw - 32px));
+}
+
+.share-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: min(50vh, 420px);
+  margin: var(--space-md) 0;
+  overflow-y: auto;
+}
+
+.share-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  background: var(--card-bg);
+  cursor: pointer;
+}
+
+.share-row.is-saved {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.share-row input,
+.share-collection input {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+}
+
+.share-row-thumb {
+  flex-shrink: 0;
+  width: 96px;
+  aspect-ratio: 16 / 9;
+  border-radius: 4px;
+  background: var(--border);
+  object-fit: cover;
+}
+
+.share-row-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.share-row-title {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.share-row-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.share-collection {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 14px;
+  color: var(--text);
+  cursor: pointer;
+}

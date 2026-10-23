@@ -17,6 +17,7 @@ import { initActivity } from './features/activity.js'
 import { initSettings, openSettings } from './features/settings.js'
 import { initAddPlaylist } from './features/addPlaylist.js'
 import { initFooter } from './features/footer.js'
+import { openImport } from './features/share.js'
 
 const log = logger.child('tab')
 
@@ -64,6 +65,12 @@ function listenForBroadcasts() {
 
 /** Deep links: ?settings=1 opens settings, ?series=<id> opens a series. */
 function handleDeepLinks() {
+  // #import=… comes from share.html via the service worker; consume it once.
+  const shared = new URLSearchParams(window.location.hash.slice(1)).get('import')
+  if (shared) {
+    history.replaceState(null, '', window.location.pathname + window.location.search)
+    openImport(shared)
+  }
   const params = new URLSearchParams(window.location.search)
   if (params.get('settings') === '1') openSettings('theme')
   const seriesId = params.get('series')

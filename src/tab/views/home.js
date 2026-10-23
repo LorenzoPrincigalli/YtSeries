@@ -12,6 +12,7 @@ import { weekStrip } from '../components/weekStrip.js'
 import { renderSchedule } from './schedule.js'
 import { manageCollection } from '../features/collections.js'
 import { openSettings } from '../features/settings.js'
+import { shareSeries } from '../features/share.js'
 import { clearSearch } from '../features/header.js'
 import { filterSeries, isInProgress, thisWeekSeries, heroSeries, collectionNames, pickRecommendations, isChannelFollowed } from '../seriesView.js'
 
@@ -182,7 +183,12 @@ function savedLibrary(all, ui) {
     shelf,
     h('h2', { class: 'collection-content-title', tabIndex: -1 }, collection || t('all_saved')),
     managementModes.length > 0 && h('div', { class: 'collection-management' },
-      managementModes.map(mode => h('button', { type: 'button', class: 'btn-secondary', onClick: () => manageCollection(mode, collection) }, t(labels[mode])))),
+      managementModes.map(mode => h('button', { type: 'button', class: 'btn-secondary', onClick: () => manageCollection(mode, collection) }, t(labels[mode]))),
+      all.some(s => s.collection === collection) && h('button', {
+        type: 'button',
+        class: 'btn-secondary',
+        onClick: () => shareSeries(collection, all.filter(s => s.collection === collection))
+      }, t('share_collection'))),
     !filtered.length && h('p', { class: 'search-empty' }, t(collection && !ui.search ? 'collection_empty' : all.length ? 'filtered_empty' : 'saved_empty')),
     libraryGrid(filtered, openDetail)
   ]

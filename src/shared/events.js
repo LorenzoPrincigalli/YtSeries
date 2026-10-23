@@ -55,7 +55,10 @@ const EVENTS = {
   // Content script only: the minimal settings the YouTube integration needs.
   CONTENT_SETTINGS_GET: 'CONTENT_SETTINGS_GET',
   CONTENT_VIDEO_SERIES: 'CONTENT_VIDEO_SERIES',
-  CONTENT_SERIES_PROGRESS: 'CONTENT_SERIES_PROGRESS'
+  CONTENT_SERIES_PROGRESS: 'CONTENT_SERIES_PROGRESS',
+
+  // From share.html (externally_connectable), never from the extension itself.
+  SHARE_OPEN: 'SHARE_OPEN'
 }
 
 export { EVENTS }

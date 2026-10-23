@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Shared list · YT Series</title>
+  <link rel="icon" href="icons/icon48.png">
+  <style>
+    @font-face { font-family: Poppins; font-weight: 400; src: url(src/tab/fonts/poppins-400-latin.woff2) format('woff2'); }
+    @font-face { font-family: Poppins; font-weight: 600; src: url(src/tab/fonts/poppins-600-latin.woff2) format('woff2'); }
+    @font-face { font-family: Poppins; font-weight: 700; src: url(src/tab/fonts/poppins-700-latin.woff2) format('woff2'); }
+    :root {
+      --bg: #0f0f0f; --card: #1c1c1c; --border: #2e2e2e; --text: #f5f5f5; --muted: #b3b3b3; --primary: #d40000; --on-primary: #fff;
+      color-scheme: dark;
+    }
+    @media (prefers-color-scheme: light) {
+      :root { --bg: #f6f6f6; --card: #fff; --border: #e2e2e2; --text: #111; --muted: #555; color-scheme: light; }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: Poppins, system-ui, sans-serif; line-height: 1.5; }
+    main { max-width: 960px; margin: 0 auto; padding: 32px 16px 64px; }
+    header { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; }
+    header img { width: 72px; height: auto; }
+    header span { color: var(--muted); font-size: 14px; }
+    h1 { margin: 0 0 4px; font-size: clamp(24px, 4vw, 34px); line-height: 1.2; }
+    .lead { margin: 0 0 24px; color: var(--muted); }
+    .actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 12px; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 22px; border: 1px solid transparent; border-radius: 22px;
+      font: 600 15px Poppins, system-ui, sans-serif; text-decoration: none; cursor: pointer; }
+    .btn-primary { background: var(--primary); color: var(--on-primary); }
+    .btn-secondary { background: transparent; color: var(--text); border-color: var(--border); }
+    .btn:focus-visible { outline: 2px solid #3ea6ff; outline-offset: 2px; }
+    .hint { margin: 0 0 32px; font-size: 13px; color: var(--muted); }
+    .status { min-height: 1.5em; margin: 0 0 24px; font-size: 14px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; padding: 0; list-style: none; }
+    .card { overflow: hidden; border: 1px solid var(--border); border-radius: 12px; background: var(--card); }
+    .card a { display: block; color: inherit; text-decoration: none; }
+    .card a:focus-visible { outline: 2px solid #3ea6ff; outline-offset: -2px; }
+    .thumb { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; background: var(--border); }
+    .card-body { padding: 10px 14px 14px; }
+    .card-title { margin: 0; font-size: 15px; font-weight: 600; }
+    .card-meta { margin: 2px 0 0; font-size: 13px; color: var(--muted); }
+    .error { padding: 24px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); }
+    footer { margin-top: 48px; font-size: 12px; color: var(--muted); }
+    footer a { color: inherit; }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <img src="icons/icon_full_128.png" alt="YT Series" width="72" height="72">
+      <span id="tagline"></span>
+    </header>
+    <div id="app" aria-live="polite"></div>
+    <footer id="footer"></footer>
+  </main>
+  <script type="module">
+    import { decodeShare, shareDataFromUrl } from './src/shared/shareCodec.js'
+
+    // Store id of the extension (src/shared/constants.js EXTENSION_ID).
+    const EXTENSION_ID = 'aelaadhbkhpgkpcmlcohnhnliaggbndp'
+    const STORE_URL = `https://chromewebstore.google.com/detail/${EXTENSION_ID}`
+    const STRINGS = {
+      en: {
+        tagline: 'Turn YouTube playlists into TV series',
+        title: 'Shared list', series: n => `${n} series to watch, shared from YT Series.`,
+        open: 'Open in YT Series', install: 'Get YT Series for Chrome', copy: 'Copy link',
+        copied: 'Link copied.', opened: 'Opened in YT Series: choose the series to add.',
+        notInstalled: 'Install YT Series, then open this link again.',
+        hint: 'Already have YT Series? You can also paste this link into "+ Add via Link".',
+        episodes: n => `${n} episodes`, watch: 'Watch on YouTube',
+        invalid: 'This share link is invalid or damaged. Ask for a new one.',
+        privacy: 'This list lives entirely in the link: nothing is stored on a server.', policy: 'Privacy policy'
+      },
+      it: {
+        tagline: 'Trasforma le playlist di YouTube in serie TV',
+        title: 'Lista condivisa', series: n => `${n} serie da guardare, condivise da YT Series.`,
+        open: 'Apri in YT Series', install: 'Scarica YT Series per Chrome', copy: 'Copia link',
+        copied: 'Link copiato.', opened: 'Aperta in YT Series: scegli le serie da aggiungere.',
+        notInstalled: 'Installa YT Series, poi apri di nuovo questo link.',
+        hint: 'Hai già YT Series? Puoi anche incollare questo link in "+ Aggiungi via link".',
+        episodes: n => `${n} episodi`, watch: 'Guarda su YouTube',
+        invalid: 'Questo link di condivisione non è valido o è danneggiato. Chiedine uno nuovo.',
+        privacy: 'Questa lista vive interamente nel link: nessun dato è salvato su un server.', policy: 'Privacy'
+      }
+    }
+    const lang = navigator.language?.toLowerCase().startsWith('it') ? 'it' : 'en'
+    const T = STRINGS[lang]
+    document.documentElement.lang = lang
+
+    /** Text-only DOM builder: user data never becomes markup. */
+    const el = (tag, attrs = {}, ...children) => {
+      const node = document.createElement(tag)
+      for (const [key, value] of Object.entries(attrs)) {
+        if (key === 'text') node.textContent = value
+        else if (key.startsWith('on')) node.addEventListener(key.slice(2), value)
+        else node.setAttribute(key, value)
+      }
+      node.append(...children.filter(Boolean))
+      return node
+    }
+
+    const app = document.getElementById('app')
+    document.getElementById('tagline').textContent = T.tagline
+    document.getElementById('footer').append(T.privacy, ' · ', el('a', { href: 'privacy-policy.html', text: T.policy }))
+
+    const data = shareDataFromUrl(`${location.origin}${location.pathname}${location.hash}`)
+    let list
+    try {
+      list = await decodeShare(data)
+    } catch {
+      app.append(el('p', { class: 'error', text: T.invalid }))
+    }
+
+    if (list) {
+      document.title = `${list.name || T.title} · YT Series`
+      const status = el('p', { class: 'status', role: 'status' })
+      // Present only when YT Series is installed (it declares this page in externally_connectable).
+      const canOpen = Boolean(window.chrome?.runtime?.sendMessage)
+      const open = el('button', { type: 'button', class: 'btn btn-primary', text: T.open, onclick: () => {
+        chrome.runtime.sendMessage(EXTENSION_ID, { type: 'SHARE_OPEN', data }, response => {
+          status.textContent = !chrome.runtime.lastError && response?.success ? T.opened : T.notInstalled
+        })
+      } })
+      const install = el('a', { class: canOpen ? 'btn btn-secondary' : 'btn btn-primary', href: STORE_URL, target: '_blank', rel: 'noopener', text: T.install })
+      const copy = el('button', { type: 'button', class: 'btn btn-secondary', text: T.copy, onclick: async () => {
+        await navigator.clipboard.writeText(location.href).catch(() => {})
+        status.textContent = T.copied
+      } })
+
+      app.append(
+        el('h1', { text: list.name || T.title }),
+        el('p', { class: 'lead', text: T.series(list.items.length) }),
+        el('div', { class: 'actions' }, canOpen ? open : install, copy, canOpen ? install : null),
+        el('p', { class: 'hint', text: T.hint }),
+        status,
+        el('ul', { class: 'grid' }, ...list.items.map(item => {
+          const url = new URL('https://www.youtube.com/playlist')
+          url.searchParams.set('list', item.playlistId)
+          return el('li', { class: 'card' },
+            el('a', { href: url.href, target: '_blank', rel: 'noopener noreferrer', 'aria-label': `${item.title} — ${T.watch}` },
+              item.coverVideoId ? el('img', { class: 'thumb', src: `https://i.ytimg.com/vi/${item.coverVideoId}/mqdefault.jpg`, alt: '', loading: 'lazy' }) : el('span', { class: 'thumb' }),
+              el('div', { class: 'card-body' },
+                el('p', { class: 'card-title', text: item.title }),
+                el('p', { class: 'card-meta', text: [item.channelTitle, item.videoCount ? T.episodes(item.videoCount) : ''].filter(Boolean).join(' · ') }))))
+        })))
+    }
+  </script>
+</body>
+</html>

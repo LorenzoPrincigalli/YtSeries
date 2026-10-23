@@ -8,6 +8,8 @@ import { send } from '../core/api.js'
 import { openModal, closeModal } from '../ui/modal.js'
 import { errorMessage, toast } from '../ui/feedback.js'
 import * as actions from '../actions.js'
+import { shareDataFromUrl } from '../../shared/shareCodec.js'
+import { openImport } from './share.js'
 
 const log = logger.child('addPlaylist')
 const MODAL_ID = 'addPlaylistModal'
@@ -28,6 +30,14 @@ async function submit() {
   byId('playlistError')?.classList.add('hidden')
   if (!url) { showError(t('enter_url')); input.focus(); return }
   if (button.disabled) return
+  // A shared list link opens the import preview instead.
+  const shared = shareDataFromUrl(url)
+  if (shared) {
+    input.value = ''
+    closeModal(MODAL_ID)
+    openImport(shared)
+    return
+  }
 
   button.disabled = true
   button.textContent = t('adding')

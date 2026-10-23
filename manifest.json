@@ -81,5 +81,10 @@
       ]
     }
   ],
-  "short_name": "YT Series"
+  "short_name": "YT Series",
+  "externally_connectable": {
+    "matches": [
+      "https://lorenzoprincigalli.github.io/YtSeries/*"
+    ]
+  }
 }

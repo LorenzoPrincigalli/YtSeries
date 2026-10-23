@@ -20,6 +20,7 @@ import { settingsRoutes } from './handlers/settings.js'
 import { libraryRoutes } from './handlers/library.js'
 import { noteRoutes } from './handlers/notes.js'
 import { appRoutes, openSeriesTab } from './handlers/app.js'
+import { decodeShare, SHARE_ORIGIN, SHARE_PAGE } from '../shared/shareCodec.js'
 
 const log = logger.child('bg')
 
@@ -170,6 +171,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       const code = READ_ONLY_BEFORE_INIT.has(message.type) ? 'STATE_UNAVAILABLE' : 'INIT_FAILED'
       return { success: false, error: code, message: 'Extension failed to start; reload it from chrome://extensions' }
     })
+    .then(sendResponse)
+  return true
+})
+
+// share.html (GitHub Pages, manifest externally_connectable) may only ask to
+// open a shared list in the dashboard; the user reviews it before anything is added.
+chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => {
+  if (sender.origin !== SHARE_ORIGIN || !sender.url?.startsWith(SHARE_PAGE) || message?.type !== EVENTS.SHARE_OPEN) {
+    sendResponse({ success: false, error: 'FORBIDDEN' })
+    return
+  }
+  decodeShare(message.data)
+    .then(() => openSeriesTab(ctx, `#import=${message.data}`))
+    .then(() => ({ success: true }), err => ({ success: false, error: err.code || 'INVALID_SHARE' }))
     .then(sendResponse)
   return true
 })
