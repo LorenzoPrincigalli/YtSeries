@@ -6,8 +6,8 @@ import { validateApiRequest, validateOrigin, validateWorkerClient, checkRateLimi
 const YOUTUBE_BASE = 'https://www.googleapis.com/youtube/v3'
 const UPSTREAM_TIMEOUT_MS = 10_000
 
-const EDGE_TTL = { search: 3600, playlists: 3600, playlistItems: 120, videos: 604800 }
-const KV_TTL = { search: 86400, playlists: 21600 }
+const EDGE_TTL = { search: 3600, playlists: 3600, playlistItems: 120, videos: 604800, channels: 86400 }
+const KV_TTL = { search: 86400, playlists: 21600, channels: 604800 }
 
 function log(level, msg, data = {}) {
   console.log(JSON.stringify({ level, msg, ...data }))

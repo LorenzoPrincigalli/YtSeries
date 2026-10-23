@@ -109,6 +109,13 @@ export async function addPlaylistById(playlistId) {
   return response
 }
 
+/** Follows a channel as a series of its latest uploads. @param {string} channelId */
+export async function followChannel(channelId) {
+  const response = await command(EVENTS.CHANNEL_FOLLOW, { channelId }, 'follow_error')
+  if (response) toast(t('channel_followed_toast', { title: response.series?.title || '' }), { variant: 'success' })
+  return response
+}
+
 /** Adds a playlist from a pasted URL; throws so the modal can show the error inline. @param {string} url */
 export async function addPlaylistByUrl(url) {
   return applyResponse(await request(EVENTS.PLAYLIST_ADD, { url }))

@@ -174,3 +174,12 @@ export function pickRecommendations(playlistsByChannel, channelWeights, savedIds
   }
   return picked.slice(0, target)
 }
+
+/** A followed channel is stored as its uploads playlist (UULF… or UU…). @param {string} playlistId */
+export const isChannelSeries = playlistId => /^UU/.test(playlistId || '')
+
+/** Whether the channel is already followed as a series. @param {Record<string, any> | undefined} seriesMap @param {string} channelId */
+export function isChannelFollowed(seriesMap, channelId) {
+  const suffix = String(channelId || '').slice(2)
+  return Boolean(suffix && seriesMap && (Object.hasOwn(seriesMap, `UULF${suffix}`) || Object.hasOwn(seriesMap, `UU${suffix}`)))
+}

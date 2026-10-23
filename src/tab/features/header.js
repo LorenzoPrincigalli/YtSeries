@@ -15,7 +15,7 @@ export function clearSearch() {
   setUi({ search: '', searchResults: null, searchStatus: 'idle', searchError: null })
 }
 
-/** @param {{ section?: 'home' | 'saved', filter?: any }} target */
+/** @param {{ section?: 'home' | 'saved' | 'schedule', filter?: any }} target */
 function navigate({ section = 'home', filter = 'all' }) {
   clearSearch()
   setUi({ section, filter, collection: '' })
@@ -27,7 +27,7 @@ function syncNav() {
   const { section, filter } = getUi()
   for (const link of document.querySelectorAll('.nav-link')) {
     const el = /** @type {HTMLElement} */ (link)
-    const active = el.dataset.view === 'saved' ? section === 'saved'
+    const active = el.dataset.view === 'saved' || el.dataset.view === 'schedule' ? section === el.dataset.view
       : el.dataset.view === 'home' ? section === 'home' && filter === 'all'
         : section === 'home' && el.dataset.filter === filter
     el.classList.toggle('active', active)
@@ -43,7 +43,7 @@ export function initHeader() {
     link.addEventListener('click', event => {
       event.preventDefault()
       const el = /** @type {HTMLElement} */ (link)
-      if (el.dataset.view === 'saved') navigate({ section: 'saved' })
+      if (el.dataset.view === 'saved' || el.dataset.view === 'schedule') navigate({ section: el.dataset.view })
       else navigate({ section: 'home', filter: el.dataset.filter || 'all' })
     })
   }

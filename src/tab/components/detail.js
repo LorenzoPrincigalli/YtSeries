@@ -9,9 +9,10 @@ import { getState, getUi, setUi, subscribe } from '../core/store.js'
 import { safeRender } from '../core/errorBoundary.js'
 import { openModal, closeModal, confirmDialog } from '../ui/modal.js'
 import * as actions from '../actions.js'
-import { collectionNames, watchedCount, nextEpisode, findNewEpisode, isNewEpisode, latestEpisode, watchUrl, formatDuration, formatLength } from '../seriesView.js'
+import { isChannelFollowed, isChannelSeries, collectionNames, watchedCount, nextEpisode, findNewEpisode, isNewEpisode, latestEpisode, watchUrl, formatDuration, formatLength } from '../seriesView.js'
 import { countedVideos, timeLeft, finishEstimate, suggestedExclusions } from '../../shared/seriesStats.js'
 import { notesSection, activeNotes } from './notes.js'
+import { followButton } from './cards.js'
 
 const log = logger.child('detail')
 const MODAL_ID = 'detailModal'
@@ -303,7 +304,8 @@ export class DetailView {
       h('div', { class: 'modal modal-channel' },
         h('div', { class: 'modal-header' },
           h('button', { type: 'button', class: 'modal-close channel-close-btn', 'aria-label': t('close'), onClick: () => closeModal('channelModal') }, svg('close')),
-          h('h2', null, t('more_from', { channel: series.channelTitle }))),
+          h('h2', null, t('more_from', { channel: series.channelTitle })),
+          !isChannelSeries(series.playlistId) && followButton(series.channelId, isChannelFollowed(getState()?.series, series.channelId), actions.followChannel)),
         body))
     document.body.append(overlay)
     openModal('channelModal', { onClose: () => overlay.remove() })

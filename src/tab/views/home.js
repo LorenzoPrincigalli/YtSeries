@@ -9,10 +9,11 @@ import * as actions from '../actions.js'
 import { seriesRow, playlistRow, libraryGrid, heroCarousel, channelCard } from '../components/cards.js'
 import { renderCollections } from '../components/collections.js'
 import { weekStrip } from '../components/weekStrip.js'
+import { renderSchedule } from './schedule.js'
 import { manageCollection } from '../features/collections.js'
 import { openSettings } from '../features/settings.js'
 import { clearSearch } from '../features/header.js'
-import { filterSeries, isInProgress, thisWeekSeries, heroSeries, collectionNames, pickRecommendations } from '../seriesView.js'
+import { filterSeries, isInProgress, thisWeekSeries, heroSeries, collectionNames, pickRecommendations, isChannelFollowed } from '../seriesView.js'
 
 const log = logger.child('home')
 const ROW_LIMIT = 10
@@ -39,7 +40,9 @@ export function renderMain(main) {
 
   mount(main,
     ui.search && searchHeader(ui),
-    ui.section === 'saved' ? savedLibrary(all, ui) : home(all, ui))
+    ui.section === 'saved' ? savedLibrary(all, ui)
+      : ui.section === 'schedule' && !ui.search ? renderSchedule(all)
+        : home(all, ui))
 }
 
 /** @param {import('../core/store.js').UiState} ui */
@@ -98,7 +101,8 @@ function home(all, ui) {
   if (results) {
     sections.push(playlistRow('YouTube', results.playlists, addFromSearch))
     for (const channel of results.channels) {
-      sections.push(channelCard(channel, addFromSearch, channelId => actions.fetchChannelPlaylists(channelId)))
+      sections.push(channelCard(channel, addFromSearch, channelId => actions.fetchChannelPlaylists(channelId),
+        { followed: isChannelFollowed(getState()?.series, channel.channelId), onFollow: actions.followChannel }))
     }
   }
 

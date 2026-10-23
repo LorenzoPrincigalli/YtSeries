@@ -46,6 +46,11 @@
 .activity-panel-link { width: 100%; border: 0; background: transparent; color: var(--text); text-align: left; text-decoration: none; font-family: inherit; cursor: pointer; }
 .activity-panel-link:hover { background: var(--hover-overlay-strong); }
 @media (max-width: 600px) { .collection-tile { flex-basis: 124px; } .collections-shelf { gap: 12px; } }
+/* Laptop widths: tighter header so the search field keeps a usable width. */
+@media (max-width: 1440px) and (min-width: 1201px) {
+  #header { padding: 0 var(--space-lg); }
+  .header-right { gap: var(--space-sm); }
+}
 @media (max-width: 1200px) {
   #header { position: sticky; height: auto; min-height: 60px; flex-wrap: wrap; gap: 8px; padding: 8px 24px; }
   .header-left { display: contents; }

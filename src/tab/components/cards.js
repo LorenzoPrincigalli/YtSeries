@@ -4,7 +4,7 @@
 import { t } from '../../shared/i18n.js'
 import { h, img } from '../../shared/dom.js'
 import { svg } from '../../shared/icons.js'
-import { isInProgress, isComplete, cardProgress, heroProgress, nextEpisode, watchUrl, formatLength } from '../seriesView.js'
+import { isInProgress, isComplete, cardProgress, heroProgress, nextEpisode, watchUrl, formatLength, isChannelSeries } from '../seriesView.js'
 import { timeLeft } from '../../shared/seriesStats.js'
 
 const SCROLL_STEP = 312
@@ -57,6 +57,7 @@ export function seriesCard(series, onOpen, index = 0) {
       img({ class: 'card-thumb-img', src: series.thumbnail, alt: '' }),
       h('div', { class: 'card-play-overlay' }, playButton),
       badge,
+      isChannelSeries(series.playlistId) && h('span', { class: 'card-kind' }, t('channel_badge')),
       h('div', { class: 'card-progress-overlay' }, h('div', { class: 'card-progress-bar', style: progressStyle(cardProgress(series)) })),
       next && h('div', { class: 'card-next-overlay', 'aria-hidden': 'true' },
         img({ class: 'card-next-img', src: next.thumbnail }),
@@ -204,10 +205,28 @@ export function heroCarousel(seriesList, onContinue, onOpen) {
 }
 
 /**
+ * "Follow as series" for a channel; disabled once followed.
+ * @param {string} channelId @param {boolean} followed @param {(channelId: string) => Promise<unknown>} onFollow resolves falsy on failure
+ */
+export function followButton(channelId, followed, onFollow) {
+  return h('button', {
+    type: 'button',
+    class: 'btn-secondary channel-follow-btn',
+    disabled: followed,
+    onClick: async event => {
+      const button = /** @type {HTMLButtonElement} */ (event.currentTarget)
+      button.disabled = true
+      if (!await onFollow(channelId) && button.isConnected) button.disabled = false
+    }
+  }, followed ? `✓ ${t('following_channel')}` : t('follow_channel'))
+}
+
+/**
  * Channel search result with an expandable list of its playlists.
  * @param {any} channel @param {(playlist: any) => void} onAdd @param {(channelId: string) => Promise<any[]>} loadPlaylists
+ * @param {{ followed: boolean, onFollow: (channelId: string) => Promise<unknown> }} follow
  */
-export function channelCard(channel, onAdd, loadPlaylists) {
+export function channelCard(channel, onAdd, loadPlaylists, follow) {
   const container = h('div', { class: 'channel-playlists hidden', id: `channel-${channel.channelId}` })
   const toggle = h('button', { type: 'button', class: 'btn-primary channel-expand-btn', 'aria-expanded': 'false', 'aria-controls': container.id }, t('see_playlists'))
   let loaded = false
@@ -240,6 +259,6 @@ export function channelCard(channel, onAdd, loadPlaylists) {
       h('div', { class: 'channel-info' },
         h('div', { class: 'channel-title' }, channel.title),
         h('div', { class: 'channel-desc' }, channel.description || '')),
-      toggle),
+      h('div', { class: 'channel-actions' }, followButton(channel.channelId, follow.followed, follow.onFollow), toggle)),
     container)
 }

@@ -15,6 +15,7 @@ const RATE_LIMIT_PER_DAY = 3000
 
 const ID = /^[A-Za-z0-9_-]{1,64}$/
 const PAGE_TOKEN = /^[A-Za-z0-9_-]{1,256}$/
+const HANDLE = /^@?[A-Za-z0-9._-]{3,100}$/
 
 const part = allowed => value => value.split(',').every(p => allowed.includes(p))
 const intRange = (min, max) => value => /^\d{1,3}$/.test(value) && Number(value) >= min && Number(value) <= max
@@ -65,6 +66,16 @@ const ROUTES = {
       id: idList(50)
     },
     required: ['part', 'id']
+  },
+  // Following a channel as a series: resolves @handles and channel ids.
+  channels: {
+    params: {
+      part: part(['snippet', 'contentDetails']),
+      id: idList(50),
+      forHandle: matches(HANDLE)
+    },
+    required: ['part'],
+    oneOf: ['id', 'forHandle']
   }
 }
 

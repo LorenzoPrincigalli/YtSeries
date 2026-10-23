@@ -10,16 +10,25 @@ import { createAutomaticBackup } from '../backups.js'
 
 const byPlaylist = s.object({ playlistId: s.id() })
 
-/** @param {Ctx} ctx @param {{ url: string }} payload */
-async function addPlaylist(ctx, { url }) {
-  // Network first, outside the transaction: a slow API call must not hold a snapshot.
-  const data = await ctx.youtube.fetchPlaylist(url)
+/** Saves a freshly fetched playlist (or followed channel). @param {Ctx} ctx @param {any} data */
+async function saveFetched(ctx, data) {
   await commit(ctx, store => {
     store.addSeries(data)
     store.recordActivity('series_added', { playlistId: data.playlistId, title: data.title })
     return { changed: [data.playlistId] }
   })
   return { success: true, series: ctx.store.getSeriesById(data.playlistId) }
+}
+
+/** @param {Ctx} ctx @param {{ url: string }} payload */
+async function addPlaylist(ctx, { url }) {
+  // Network first, outside the transaction: a slow API call must not hold a snapshot.
+  return saveFetched(ctx, await ctx.youtube.fetchPlaylist(url))
+}
+
+/** @param {Ctx} ctx @param {{ channelId: string }} payload */
+async function followChannel(ctx, { channelId }) {
+  return saveFetched(ctx, await ctx.youtube.followChannel({ channelId }))
 }
 
 /** @param {Ctx} ctx @param {{ playlistId: string }} payload */
@@ -85,6 +94,7 @@ async function setCollection(ctx, { playlistId, collection }) {
 
 const seriesRoutes = {
   [EVENTS.PLAYLIST_ADD]: { contexts: ['extension', 'content'], schema: s.object({ url: s.string({ min: 1, max: 2048 }) }), handler: addPlaylist },
+  [EVENTS.CHANNEL_FOLLOW]: { schema: s.object({ channelId: s.id() }), handler: followChannel },
   [EVENTS.SERIES_REFRESH]: { schema: byPlaylist, handler: refreshSeries },
   [EVENTS.SERIES_DELETE]: { schema: byPlaylist, handler: deleteSeries },
   [EVENTS.SERIES_RESTORE]: { schema: s.object({ series: s.any() }), handler: restoreSeries },

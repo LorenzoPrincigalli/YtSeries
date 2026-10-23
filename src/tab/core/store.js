@@ -6,7 +6,7 @@
 
 /**
  * @typedef {{
- *   section: 'home' | 'saved',
+ *   section: 'home' | 'saved' | 'schedule',
  *   filter: 'all' | 'watching' | 'completed' | 'new',
  *   collection: string,
  *   search: string,

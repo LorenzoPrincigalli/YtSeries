@@ -40,6 +40,16 @@ describe('validateApiRequest', () => {
     expect(check('/playlists?part=snippet,contentDetails&channelId=UC1&maxResults=10').ok).toBe(true)
     expect(check('/playlistItems?part=snippet,contentDetails&maxResults=50&playlistId=PL1&pageToken=EAAaBlBUOkNESQ').ok).toBe(true)
     expect(check('/videos?part=contentDetails&id=a,b,c').ok).toBe(true)
+    expect(check('/channels?part=snippet,contentDetails&forHandle=@veritasium').ok).toBe(true)
+    expect(check('/channels?part=snippet,contentDetails&id=UCHnyfMqiRRG1u-2MsSQLbXA').ok).toBe(true)
+  })
+
+  it('accepts exactly one channel selector with a safe handle', () => {
+    expect(check('/channels?part=snippet').error).toBe('INVALID_SELECTOR')
+    expect(check('/channels?part=snippet&id=UC1&forHandle=@abc').error).toBe('INVALID_SELECTOR')
+    expect(check('/channels?part=snippet&forHandle=@a').error).toBe('INVALID_PARAM')
+    expect(check('/channels?part=snippet&forHandle=@a%2Fb%3Fc').error).toBe('INVALID_PARAM')
+    expect(check('/channels?part=statistics&id=UC1').error).toBe('INVALID_PARAM')
   })
 
   it('normalizes and sorts the query for stable cache keys', () => {
@@ -48,7 +58,7 @@ describe('validateApiRequest', () => {
   })
 
   it('rejects endpoints, params and values outside the allowlist', () => {
-    expect(check('/channels?part=snippet&id=UC1')).toMatchObject({ ok: false, error: 'UNKNOWN_ENDPOINT' })
+    expect(check('/comments?part=snippet&id=UC1')).toMatchObject({ ok: false, error: 'UNKNOWN_ENDPOINT' })
     expect(check('/search?part=snippet&q=x&key=attacker')).toMatchObject({ ok: false, error: 'PARAM_NOT_ALLOWED' })
     expect(check('/search?part=snippet&q=x&refresh=1')).toMatchObject({ ok: false, error: 'PARAM_NOT_ALLOWED' })
     expect(check('/search?part=snippet,statistics&q=x')).toMatchObject({ ok: false, error: 'INVALID_PARAM' })

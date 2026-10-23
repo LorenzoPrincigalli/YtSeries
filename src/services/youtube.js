@@ -11,6 +11,14 @@ const REQUEST_TIMEOUT_MS = 15_000
 const MAX_PLAYLIST_PAGES = 100 // 5,000 videos; stops a malformed nextPageToken loop
 const ALLOWED_HOSTS = new Set(['youtube.com', 'www.youtube.com', 'm.youtube.com', 'music.youtube.com', 'youtu.be'])
 const FORBIDDEN_IDS = new Set(['__proto__', 'constructor', 'prototype'])
+// A followed channel is its uploads playlist: UULF… (long-form videos only,
+// i.e. no Shorts; not documented by YouTube) or UU… (all uploads) as fallback.
+const CHANNEL_WINDOW = 100
+const CHANNEL_ID = /^UC[A-Za-z0-9_-]{22}$/
+const HANDLE = /^@[A-Za-z0-9._-]{3,100}$/
+
+/** True for the uploads playlist of a followed channel. @param {string} playlistId */
+export const isChannelSeries = playlistId => /^UU/.test(playlistId)
 
 /** @param {any} thumbnails @param {string[]} order */
 function pickThumbnail(thumbnails, order = ['maxres', 'high', 'medium', 'default']) {
@@ -106,19 +114,64 @@ class YouTubeApiService {
     }
   }
 
-  /** @param {string} playlistUrl */
+  /** A playlist link, or a channel link (followed as a series). @param {string} playlistUrl */
   async fetchPlaylist(playlistUrl) {
     const playlistId = this._extractPlaylistId(playlistUrl)
-    if (!playlistId) throw new AppError('INVALID_URL', 'Invalid YouTube playlist URL')
-    return this.refreshPlaylist(playlistId)
+    if (playlistId) return this.refreshPlaylist(playlistId)
+    const channel = this._extractChannelRef(playlistUrl)
+    if (channel) return this.followChannel(channel)
+    throw new AppError('INVALID_URL', 'Invalid YouTube playlist URL')
   }
 
   /** @param {string} playlistId */
   async refreshPlaylist(playlistId) {
     if (!this._isSafeIdentifier(playlistId)) throw new AppError('INVALID_PAYLOAD', 'Invalid playlist id')
     const playlist = await this._getPlaylistDetails(playlistId)
-    const videos = await this._getPlaylistItems(playlistId)
-    return this._buildPlaylistResult(playlistId, playlist, videos)
+    if (!isChannelSeries(playlistId)) return this._buildPlaylistResult(playlistId, playlist, await this._getPlaylistItems(playlistId))
+    // Uploads come newest first: keep the latest window, then oldest → newest like episodes.
+    const videos = (await this._getPlaylistItems(playlistId, CHANNEL_WINDOW)).reverse().map((video, position) => ({ ...video, position }))
+    const result = this._buildPlaylistResult(playlistId, playlist, videos)
+    return { ...result, title: result.channelTitle || result.title, description: '' }
+  }
+
+  /**
+   * Follows a channel as a series of its latest long-form uploads.
+   * @param {{ channelId?: string, handle?: string }} channel
+   */
+  async followChannel({ channelId, handle }) {
+    if (!channelId && handle) {
+      const data = await this._fetch(this._buildUrl('/channels', { part: 'snippet,contentDetails', forHandle: handle }))
+      channelId = Array.isArray(data.items) ? data.items[0]?.id : undefined
+      if (!channelId) throw new AppError('PLAYLIST_NOT_FOUND', 'Channel not found')
+    }
+    if (typeof channelId !== 'string' || !CHANNEL_ID.test(channelId)) throw new AppError('INVALID_PAYLOAD', 'Invalid channel id')
+    try {
+      return await this.refreshPlaylist(`UULF${channelId.slice(2)}`)
+    } catch (err) {
+      if (/** @type {any} */ (err)?.code !== 'PLAYLIST_NOT_FOUND') throw err
+      return this.refreshPlaylist(`UU${channelId.slice(2)}`)
+    }
+  }
+
+  /** youtube.com/channel/UC… or youtube.com/@handle, else null. @param {unknown} url */
+  _extractChannelRef(url) {
+    if (typeof url !== 'string') return null
+    let parsed
+    try {
+      parsed = new URL(url)
+    } catch {
+      return null
+    }
+    if (parsed.protocol !== 'https:' || !ALLOWED_HOSTS.has(parsed.hostname) || parsed.username || parsed.password) return null
+    let first, second
+    try {
+      [first, second] = parsed.pathname.split('/').filter(Boolean).map(part => decodeURIComponent(part))
+    } catch {
+      return null // malformed percent-encoding
+    }
+    if (first === 'channel' && second && CHANNEL_ID.test(second)) return { channelId: second }
+    if (first && HANDLE.test(first)) return { handle: first }
+    return null
   }
 
   /**
@@ -205,8 +258,8 @@ class YouTubeApiService {
     return playlist
   }
 
-  /** @param {string} playlistId */
-  async _getPlaylistItems(playlistId) {
+  /** @param {string} playlistId @param {number} [limit] stop after this many videos */
+  async _getPlaylistItems(playlistId, limit = Infinity) {
     const videos = []
     const seen = new Set()
     let pageToken = ''
@@ -231,7 +284,8 @@ class YouTubeApiService {
         })
       }
       pageToken = typeof data.nextPageToken === 'string' ? data.nextPageToken : ''
-    } while (pageToken && ++pages < MAX_PLAYLIST_PAGES)
+    } while (pageToken && videos.length < limit && ++pages < MAX_PLAYLIST_PAGES)
+    videos.splice(limit)
 
     if (videos.length) {
       const durations = await this._getVideoDurations(videos.map(v => v.id))
