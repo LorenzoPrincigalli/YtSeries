@@ -8,7 +8,7 @@
 - Design system: themes in CSS tokens, AA contrast in all themes, redesigned watched toggle, accessible dialogs and keyboard navigation
 
 ### Security
-- Cloudflare Worker: endpoint/parameter allowlist, Origin check, atomic per-client rate limit with salted-hash keys, sanitized upstream errors
+- Cloudflare Worker: endpoint/parameter allowlist, web-page origins rejected (the extension's own requests carry no Origin), atomic per-client rate limit with salted-hash keys, sanitized upstream errors
 - Firestore rules validate document shape and size; content scripts restricted to the YouTube-integration messages
 - Removed unused YouTube iframe permission from the extension CSP; added `scripting` to refresh already-open YouTube tabs after updates
 
@@ -16,9 +16,20 @@
 - Episode progress was not persisted; overlay/language settings ignored on YouTube until the first update
 - Duplicate or wrong "Add to Series" buttons on YouTube; unreadable sidebar link in YouTube's light theme
 - JSON export did nothing; recommendations stuck empty after a network error; settings dialog crash
+- Cloud Sync Google sign-in: the OAuth client now targets the Chrome Web Store extension id, and development builds share that id via the manifest `key`
+
+### Build
+- `npm run package` produces the Web Store upload (manifest at the zip root, no source maps, no `key`)
 
 ### Quality
-- Lint (JS + CSS), typecheck, 190+ unit tests, Playwright smoke and a 69-step end-to-end suite with accessibility audits
+- Lint (JS + CSS), typecheck, 188 unit tests, Playwright smoke and a 69-step end-to-end suite with accessibility audits
+
+## [1.1.1] - 2026-06-16
+
+### Changed
+- Donation-only model: switched from Lemon Squeezy to Buy Me a Coffee
+- All features unlocked for everyone (no limits, no license)
+- Removed upsell, license verification and Pro gating from the UI
 
 
 ## [1.1.0] - 2026-05-26
