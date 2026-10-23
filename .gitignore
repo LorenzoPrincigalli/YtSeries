@@ -38,3 +38,4 @@ pw-profile/
 
 # Firebase CLI project binding (local only, like firebase.config.js)
 .firebaserc
+dist-release/

@@ -42,10 +42,12 @@ Run this on two Chrome profiles after any change to sync:
 
 See `PUBLISH-CHECKLIST.md`.
 
-Quick zip (after `npm run build`):
+Store package:
 ```bash
-cd dist && zip -r ../yt-series.zip . -x "*.map"
+npm run package   # yt-series-<version>.zip: no source maps, manifest "key" removed
 ```
+
+The source `manifest.json` keeps the store item's public `"key"`, so unpacked builds from `dist/` get the store id `aelaadhbkhpgkpcmlcohnhnliaggbndp` (required by the OAuth client for Cloud Sync sign-in).
 
 ## Post-publish
 

@@ -112,7 +112,9 @@ const GITHUB_URL = 'https://github.com/LorenzoPrincigalli/YtSeries'
 
 const SUPPORT_URL = 'https://buymeacoffee.com/ytseriessun'
 
-const EXTENSION_ID = '' // Set after publishing to Chrome Web Store
+// Chrome Web Store item id. manifest.json carries the matching public "key", so
+// unpacked development builds get this same id (needed by the OAuth client).
+const EXTENSION_ID = 'aelaadhbkhpgkpcmlcohnhnliaggbndp'
 
 export {
   STORAGE_KEYS,

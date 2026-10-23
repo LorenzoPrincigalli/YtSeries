@@ -2,6 +2,7 @@
   "manifest_version": 3,
   "name": "YT Series",
   "version": "1.2.0",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAlK44kk2j8bqt+Ib91PITIcsSFuIuAqs2CWRtkp1YpjI/9nFjzjkTCcgRmtpTuL0m3f8fOToZ/pgqq8EvNVXIGkUoKzSw8fpKCoB31Zg4fh+H1QRsFkZwT5Eh1x6DsfbUrw++lGFuCWGAyX8sRCnQO40DQOtmIVTl0MORWVBknDumUMg+Ef00zq6bCrjLmDTRW0JKecCdgQvs4jN6HfDorKtUrsDBK4WUNQa01t0XQu/LTRTlxGUq2pImtfpp64Rsvu2zVaVG1ofC+SvkTLTUBU+cubfR7DLGV3WdXb4cHByHFjCVHQsWxwTAXDRtx7Msi8jTkcxqhw7IhWavmxEKhwIDAQAB",
   "description": "Transform YouTube playlists into a TV-series tracker with a cinematic interface",
   "permissions": [
     "storage",
