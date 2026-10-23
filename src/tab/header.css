@@ -64,12 +64,24 @@
   gap: var(--space-md);
 }
 
+/* Only the search field gives up width when the header is tight: buttons keep
+   their label on one line. */
+.header-right > * {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
 .search-container {
   position: relative;
 }
 
+.header-right > .search-container {
+  flex: 0 1 240px;
+  min-width: 140px;
+}
+
 .search-container input {
-  width: 240px;
+  width: 100%;
   padding: var(--space-sm) 32px var(--space-sm) var(--space-md);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);

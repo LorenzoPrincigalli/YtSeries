@@ -1,6 +1,7 @@
 // Chrome Web Store screenshots: 1280×800, 24-bit PNG (no alpha), captured
 // natively at that size from the real extension (dist/) — no scaling.
-// Library, thumbnails and API responses are fictional (scripts/store-fixtures.mjs).
+// The series are real YouTube playlists, fetched live through the Worker by the
+// extension itself (scripts/store-library.mjs stages only the viewing state).
 //   npm run build && npm run screenshots   →   src/assets/store/screenshots/
 import { chromium } from 'playwright'
 import sharp from 'sharp'
@@ -8,14 +9,13 @@ import { mkdtemp, mkdir, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { buildLibrary, imageForUrl, apiResponse } from './store-fixtures.mjs'
+import { LIBRARY, HERO_ID, stageLibrary } from './store-library.mjs'
 
 process.env.PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS = '1'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const dist = join(root, 'dist')
 const outDir = join(root, 'src', 'assets', 'store', 'screenshots')
-const WORKER = 'https://shy-snowflake-0680.lollo-princigalli.workers.dev'
 const SIZE = { width: 1280, height: 800 }
 
 await mkdir(outDir, { recursive: true })
@@ -29,12 +29,6 @@ const context = await chromium.launchPersistentContext(profile, {
   locale: 'en-US',
   colorScheme: 'dark',
   args: [`--disable-extensions-except=${dist}`, `--load-extension=${dist}`]
-})
-
-await context.route(`${WORKER}/**`, route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(apiResponse(new URL(route.request().url()))) }))
-await context.route('https://i.ytimg.com/**', route => {
-  const svg = imageForUrl(route.request().url())
-  return svg ? route.fulfill({ status: 200, contentType: 'image/svg+xml', body: svg }) : route.fulfill({ status: 404, body: '' })
 })
 
 const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker', { timeout: 15000 })
@@ -51,7 +45,7 @@ async function settle(extra = 900) {
     const r = img.getBoundingClientRect()
     const visible = r.width > 0 && r.bottom > 0 && r.top < innerHeight && r.right > 0 && r.left < innerWidth
     return !visible || img.complete
-  }), null, { timeout: 10000 })
+  }), null, { timeout: 20000 })
   await page.waitForTimeout(extra)
 }
 
@@ -95,12 +89,18 @@ async function capture(name) {
 
 // ── Library ──────────────────────────────────────────────────────────────
 await page.goto(DASH)
-const imported = await send('IMPORT_SERIES', { series: buildLibrary() })
+// Same path as "+ Add via Link": the extension fetches each playlist itself.
+for (const { playlistId } of LIBRARY) {
+  const added = await send('PLAYLIST_ADD', { url: `https://www.youtube.com/playlist?list=${playlistId}` })
+  if (!added?.success) throw new Error(`add ${playlistId} failed: ${JSON.stringify(added)}`)
+  console.log(`+ ${added.series.title} (${added.series.videos.length} videos)`)
+}
+const imported = await send('IMPORT_SERIES', { series: stageLibrary((await send('STATE_GET')).state.series) })
 if (!imported?.success) throw new Error(`import failed: ${JSON.stringify(imported)}`)
-// Recent activity for the bell (re-marking finished episodes changes no progress).
+// Recent activity for the bell (re-marking a finished episode changes no progress).
 const library = (await send('STATE_GET')).state.series
-for (const [playlistId, index] of [['PLrailjourneyseu', 1], ['PLcosmosexplain', 5], ['PLstreetfoodtour', 4], ['PLdeepblueocean', 2], ['PLpython30days', 17]]) {
-  await send('EPISODE_WATCH', { playlistId, videoId: library[playlistId].videos[index].id })
+for (const { playlistId, watched } of LIBRARY.filter(plan => plan.watched > 0).slice(0, 6)) {
+  await send('EPISODE_WATCH', { playlistId, videoId: library[playlistId].videos[watched - 1].id })
 }
 
 // 1 — Home: hero, continue watching, new this week, recommendations (Classic Red)
@@ -114,7 +114,7 @@ await settle(500)
 await capture('screenshot-01-home.png')
 
 // 2 — Series detail: progress, resume, new episode, watched toggles (Classic Red)
-await open(`${DASH}?series=PLdeepblueocean`)
+await open(`${DASH}?series=${HERO_ID}`)
 await page.waitForSelector('#detailModal:not(.hidden) .episode-card')
 await settle(800)
 await page.evaluate(() => { document.getElementById('detailModalBody').scrollTop = 0 })
@@ -131,7 +131,7 @@ await capture('screenshot-03-collections.png')
 // 4 — Search: local matches + YouTube playlists and channels (Light)
 await theme('light')
 await open()
-await page.fill('#searchInput', 'ocean')
+await page.fill('#searchInput', 'BBC Earth')
 await page.press('#searchInput', 'Enter')
 await page.waitForSelector('.search-playlist-card')
 await page.waitForSelector('.channel-card')

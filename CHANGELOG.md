@@ -15,6 +15,7 @@
 ### Fixed
 - Episode progress was not persisted; overlay/language settings ignored on YouTube until the first update
 - Duplicate or wrong "Add to Series" buttons on YouTube; unreadable sidebar link in YouTube's light theme
+- "+ Add via Link" wrapped onto two lines in the dashboard header at laptop widths
 - JSON export did nothing; recommendations stuck empty after a network error; settings dialog crash
 - Cloud Sync Google sign-in: the OAuth client now targets the Chrome Web Store extension id, and development builds share that id via the manifest `key`
 

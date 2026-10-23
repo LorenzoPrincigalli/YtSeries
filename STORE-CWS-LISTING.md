@@ -41,13 +41,13 @@ English, Italian
 
 ## Screenshots
 
-1280×800, 24-bit PNG (no alpha), in `src/assets/store/screenshots/`. Regenerate with `npm run build && npm run screenshots` (fictional library and original artwork, no third-party content).
+1280×800, 24-bit PNG (no alpha), in `src/assets/store/screenshots/`. Regenerate with `npm run build && npm run screenshots`: it loads real YouTube playlists from their official channels (BBC Earth, WWF UK, LEMMiNO, Kurzgesagt, Veritasium, CrashCourse, Mark Rober, Gordon Ramsay, Mark Wiens, Kara and Nate) through the live Worker, exactly like "+ Add via Link"; `scripts/store-library.mjs` lists them and stages only the viewing state. Needs network; results follow whatever the channels publish.
 
-1. `screenshot-01-home.png` — Home: featured series, "Continue Watching", New This Week with NEW badges (Classic Red)
+1. `screenshot-01-home.png` — Home: featured series with "Continue Watching", In Progress row with NEW badges (Classic Red)
 2. `screenshot-02-detail.png` — Series detail: progress, resume where you left off, episode list with watched toggles (Classic Red)
 3. `screenshot-03-collections.png` — Saved library organised in collections (Ocean Blue)
 4. `screenshot-04-search.png` — YouTube search: playlists and channels, add with one click (Light)
-5. `screenshot-05-activity.png` — Recent activity and progress across series (Forest)
+5. `screenshot-05-activity.png` — Recent activity, My Series and recommendations from your channels (Forest)
 
 ## Promo Images
 - Small promo tile (440x280)
