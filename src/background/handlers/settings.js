@@ -48,7 +48,8 @@ const settingsRoutes = {
       theme: s.optional(s.oneOf(THEMES)),
       language: s.optional(s.oneOf(LANGUAGES)),
       autoRefresh: s.optional(s.boolean()),
-      nextEpisodeOverlay: s.optional(s.boolean())
+      nextEpisodeOverlay: s.optional(s.boolean()),
+      weeklyGoal: s.optional(s.number({ min: 0, max: 50, integer: true }))
     }),
     handler: updateSettings
   },

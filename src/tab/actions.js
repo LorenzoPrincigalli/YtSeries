@@ -49,9 +49,17 @@ export function continueWatching(series) {
   if (episode) openExternal(watchUrl(episode.id, series.playlistId, episode.resumeTime))
 }
 
+/** Toast for a 25/50/75/100 % milestone returned by EPISODE_WATCH. @param {{ percent: number, title: string } | null | undefined} milestone */
+export function celebrate(milestone) {
+  if (!milestone) return
+  toast(t(milestone.percent === 100 ? 'milestone_done' : 'milestone_toast', milestone), { variant: 'success' })
+}
+
 /** @param {string} playlistId @param {string} videoId @param {boolean} watched */
-export function setEpisodeWatched(playlistId, videoId, watched) {
-  return command(watched ? EVENTS.EPISODE_WATCH : EVENTS.EPISODE_UNWATCH, { playlistId, videoId }, 'episode_update_error')
+export async function setEpisodeWatched(playlistId, videoId, watched) {
+  const response = await command(watched ? EVENTS.EPISODE_WATCH : EVENTS.EPISODE_UNWATCH, { playlistId, videoId }, 'episode_update_error')
+  celebrate(response?.milestone)
+  return response
 }
 
 /**

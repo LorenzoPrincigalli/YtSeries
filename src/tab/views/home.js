@@ -8,7 +8,9 @@ import { errorMessage } from '../ui/feedback.js'
 import * as actions from '../actions.js'
 import { seriesRow, playlistRow, libraryGrid, heroCarousel, channelCard } from '../components/cards.js'
 import { renderCollections } from '../components/collections.js'
+import { weekStrip } from '../components/weekStrip.js'
 import { manageCollection } from '../features/collections.js'
+import { openSettings } from '../features/settings.js'
 import { clearSearch } from '../features/header.js'
 import { filterSeries, isInProgress, thisWeekSeries, heroSeries, collectionNames, pickRecommendations } from '../seriesView.js'
 
@@ -78,6 +80,7 @@ function home(all, ui) {
       disposeHero = carousel.dispose
       sections.push(carousel.element)
     }
+    sections.push(weekStrip(all, getState()?.settings?.weeklyGoal || 0, () => openSettings('goals')))
     const week = thisWeekSeries(all)
     if (week.length) sections.push(seriesRow(t('this_week'), week.slice(0, ROW_LIMIT), openDetail))
   }

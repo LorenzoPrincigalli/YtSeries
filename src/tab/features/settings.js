@@ -17,6 +17,15 @@ import * as actions from '../actions.js'
 const log = logger.child('settings')
 const MODAL_ID = 'settingsModal'
 const MAX_IMPORT_BYTES = 20 * 1024 * 1024
+const GOAL_OPTIONS = [0, 1, 2, 3, 4, 5, 7, 10, 14, 21]
+
+/** Fills the weekly-goal select (labels follow the current language). @param {number} goal */
+function renderGoalSelect(goal) {
+  const select = /** @type {HTMLSelectElement | null} */ (byId('weeklyGoalSelect'))
+  if (!select) return
+  const options = GOAL_OPTIONS.includes(goal) ? GOAL_OPTIONS : [...GOAL_OPTIONS, goal].sort((a, b) => a - b)
+  select.replaceChildren(...options.map(n => h('option', { value: String(n), selected: n === goal }, n ? t('goal_option', { n }) : t('goal_off'))))
+}
 
 /** @param {string} section */
 function showSection(section) {
@@ -45,6 +54,7 @@ function populate() {
   setField('languageSelect', settings.language || 'system')
   setField('nextEpisodeOverlayToggle', settings.nextEpisodeOverlay !== false)
   setField('autoRefreshToggle', Boolean(settings.autoRefresh))
+  renderGoalSelect(settings.weeklyGoal || 0)
   renderSync()
   // Dev tools exist only in unpacked development builds, never in store installs.
   for (const el of document.querySelectorAll('[data-section="dev"]')) el.classList.toggle('hidden', isStoreInstall())
@@ -220,6 +230,7 @@ export function initSettings() {
   byId('languageSelect')?.addEventListener('change', event => actions.updateSettings({ language: /** @type {HTMLSelectElement} */ (event.target).value }))
   byId('nextEpisodeOverlayToggle')?.addEventListener('change', event => actions.updateSettings({ nextEpisodeOverlay: /** @type {HTMLInputElement} */ (event.target).checked }))
   byId('autoRefreshToggle')?.addEventListener('change', event => actions.updateSettings({ autoRefresh: /** @type {HTMLInputElement} */ (event.target).checked }))
+  byId('weeklyGoalSelect')?.addEventListener('change', event => actions.updateSettings({ weeklyGoal: Number(/** @type {HTMLSelectElement} */ (event.target).value) }))
 
   byId('syncLoginBtn')?.addEventListener('click', guarded(syncLogin))
   byId('syncLogoutBtn')?.addEventListener('click', guarded(async () => actions.applyResponse(await send(EVENTS.SYNC_LOGOUT))))
@@ -244,6 +255,7 @@ export function initSettings() {
       setField('languageSelect', settings.language || 'system')
       setField('nextEpisodeOverlayToggle', settings.nextEpisodeOverlay !== false)
       setField('autoRefreshToggle', Boolean(settings.autoRefresh))
+      renderGoalSelect(settings.weeklyGoal || 0)
     }
   })
 }

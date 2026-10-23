@@ -16,7 +16,8 @@ const LABELS = {
   episode_watched: 'activity_episode_watched',
   episode_unwatched: 'activity_episode_unwatched',
   library_imported: 'activity_library_imported',
-  backup_restored: 'activity_backup_restored'
+  backup_restored: 'activity_backup_restored',
+  series_milestone: 'activity_series_milestone'
 }
 
 let open = false
@@ -42,7 +43,7 @@ function activityRow(event) {
   const video = series?.videos?.find(v => v.id === event.videoId)
   const title = video?.title || series?.title || event.title || t('unknown_series')
   const content = [
-    h('span', { class: 'activity-panel-marker', 'aria-hidden': 'true' }, event.type === 'episode_watched' ? '✓' : '•'),
+    h('span', { class: 'activity-panel-marker', 'aria-hidden': 'true' }, event.type === 'episode_watched' ? '✓' : event.type === 'series_milestone' ? '★' : '•'),
     h('span', { class: 'activity-panel-body' }, t(LABELS[event.type] || 'recent_activity_item', { title })),
     h('time', { datetime: new Date(event.at).toISOString() }, relativeTime(event.at))
   ]

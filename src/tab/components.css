@@ -617,3 +617,77 @@ body::before {
   display: flex;
   gap: var(--space-sm);
 }
+
+/* Home: "This week" — goal, streak, time watched. */
+.week-strip {
+  position: relative;
+  z-index: var(--z-base);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-md) var(--space-xl);
+  margin: 0 0 40px;
+  padding: var(--space-md) var(--space-lg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--card-bg);
+}
+
+.week-strip-main {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.week-strip-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.week-strip-count {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin: 2px 0 6px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.week-strip-reached {
+  padding: 2px 10px;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--primary) 18%, transparent);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.week-strip-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.week-strip-fill {
+  width: var(--progress, 0%);
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary-fill);
+  transition: width var(--transition);
+}
+
+.week-strip-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm) var(--space-lg);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}

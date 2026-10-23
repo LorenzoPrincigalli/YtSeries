@@ -4,9 +4,11 @@
 // triggers the next-episode card near the end. Disposing the session
 // releases every timer, listener and pending request it created.
 import { EVENTS } from '../shared/events.js'
+import { t } from '../shared/i18n.js'
 import { logger } from '../shared/logger.js'
 import { NextEpisodeOverlay } from './nextEpisodeOverlay.js'
 import { findVideo, isAdPlaying } from './youtubeDom.js'
+import { showToast } from './toast.js'
 
 const log = logger.child('playback')
 
@@ -151,6 +153,9 @@ export class PlaybackSession {
     this.clearTransient()
     this.stopTicking()
     if (this.disposed) return
-    this.messenger.send(EVENTS.EPISODE_WATCH, { videoId: this.videoId, playlistId: this.playlistId || '' })
+    this.messenger.send(EVENTS.EPISODE_WATCH, { videoId: this.videoId, playlistId: this.playlistId || '' }).then(response => {
+      const milestone = response?.milestone
+      if (milestone) showToast(t(milestone.percent === 100 ? 'milestone_done' : 'milestone_toast', milestone))
+    })
   }
 }

@@ -2,6 +2,7 @@
 import { EVENTS } from '../../shared/events.js'
 import { AppError } from '../../shared/errors.js'
 import { s } from '../../shared/schema.js'
+import { progressRatio, milestoneCrossed } from '../../shared/seriesStats.js'
 import { commit } from '../context.js'
 
 /** @typedef {import('../context.js').BackgroundContext} Ctx */
@@ -36,13 +37,18 @@ function setWatched(watched) {
   /** @param {Ctx} ctx @param {any} payload */
   return async (ctx, payload) => {
     const { playlistId, videoId } = resolveEpisode(ctx, payload)
-    await commit(ctx, store => {
+    const before = progressRatio(ctx.store.getSeriesById(playlistId))
+    const { milestone } = await commit(ctx, store => {
       if (watched) store.markEpisodeWatched(playlistId, videoId)
       else store.markEpisodeUnwatched(playlistId, videoId)
       store.recordActivity(watched ? 'episode_watched' : 'episode_unwatched', { playlistId, videoId })
-      return { changed: [playlistId] }
+      // 25/50/75/100 %: celebrated once, when an episode pushes the series past it.
+      const series = store.getSeriesById(playlistId)
+      const percent = watched ? milestoneCrossed(before, progressRatio(series)) : null
+      if (percent) store.recordActivity('series_milestone', { playlistId, title: `${series.title} · ${percent}%` })
+      return { milestone: percent ? { percent, title: series.title } : null, changed: [playlistId] }
     })
-    return { success: true, state: ctx.store.getState() }
+    return { success: true, milestone, state: ctx.store.getState() }
   }
 }
 
