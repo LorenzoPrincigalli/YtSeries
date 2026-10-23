@@ -24,7 +24,7 @@
 | Priority | Issue |
 |----------|-------|
 | 🔴 | `EXTENSION_ID` empty — set after CWS publish (also enables Worker `ALLOWED_ORIGINS`) |
-| 🟠 | Deploy Worker + `firestore.rules`; verify in `wrangler tail` that requests carry `Origin: chrome-extension://<id>` **before** setting `ALLOWED_ORIGINS` |
+| ✅ | Worker deployed 23 Oct 2026; `wrangler tail` showed the extension sends no `Origin`, so the Origin policy now allows header-less requests and rejects web pages |
 | 🟡 | Circuit-breaker state is per service-worker lifetime (not persisted across suspension) |
 | 🟡 | Content-script overlay path is covered by manual testing only (needs a playable stub video) |
 | 🟢 | `components/collections.js` and `collectionEditor.js` still use raw `createElement` (safe, but not yet on `h()`) |

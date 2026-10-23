@@ -41,8 +41,8 @@ It throws `AppError` with codes `QUOTA_EXCEEDED` (403 quota reason), `PLAYLIST_N
 ## Cloudflare Worker (`cloudflare-worker/index.js`)
 
 - **GET-only, allowlisted** proxy: `search`, `playlists`, `playlistItems`, `videos` with per-endpoint parameter validation (`cloudflare-worker/security.js` `ROUTES`); unknown endpoints → 404, unknown/duplicate/invalid parameters → 400
-- Order of checks: Origin (`ALLOWED_ORIGINS`) → method → client token → allowlist → rate limit → cache → upstream
-- CORS echoes the allowed origin (`*` only when `ALLOWED_ORIGINS` is unset in dev)
+- Order of checks: Origin → method → client token → allowlist → rate limit → cache → upstream
+- Origin policy: no `Origin` header (the extension service worker, non-browser clients) → allowed; web-page origins → 403; `chrome-extension://` origins → allowed (or only `ALLOWED_ORIGINS` when set)
 - Upstream errors are sanitized to the reason code; network failures → `502 UPSTREAM_UNAVAILABLE`
 
 ### 3-layer caching (quota saver)
@@ -73,7 +73,7 @@ npx wrangler kv namespace create "YT_SERIES_CACHE"   # primo setup
 npx wrangler deploy
 ```
 - `wrangler.toml`: `CACHE_KV` (KV) and `RATE_LIMITER` (Workers Rate Limiting, 120 req/min/IP) bindings
-- Secrets: `YT_API_KEY` (required), `ALLOWED_ORIGINS` (set after publish to `chrome-extension://<EXTENSION_ID>`), `YT_SERIES_CLIENT_TOKEN` (optional)
+- Secrets: `YT_API_KEY` (required), `RATE_LIMIT_SALT` (required, hashes client IPs), `ALLOWED_ORIGINS` (optional), `YT_SERIES_CLIENT_TOKEN` (optional)
 - Tests: `cloudflare-worker/__tests__/` (`handleRequest` is exported with injectable `fetch`/`cache`)
 - KV read non consuma CPU time (gratuito su Free plan)
 

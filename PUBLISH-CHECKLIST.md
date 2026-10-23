@@ -37,25 +37,18 @@ Voluntary support via [Buy Me a Coffee](https://buymeacoffee.com/ytseriessun).
    npx wrangler deploy
    ```
    If deploy reports the rate-limit `namespace_id` is taken, change `1001` in `wrangler.toml` to another unique integer.
-   Leave `ALLOWED_ORIGINS` **unset** for now (see step 7).
+   ✅ Done on 23 Oct 2026 (version `b18e231e`), `RATE_LIMIT_SALT` set, behaviour verified with live requests.
 4. **Deploy Firestore rules** (needs `npx firebase-tools login` once):
    ```bash
    npx firebase-tools deploy --only firestore:rules
    ```
+   ✅ Done on 23 Oct 2026 (project `stunning-agency-497419-u5`, rules compiled and released).
 5. **Chrome Web Store — create the item as a draft:** Developer Dashboard → New item → upload `yt-series-1.2.0.zip`. The **extension ID** is assigned now, before review.
    - Package tab: copy the **public key** into `manifest.json` as `"key"` (keeps the same ID for unpacked development builds).
    - Store listing / Privacy practices: paste from `STORE-CWS-LISTING.md` (description, permission justifications, privacy policy URL, "no remote code").
 6. **OAuth (Cloud Sync sign-in):** Google Cloud Console → APIs & Services → Credentials → the OAuth client in `manifest.json` (`oauth2.client_id`) → set **Item ID / Application ID** to the new extension ID (or create a "Chrome Extension" client for it and update `client_id`). Firebase Auth → Google provider must stay enabled.
 7. **Set the IDs and rebuild:** put the extension ID in `EXTENSION_ID` (`src/shared/constants.js`), keep the `"key"` from step 5, run `npm run check`, re-zip and upload the new package to the same draft. Then **Submit for review**.
-8. **After approval — lock the Worker to the extension:**
-   ```bash
-   cd cloudflare-worker && npx wrangler tail
-   ```
-   Use the store build once and confirm requests show `Origin: chrome-extension://<ID>`; only then:
-   ```bash
-   npx wrangler secret put ALLOWED_ORIGINS   # chrome-extension://<ID>
-   ```
-   If no `Origin` header arrives, do **not** set it (every request would be rejected).
+8. **`ALLOWED_ORIGINS` — optional.** Verified with `wrangler tail`: the extension's service worker sends **no** `Origin` header, so those requests are always allowed. Web pages always send one and are rejected unless it is a `chrome-extension://` origin. Setting `ALLOWED_ORIGINS` to `chrome-extension://<ID>` only narrows which *extension pages* may call the Worker; it is not required.
 
 ## Post-publish
 

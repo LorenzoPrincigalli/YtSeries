@@ -108,15 +108,21 @@ function allowedOrigins(env) {
 }
 
 /**
- * Browser pages cannot forge Origin, so this blocks other websites from
- * spending our quota. When ALLOWED_ORIGINS is unset (local dev) it is skipped.
+ * Blocks other websites from spending our quota: browsers attach an Origin
+ * header to cross-origin page requests and pages cannot forge it.
+ *
+ * The extension's own service worker sends **no** Origin (host permissions
+ * make its fetches non-CORS — verified with `wrangler tail`), so requests
+ * without one are allowed and rely on the allowlist, token and rate limit.
+ * Requests that carry an Origin must come from an extension page — any
+ * extension by default, or exactly the ids in ALLOWED_ORIGINS when set.
  */
 function validateOrigin(request, env) {
-  const allowed = allowedOrigins(env)
-  if (!allowed.length) return { ok: true, origin: '*' }
   const origin = request.headers.get('Origin')
-  if (origin && allowed.includes(origin)) return { ok: true, origin }
-  return { ok: false, status: 403, error: 'ORIGIN_NOT_ALLOWED' }
+  if (!origin) return { ok: true, origin: '*' }
+  const allowed = allowedOrigins(env)
+  const ok = allowed.length ? allowed.includes(origin) : origin.startsWith('chrome-extension://')
+  return ok ? { ok: true, origin } : { ok: false, status: 403, error: 'ORIGIN_NOT_ALLOWED' }
 }
 
 function validateWorkerClient(request, env) {

@@ -69,6 +69,19 @@ describe('worker', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
+  it('allows the extension service worker, which sends no Origin header', async () => {
+    const { call, fetchMock } = setup()
+    const response = await call('/videos?part=contentDetails&id=a', { headers: { Origin: '' } })
+    expect(response.status).toBe(200)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('without ALLOWED_ORIGINS, rejects web pages but accepts extension pages', async () => {
+    const { call } = setup({ env: { ALLOWED_ORIGINS: '' } })
+    expect((await call('/videos?part=contentDetails&id=a', { headers: { Origin: 'https://evil.example' } })).status).toBe(403)
+    expect((await call('/videos?part=contentDetails&id=a', { headers: { Origin: 'chrome-extension://anyid' } })).status).toBe(200)
+  })
+
   it('echoes the allowed origin instead of a wildcard', async () => {
     const { call } = setup()
     const response = await call('/videos?part=contentDetails&id=a')
