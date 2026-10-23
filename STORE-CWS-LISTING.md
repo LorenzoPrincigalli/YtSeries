@@ -4,16 +4,23 @@
 YT Series
 
 ## Short Description (132 chars max)
-Track YouTube playlists like a TV series. Cinematic dashboard with progress, resume, hover previews, and optional cloud sync.
+Track YouTube playlists and channels like TV series: progress on YouTube, time left, notes, goals, release forecasts, shareable lists.
 
 ## Full Description
 
 YT Series turns any YouTube playlist into a Netflix-style TV series tracker. Add a playlist via URL or search, and the extension gives you a beautiful cinematic dashboard where you watch, track, and pick up right where you left off.
 
 **Features:**
-- Import any YouTube playlist via URL or YouTube search
+- Import any YouTube playlist via URL or YouTube search, or follow a channel as a series of its latest videos (no Shorts)
 - Cinematic dashboard with hero carousel, series cards, and hover previews
 - Auto-detect progress: tracks watch time and saves precise resume points
+- Your progress right on YouTube: watched badges and progress bars on playlist pages, "12/40 watched · 4 h left"
+- Time left and a finish estimate for every series, based on your pace
+- Leave trailers and filler out of your progress (suggested automatically)
+- Upcoming view: when each series and channel is expected to release its next episode
+- Weekly episode goal, day streak and milestones
+- Timestamped notes while you watch, exportable as Markdown
+- Share a series or a whole collection with a link
 - "Next Episode" overlay on YouTube 30s before a video ends
 - "Add to Series" button directly on YouTube playlist pages
 - Sidebar integration on YouTube for one-click dashboard access
@@ -41,13 +48,13 @@ English, Italian
 
 ## Screenshots
 
-1280×800, 24-bit PNG (no alpha), in `src/assets/store/screenshots/`. Regenerate with `npm run build && npm run screenshots`: it loads real YouTube playlists from their official channels (BBC Earth, WWF UK, LEMMiNO, Kurzgesagt, Veritasium, CrashCourse, Mark Rober, Gordon Ramsay, Mark Wiens, Kara and Nate) through the live Worker, exactly like "+ Add via Link"; `scripts/store-library.mjs` lists them and stages only the viewing state. Needs network; results follow whatever the channels publish.
+1280×800, 24-bit PNG (no alpha), in `src/assets/store/screenshots/`. Regenerate with `npm run build && npm run screenshots`: it loads real YouTube playlists from their official channels (BBC Earth, WWF UK, LEMMiNO, Kurzgesagt, Veritasium, CrashCourse, Mark Rober, Gordon Ramsay, Mark Wiens, Kara and Nate) and follows two channels (Veritasium, Kurzgesagt) through the live Worker, exactly like the extension does; `scripts/store-library.mjs` lists them and stages only the viewing state, notes and goal. Needs network; results follow whatever the channels publish.
 
-1. `screenshot-01-home.png` — Home: featured series with "Continue Watching", In Progress row with NEW badges (Classic Red)
-2. `screenshot-02-detail.png` — Series detail: progress, resume where you left off, episode list with watched toggles (Classic Red)
+1. `screenshot-01-home.png` — Home: featured series with time left and "Continue Watching", "This week" goal and streak, New This Week with followed channels (Classic Red)
+2. `screenshot-02-detail.png` — Series detail: time left and finish estimate, trailers excluded, timestamped notes, share (Classic Red)
 3. `screenshot-03-collections.png` — Saved library organised in collections (Ocean Blue)
-4. `screenshot-04-search.png` — YouTube search: playlists and channels, add with one click (Light)
-5. `screenshot-05-activity.png` — Recent activity, My Series and recommendations from your channels (Forest)
+4. `screenshot-04-search.png` — YouTube search: playlists, and channels you can follow as a series (Light)
+5. `screenshot-05-upcoming.png` — Upcoming: expected releases of ongoing series and followed channels (Forest)
 
 ## Promo Images
 24-bit PNG (no alpha), in `src/assets/store/`. Regenerate with `npm run promo` (after `npm run screenshots`: the tiles reuse the dashboard and detail screenshots).

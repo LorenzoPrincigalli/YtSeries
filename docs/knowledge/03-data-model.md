@@ -6,7 +6,7 @@ Storage keys are defined in `src/shared/constants.js` → `STORAGE_KEYS`.
 
 | Key | Area | Content | Size concern |
 |-----|------|---------|--------------|
-| `settings` | `chrome.storage.sync` | Theme, language, autoRefresh, nextEpisodeOverlay, apiKey | 8 KB/item limit |
+| `settings` | `chrome.storage.sync` | Theme, language, autoRefresh, nextEpisodeOverlay, weeklyGoal, apiKey | 8 KB/item limit |
 | `license` | `chrome.storage.sync` | Legacy compatibility value (all features are enabled) | 8 KB/item limit |
 | `series` | `chrome.storage.local` | Map of all series (can be large) | Local quota |
 | `activity` | `chrome.storage.local` | Last 100 local user actions | Local quota |
@@ -51,6 +51,9 @@ Storage keys are defined in `src/shared/constants.js` → `STORAGE_KEYS`.
 | `syncUpdatedAt`, `remoteUpdateTime` | number, string | Last merged logical timestamp and Firestore optimistic-concurrency version |
 | `completedUpdatedAt` | number | Timestamp of the completion toggle, independent of episode progress |
 | `collectionUpdatedAt` | number | Timestamp of the collection assignment for sync conflict resolution |
+| `notes` | object | `{ [noteId]: { v: videoId, t: seconds, x: text ≤ 1000, a: updatedAt, d?: true } }`; deletions are tombstones (`d`, empty `x`) so they sync; ≤ 300 active, ≤ 400 entries (oldest tombstones pruned). Synced in the series document, merged per note (newer `a` wins, a same-time deletion wins) |
+
+A followed **channel** is an ordinary series whose `playlistId` is the channel's uploads playlist: `UULF…` (long-form only) or `UU…` (fallback). `youtube.refreshPlaylist` recognises the `UU` prefix and keeps the latest 100 uploads, oldest first, titled with the channel name — so auto-refresh and sync hydration need no extra field. `newEpisodesCount` counts new video ids (the window size does not change).
 
 `Activity` entries contain `{ type, playlistId?, videoId?, title?, at }`. They are intentionally local-only and are not sent to Firestore.
 
@@ -77,7 +80,10 @@ Automatic snapshots are made before deletion, import, full restore and reset. Re
 | `resumeTime` | number | Seconds; precise resume point |
 | `totalWatchedTime` | number | Seconds; total time actually watched (calculated via delta) |
 | `lastWatchedAt` | number | Timestamp of last watch session |
-| `progressUpdatedAt` | number | Timestamp of watched/unwatched/progress change; makes an unwatched state syncable |
+| `progressUpdatedAt` | number | Timestamp of watched/unwatched/progress/exclusion change; makes an unwatched state syncable |
+| `excluded` | boolean | Left out of progress (trailers, filler): never counted, skipped as next episode; synced as `progress[id].x` |
+
+Derived statistics (counted episodes, time left, pace, finish estimate, milestones, streak, week progress, release forecast) are pure functions in `src/shared/seriesStats.js`, shared by the service worker, dashboard and content script.
 
 ## Settings defaults
 
@@ -88,6 +94,7 @@ Automatic snapshots are made before deletion, import, full restore and reset. Re
   lastRefreshCheck: 0,
   language: 'system',        // system | en | it
   nextEpisodeOverlay: true,
+  weeklyGoal: 0,             // episodes per week, 0 = off (absent until set)
   apiKey: ''                 // optional if no worker
 }
 ```

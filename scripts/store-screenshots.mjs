@@ -9,7 +9,7 @@ import { mkdtemp, mkdir, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { LIBRARY, HERO_ID, stageLibrary } from './store-library.mjs'
+import { LIBRARY, CHANNELS, HERO_ID, HERO_NOTES, stageLibrary } from './store-library.mjs'
 
 process.env.PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS = '1'
 
@@ -102,6 +102,16 @@ const library = (await send('STATE_GET')).state.series
 for (const { playlistId, watched } of LIBRARY.filter(plan => plan.watched > 0).slice(0, 6)) {
   await send('EPISODE_WATCH', { playlistId, videoId: library[playlistId].videos[watched - 1].id })
 }
+// 1.3 features: followed channels (Upcoming), trailers left out, notes, a weekly goal.
+for (const channelId of CHANNELS) {
+  const followed = await send('CHANNEL_FOLLOW', { channelId })
+  if (!followed?.success) throw new Error(`follow ${channelId} failed: ${JSON.stringify(followed)}`)
+}
+const hero = library[HERO_ID]
+const trailers = hero.videos.filter(video => /trailer|first look/i.test(video.title)).map(video => video.id)
+if (trailers.length) await send('EPISODE_EXCLUDE', { playlistId: HERO_ID, videoIds: trailers, excluded: true })
+for (const [index, time, text] of HERO_NOTES) await send('NOTE_ADD', { playlistId: HERO_ID, videoId: hero.videos[index].id, time, text })
+await send('SETTINGS_UPDATE', { weeklyGoal: 10 })
 
 // 1 — Home: hero, continue watching, new this week, recommendations (Classic Red)
 await theme('classic-red')
@@ -142,16 +152,13 @@ await scrollTo('.series-row:has(.search-playlist-card)', 95)
 await settle(400)
 await capture('screenshot-04-search.png')
 
-// 5 — Recent activity and new-episode badges (Forest)
+// 5 — Upcoming: expected releases of followed channels and ongoing series (Forest)
 await theme('forest')
 await open()
+await page.click('.nav-link[data-view="schedule"]')
+await page.waitForSelector('.schedule-view')
 await settle(1200)
-await scrollTo('.series-row:nth-of-type(3)', 80)
-await settle(500)
-await page.click('#activityBtn')
-await page.waitForSelector('#activityPanel:not(.hidden) .activity-panel-item')
-await page.waitForTimeout(400)
-await capture('screenshot-05-activity.png')
+await capture('screenshot-05-upcoming.png')
 
 await context.close()
 await rm(profile, { recursive: true, force: true })

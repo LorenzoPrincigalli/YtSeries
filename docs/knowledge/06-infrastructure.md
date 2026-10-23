@@ -94,8 +94,11 @@ Document shape:
   completedAt: timestamp,
   updatedAt: timestamp,
   progress: {
-    videoId: { w: boolean, p: number, r: seconds, t: seconds, a: timestamp }
-    // only videos with watched/progress data
+    videoId: { w: boolean, p: number, r: seconds, t: seconds, a: timestamp, x: excluded }
+    // only videos with watched/progress/exclusion data
+  },
+  notes: {
+    noteId: { v: videoId, t: seconds, x: text, a: timestamp, d?: true }   // ≤ 400 entries
   }
 }
 ```
@@ -146,11 +149,12 @@ At scale (hundreds of users), potential cost drivers:
 | Layer | Mechanism |
 |-------|-----------|
 | Firestore access | `firestore.rules`: owner-only (`request.auth.uid == userId`) **and** document shape/type/size validation per collection |
-| Worker endpoints | Allowlist: `search`, `playlists`, `playlistItems`, `videos`; per-endpoint parameter validators; anything else → 400/404 |
+| Worker endpoints | Allowlist: `search`, `playlists`, `playlistItems`, `videos`, `channels` (id or safe `@handle`, for following channels); per-endpoint parameter validators; anything else → 400/404 |
 | Worker callers | Requests carrying an `Origin` (web pages; browsers cannot forge it) must be a `chrome-extension://` origin, or exactly `ALLOWED_ORIGINS` when set. The extension service worker sends **no** `Origin` (verified with `wrangler tail`) and is allowed. The `X-YT-Series-Client` token ships in the bundle and is only a scanner filter |
 | Worker abuse | `RATE_LIMITER` binding (atomic, per `CF-Connecting-IP`), KV daily counter fallback; no client cache bypass |
 | Worker errors | Upstream bodies reduced to `{ error: { code, errors: [{ reason }] } }`; no messages, stack or key |
-| Extension messaging | Router authorises by sender context; youtube.com content scripts get 7 routes only |
+| Extension messaging | Router authorises by sender context; youtube.com content scripts get 10 routes only. `externally_connectable` admits only `lorenzoprincigalli.github.io/YtSeries/*`, and `onMessageExternal` accepts only a validated `SHARE_OPEN` from `share.html` |
+| Shared lists | Encoded in the link fragment (never sent to a server); `shareCodec.decodeShare` validates ids/lengths and caps size and decompression |
 | Firebase Auth | Google OAuth via `chrome.identity.getAuthToken`, exchanged for Firebase token |
 | API key (YouTube) | Stored as Cloudflare Worker secret, never in extension |
 | API key (Firebase) | In `src/shared/firebase.config.js` — gitignored, loaded at runtime via `fetch()` |

@@ -22,7 +22,7 @@
 </head>
 <body>
   <h1>Privacy Policy</h1>
-  <p><strong>Last updated:</strong> May 28, 2026 (Cloud Sync section)</p>
+  <p><strong>Last updated:</strong> October 23, 2026 (episode notes, shared lists)</p>
 
   <h2>Overview</h2>
   <p>YT Series ("the Extension") lets you manage YouTube playlists as TV series with progress tracking. This policy explains what data the Extension collects, how it is used, and your rights.</p>
@@ -31,8 +31,8 @@
   <h3>Stored Locally (chrome.storage)</h3>
   <p>All data is stored locally in your browser using Chrome's <code>storage.local</code> and <code>storage.sync</code> APIs:</p>
   <ul>
-    <li><strong>Series data:</strong> playlist IDs, titles, thumbnails, channel info, video metadata, and your watched/progress state for each episode</li>
-    <li><strong>Settings:</strong> theme preference, language, auto-refresh toggle, last refresh timestamp</li>
+    <li><strong>Series data:</strong> playlist IDs, titles, thumbnails, channel info, video metadata, your watched/progress state for each episode, the episodes you excluded from progress, and the timestamped notes you write</li>
+    <li><strong>Settings:</strong> theme preference, language, new episode notification toggle, weekly episode goal, last refresh timestamp</li>
 
   </ul>
   <p>By default, the Extension does not collect your name or email. Optional Cloud Sync (see below) uses your Google account only when you sign in.</p>
@@ -40,10 +40,13 @@
   <h3>Cloud Sync (optional, Firebase)</h3>
   <p>If you choose <strong>Sign in with Google</strong> in Settings, the Extension syncs series progress and minimal playlist metadata to <strong>Google Firebase Firestore</strong> (EU region when configured as <code>europe-west</code>). Data is stored under your Firebase user ID and protected by security rules so only you can read or write your documents.</p>
   <ul>
-    <li><strong>Synced:</strong> playlist IDs, titles, thumbnails, channel names, episode watch progress</li>
+    <li><strong>Synced:</strong> playlist IDs, titles, thumbnails, channel names, episode watch progress, excluded episodes, your episode notes</li>
     <li><strong>Not synced to Firebase:</strong> theme/language settings (Chrome sync), full YouTube video catalogs (refetched from YouTube API on each device)</li>
   </ul>
   <p>You can sign out at any time. Resetting all data in Settings also removes your remote series documents and signs you out.</p>
+
+  <h3>Shared lists (optional)</h3>
+  <p>When you share a series or a collection, the list is written into the link itself: playlist IDs, titles, channel names, a cover video ID and the number of episodes — public YouTube information only, never your progress or notes. No server stores the list. The share page (<code>lorenzoprincigalli.github.io</code>) decodes it in the browser of whoever opens the link; the part of the link after <code>#</code> is never sent to any server, including the one hosting the page. That page can only ask the Extension to open its import screen: nothing is added to a library without the user confirming it.</p>
 
   <h3>YouTube Data API</h3>
   <p>When you add a playlist or search YouTube, the Extension sends requests to the <strong>YouTube Data API v3</strong> using your API key. These requests fetch public playlist metadata, video lists, and search results. No authentication is used—only public data is accessed.</p>
@@ -52,10 +55,11 @@
   <p>The Extension communicates externally only with:</p>
   <ul>
     <li><code>www.googleapis.com</code> – YouTube Data API requests</li>
-    <li><code>shy-snowflake-0680.lollo-princigalli.workers.dev</code> – YouTube API proxy (transparent relay, no data logged or stored)</li>
+    <li><code>shy-snowflake-0680.lollo-princigalli.workers.dev</code> – YouTube API proxy (relays playlist, video and search requests; responses are cached without any user identifier)</li>
     <li><code>identitytoolkit.googleapis.com</code>, <code>securetoken.googleapis.com</code>, <code>firestore.googleapis.com</code> – Cloud Sync only, when you are signed in</li>
+    <li><code>lorenzoprincigalli.github.io</code> – the share page, only when you open a share link (the list stays in the link)</li>
   </ul>
-  <p>No analytics, no advertising trackers, and no third-party scripts in the Extension UI. The Cloudflare Worker relay does not log or store personal data.</p>
+  <p>No analytics, no advertising trackers, and no third-party scripts in the Extension UI. The Cloudflare Worker relay does not log or store personal data. To prevent abuse it counts requests per client using a <strong>salted one-way hash</strong> of the connecting IP address; the IP itself is never stored, and the counters expire automatically within 24 hours.</p>
 
   <h2>Data Retention & Deletion</h2>
   <p>All data persists in <code>chrome.storage</code> until you either:</p>
@@ -73,7 +77,8 @@
     <li><strong>notifications</strong> – needed to alert you when new episodes are found</li>
     <li><strong>tabs</strong> – needed to open the Extension's tab interface</li>
     <li><strong>identity</strong> – needed for optional Google sign-in (Cloud Sync)</li>
-    <li><strong>youtube.com</strong> – needed to inject the sidebar shortcut on YouTube pages</li>
+    <li><strong>scripting</strong> – needed to refresh the YouTube integration in already-open YouTube tabs after the Extension is installed or updated</li>
+    <li><strong>youtube.com</strong> – needed for the sidebar shortcut, the "Add to Series" button, the "Next Episode" overlay and episode progress tracking on YouTube pages</li>
     <li><strong>googleapis.com</strong> – needed for YouTube Data API requests</li>
     <li><strong>shy-snowflake-0680.lollo-princigalli.workers.dev</strong> – needed to relay YouTube API requests without exposing your API key</li>
   </ul>

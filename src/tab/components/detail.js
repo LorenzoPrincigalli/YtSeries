@@ -159,7 +159,7 @@ export class DetailView {
             series.completed ? t('mark_incomplete') : t('mark_complete')),
           h('button', { type: 'button', class: 'btn-secondary', title: t('refresh'), 'aria-label': t('refresh'), onClick: event => this.refresh(series, event.currentTarget) }, '↻'),
           folderButton,
-          h('button', { type: 'button', class: 'btn-secondary', title: t('share'), 'aria-label': t('share_series_named', { title: series.title }), onClick: () => shareSeries(series.title, [series]) }, svg('share')),
+          h('button', { type: 'button', class: 'btn-secondary detail-share-btn', title: t('share'), 'aria-label': t('share_series_named', { title: series.title }), onClick: () => shareSeries(series.title, [series]) }, svg('share')),
           h('button', { type: 'button', class: 'btn-secondary text-error', title: t('delete'), 'aria-label': t('delete'), onClick: () => this.confirmDelete(series) }, svg('trash')))))
   }
 

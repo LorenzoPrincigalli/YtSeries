@@ -491,8 +491,10 @@ body::before {
 .folder-icon-btn { width: 34px; height: 34px; padding: 7px; border: 1px solid var(--border); border-radius: 50%; color: var(--text-muted); background: transparent; cursor: pointer; }
 .folder-icon-btn:hover, .folder-icon-btn.assigned { color: var(--primary); border-color: var(--primary); background: color-mix(in srgb, var(--primary) 12%, transparent); }
 .folder-icon-btn svg { display: block; width: 100%; height: 100%; }
-.detail-actions .text-error { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 7px; }
-.detail-actions .text-error svg { display: block; width: 100%; height: 100%; }
+.detail-actions .text-error,
+.detail-actions .detail-share-btn { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 7px; }
+.detail-actions .text-error svg,
+.detail-actions .detail-share-btn svg { display: block; width: 100%; height: 100%; }
 .folder-picker { position: fixed; z-index: var(--z-popover); width: min(290px, calc(100vw - 24px)); padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--modal-bg); box-shadow: 0 18px 45px rgba(0,0,0,.38); }
 .folder-picker strong { display: block; margin: 2px 2px 8px; font-size: 13px; }
 .folder-picker-option { display: block; width: 100%; padding: 8px; border: 0; border-radius: 4px; color: var(--text); background: transparent; text-align: left; cursor: pointer; }

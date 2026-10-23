@@ -9,7 +9,7 @@ const DAY = 86_400_000
  * orders the hero (most recently added series in progress first).
  */
 const LIBRARY = [
-  { playlistId: 'PL50KW6aT4UgzeTkqx8arOeJp4MtgpIEn2', collection: 'Documentaries', watched: 3, inProgress: 42, addedDaysAgo: 1, lastWatchedDaysAgo: 0, newEpisodes: 2 }, // BBC Earth — Planet Earth III
+  { playlistId: 'PL50KW6aT4UgzeTkqx8arOeJp4MtgpIEn2', collection: 'Documentaries', watched: 5, inProgress: 42, addedDaysAgo: 1, lastWatchedDaysAgo: 0, newEpisodes: 2 }, // BBC Earth — Planet Earth III
   { playlistId: 'PL7rb3uMaYmjHqT_JUcQYCBa4nEtfDKuSa', collection: 'Documentaries', watched: 5, inProgress: 65, addedDaysAgo: 6, lastWatchedDaysAgo: 1 }, // WWF UK — Our Planet
   { playlistId: 'PLAhTBeRe8IhMmRve_rSfAgL_dtEXkKh8Z', collection: 'Documentaries', watched: 0, inProgress: 0, addedDaysAgo: 3 }, // LEMMiNO — Documentaries
   { playlistId: 'PLFs4vir_WsTwEd-nJgVJCZPNL3HALHHpF', collection: 'Science', watched: 12, inProgress: 30, addedDaysAgo: 9, lastWatchedDaysAgo: 2 }, // Kurzgesagt — The Universe
@@ -21,8 +21,15 @@ const LIBRARY = [
   { playlistId: 'PLirGII1_qwvv3bV-eNIAE2NuFMsVYQTDD', collection: 'Food & Travel', watched: 0, inProgress: 0, addedDaysAgo: 4, newEpisodes: 3 } // Kara and Nate — 2026 Travel Vlogs
 ]
 
-/** Series the screenshots open by id. */
+/** Channels followed as series (Upcoming view): Veritasium, Kurzgesagt. */
+const CHANNELS = ['UCHnyfMqiRRG1u-2MsSQLbXA', 'UCsXVk37bltHxD1rDPwtNM8Q']
+
+/** Series the screenshots open by id, and the notes shown in its detail (episode index, seconds, text). */
 const HERO_ID = LIBRARY[0].playlistId
+const HERO_NOTES = [
+  [2, 72, 'Hans Zimmer recorded the theme with Bastille: listen for the choir at the end'],
+  [3, 125, 'Raine Island: up to 64,000 green turtles nest here in one season']
+]
 
 /**
  * Applies the staged viewing state to the series the extension fetched.
@@ -46,7 +53,8 @@ function stageLibrary(seriesMap, now = Date.now(), plans = LIBRARY) {
         watched,
         progress: watched ? 100 : inFlight ? plan.inProgress : 0,
         resumeTime: inFlight ? Math.round(duration * plan.inProgress / 100) : 0,
-        watchedAt: watched ? seenAt - (watchedUntil - i) * 3_600_000 : null,
+        // One episode every two days, ending at the last session: a realistic pace and streak.
+        watchedAt: watched ? seenAt - (watchedUntil - 1 - i) * 2 * DAY : null,
         lastWatchedAt: watched || inFlight ? seenAt : null,
         totalWatchedTime: watched ? duration : 0
       }
@@ -64,4 +72,4 @@ function stageLibrary(seriesMap, now = Date.now(), plans = LIBRARY) {
   return staged
 }
 
-export { LIBRARY, HERO_ID, stageLibrary }
+export { LIBRARY, CHANNELS, HERO_ID, HERO_NOTES, stageLibrary }

@@ -4,17 +4,20 @@
 
 | Path | Responsibility |
 |------|----------------|
-| `app.js` | Bootstrap only: subscribes renderers to the store, wires features, deep links (`?settings=1`, `?series=<id>`) |
-| `core/store.js` | Read-only mirror of server state + UI state (`section`, `filter`, `collection`, `search*`, `recommended`, `detailId`); renders coalesced per animation frame |
+| `app.js` | Bootstrap only: subscribes renderers to the store, wires features, deep links (`?settings=1`, `?series=<id>`, `#import=<shared list>`) |
+| `core/store.js` | Read-only mirror of server state + UI state (`section` home/saved/schedule, `filter`, `collection`, `search*`, `recommended`, `detailId`); renders coalesced per animation frame |
 | `core/api.js` | `send()` (never rejects) / `request()` (throws `AppError` on `success:false`) |
 | `core/errorBoundary.js` | `safeRender()` fallback with Retry, `guarded()` for handlers, global error handlers |
 | `actions.js` | All user intents → background commands; applies returned `state`, shows translated error toasts |
 | `seriesView.js` | Pure derivations (filters, sort, hero, this-week, progress, URLs) — unit-tested |
-| `views/home.js` | Main area: home rows, search results, saved library |
+| `views/home.js` | Main area: home rows (with the "This week" strip), search results, saved library |
+| `views/schedule.js` | Upcoming: expected releases (`releaseForecast`) for the next 7 days, late, later, and episodes out in the last week |
 | `components/cards.js` | Cards, carousel rows, hero carousel, channel results |
-| `components/detail.js` | Series dialog (re-renders from store; keeps scroll/sort), folder picker, channel dialog |
+| `components/detail.js` | Series dialog (re-renders from store; keeps scroll/sort): time left / finish estimate, trailer suggestion, exclude toggles, notes, share, folder picker, channel dialog with "Follow as series" |
+| `components/notes.js` | Episode notes in the detail: grouped list, inline edit, delete, Markdown export |
+| `components/weekStrip.js` | Home "This week": weekly goal, day streak, time watched |
 | `components/collections.js`, `collectionEditor.js` | Collection shelf and editor dialog |
-| `features/*` | Header/search, activity bell, settings (sync, backups, import/export, reset, dev), add-playlist, footer dialogs, collection management |
+| `features/*` | Header/search, activity bell, settings (goals, sync, backups, import/export, reset, dev), add-playlist (playlist, channel or share links), footer dialogs, collection management, `share.js` (copy a share link, import preview) |
 | `ui/modal.js` | Accessible modals (focus trap, Escape, focus restore) and `confirmDialog()` |
 | `ui/feedback.js` | Toasts (`role=status`) and `errorMessage(code)` |
 | `theme.js`, `i18nDom.js` | `data-theme` switch (colours live in CSS); declarative `data-i18n` / `data-i18n-attr` translation |
@@ -41,6 +44,13 @@ Server state is never patched locally. A command's response `state` (or the foll
 ## Collections, activity, backups
 
 Behaviour unchanged from 1.1: collections are whole-series assignments synced with the series; the bell shows up to 100 local activity entries and marks them read via `ACTIVITY_MARK_READ`; five automatic backups (before delete/import/restore/reset) are listed under Settings → Reset Data.
+
+## 1.3 progress tools
+
+- **Excluded episodes** stay listed (dimmed) but never count: progress, time left, next episode, milestones. Trailers/teasers are suggested once per series and session.
+- **Time left / finish estimate**: `timeLeft` and `finishEstimate` from `src/shared/seriesStats.js`; the estimate appears only when the series has a recent pace (≥ 2 episodes in 21 days).
+- **Goal and milestones**: `settings.weeklyGoal` (Settings → Goals); `EPISODE_WATCH` returns the milestone crossed, celebrated by `actions.celebrate`.
+- **Sharing**: `shareCodec` encodes the list in the link (`share.html#d=…`); importing re-adds playlists with `PLAYLIST_ADD` (concurrency 2) and optionally files them with `COLLECTION_MOVE`.
 
 ## Search
 

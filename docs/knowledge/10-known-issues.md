@@ -1,6 +1,6 @@
 # Known issues and backlog
 
-> Last updated: 22 October 2026 (enterprise refactor, branch `refactor/enterprise`)
+> Last updated: 23 October 2026 (1.3.0 features)
 
 ## Fixed in the refactor
 
@@ -28,6 +28,10 @@
 | 🟡 | Circuit-breaker state is per service-worker lifetime (not persisted across suspension) |
 | 🟡 | Content-script overlay path is covered by manual testing only (needs a playable stub video) |
 | 🟢 | `components/collections.js` and `collectionEditor.js` still use raw `createElement` (safe, but not yet on `h()`) |
+| 🟡 | Followed channels rely on YouTube's undocumented `UULF…` (long-form uploads) playlist; `UU…` (with Shorts) is the fallback if it disappears |
+| 🟡 | A 1.2 client rewriting a series document drops its `notes` field (PATCH replaces the document) until it auto-updates to 1.3 |
+| 🟡 | Progress overlay and notes bar depend on YouTube selectors (`youtubeDom.js`); covered by stubbed-page E2E only, verify on real YouTube after redesigns |
+| 🟢 | Release forecasts use the date a video entered the playlist (`snippet.publishedAt`); playlists curated long after upload forecast poorly and are hidden (bulk additions < 12 h apart are ignored) |
 
 ## Pre-publish
 

@@ -34,7 +34,10 @@ C = callable from the content script.
 |------|---|---------|----------|
 | `STATE_GET` | | — | `{ success, state, syncStatus }` |
 | `CONTENT_SETTINGS_GET` | only | — | `{ success, settings: { nextEpisodeOverlay, language } }` |
-| `PLAYLIST_ADD` | ✓ | `{ url ≤ 2048 }` | `{ success, series }` |
+| `CONTENT_VIDEO_SERIES` | only | `{ videoId, playlistId? }` | `{ success, saved }` (notes bar on YouTube) |
+| `CONTENT_SERIES_PROGRESS` | only | `{ playlistId }` | `{ success, saved, total, watchedCount, timeLeft, videos: { [id]: { w, p, r, x } } }` (one playlist only) |
+| `PLAYLIST_ADD` | ✓ | `{ url ≤ 2048 }` — playlist link, or channel link (`/channel/UC…`, `/@handle`) | `{ success, series }` |
+| `CHANNEL_FOLLOW` | | `{ channelId }` | `{ success, series }` (uploads playlist `UULF…`, fallback `UU…`) |
 | `PLAYLIST_EXISTS` | ✓ | `{ playlistId }` | `{ success, exists }` |
 | `SERIES_REFRESH` | | `{ playlistId }` | `{ success, series }` |
 | `SERIES_DELETE` | | `{ playlistId }` | `{ success, deletedSeries }` (backup taken first) |
@@ -47,10 +50,13 @@ C = callable from the content script.
 | `COLLECTION_UNDO` | | `{ token }` | `{ success, state, restored, skipped }` or `UNDO_EXPIRED` |
 | `COLLECTION_DELETE` | | `{ name }` | `{ success, state }` |
 | `ACTIVITY_MARK_READ` | | `{ through: int ≥ 0 }` | `{ success, activityReadAt }` |
-| `EPISODE_WATCH` / `EPISODE_UNWATCH` | ✓ / | `{ videoId, playlistId? (hint) }` | `{ success, state }` |
+| `EPISODE_WATCH` / `EPISODE_UNWATCH` | ✓ / | `{ videoId, playlistId? (hint) }` | `{ success, state, milestone: { percent, title } | null }` (25/50/75/100 % crossed) |
+| `EPISODE_EXCLUDE` | | `{ playlistId, videoIds (1–500), excluded }` | `{ success, changed, state }` |
+| `NOTE_ADD` | ✓ | `{ videoId, playlistId? (hint), time, text 1–1000 }` | `{ success, noteId, playlistId }` (no state: also called from YouTube) |
+| `NOTE_UPDATE` / `NOTE_DELETE` | | `{ playlistId, noteId, text }` / `{ playlistId, noteId }` | `{ success, state }` |
 | `EPISODE_PROGRESS` | ✓ | `{ videoId, playlistId?, progress 0–100, currentTime, duration }` | `{ success }` (persisted) |
 | `GET_NEXT_EPISODE` | ✓ | `{ videoId, playlistId }` | `{ success, nextEpisode }` |
-| `SETTINGS_UPDATE` | | `{ theme?, language?, autoRefresh?, nextEpisodeOverlay? }` | `{ success, settings }` |
+| `SETTINGS_UPDATE` | | `{ theme?, language?, autoRefresh?, nextEpisodeOverlay?, weeklyGoal? (0–50) }` | `{ success, settings }` |
 | `SET_ICON_THEME` | | `{ suffix: '' \| '_light' }` | `{ success }` |
 | `OPEN_SERIES_TAB` | ✓ | — | `{ success }` |
 | `PLAYLIST_SEARCH` | | `{ query 1–200 }` | `{ success, playlists, channels }`; `RATE_LIMITED` within 3 s |
@@ -63,7 +69,11 @@ C = callable from the content script.
 | `LOAD_DEMO_DATA` | | — | `{ success, count }`; `NOT_IN_DEV_MODE` once `EXTENSION_ID` is set |
 | `RELOAD_STATE` | | — | `{ success, state }` |
 
-`EPISODE_*` accept a stale or foreign `playlistId`: `store.resolvePlaylistForVideo` falls back to the playlist that actually contains the video.
+`EPISODE_*` and `NOTE_ADD` accept a stale or foreign `playlistId`: `store.resolvePlaylistForVideo` falls back to the playlist that actually contains the video.
+
+### External messages (share page)
+
+`chrome.runtime.onMessageExternal` accepts exactly one message, only from `https://lorenzoprincigalli.github.io/YtSeries/share.html` (manifest `externally_connectable`): `{ type: SHARE_OPEN, data }`. The service worker validates `data` with `decodeShare` (`src/shared/shareCodec.js`) and opens the dashboard on `#import=<data>`; the user confirms the import there. Everything else gets `FORBIDDEN`.
 
 ## Error codes
 
@@ -75,6 +85,8 @@ C = callable from the content script.
 | `INIT_FAILED` / `STATE_UNAVAILABLE` | Service worker could not initialise |
 | `NETWORK_ERROR`, `NETWORK_TIMEOUT`, `API_UNAVAILABLE`, `RATE_LIMITED`, `QUOTA_EXCEEDED`, `CIRCUIT_OPEN` | YouTube/Worker failures (`retryable` where transient) |
 | `PLAYLIST_NOT_FOUND`, `INVALID_URL`, `SERIES_NOT_FOUND`, `VIDEO_NOT_FOUND` | Domain lookups |
+| `NOTES_LIMIT`, `NOTE_NOT_FOUND` | Episode notes (300 active per series) |
+| `INVALID_SHARE` | Share link that does not decode or validate |
 | `COLLECTION_EXISTS`, `INVALID_COLLECTION*`, `INVALID_COVER`, `UNDO_EXPIRED` | Collections |
 | `INVALID_BACKUP`, `BACKUP_NOT_FOUND`, `STORAGE_*` | Library/storage |
 | `ACCOUNT_CHANGED`, `SYNC_*`, `FIRESTORE_*`, `AUTH_*` | Cloud Sync |

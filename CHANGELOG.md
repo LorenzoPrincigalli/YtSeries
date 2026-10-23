@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.3.0] - 2026-10-23
+
+### Added
+- Progress on YouTube: playlist pages show "YT Series · watched/total · time left"; playlist items (page and watch-page panel) get watched badges, progress bars and dimmed excluded episodes
+- Time left on cards, hero and detail; finish estimate from the series' recent pace
+- Exclude episodes from progress (synced), with a one-click suggestion for trailers and teasers
+- Follow channels as series: latest 100 long-form uploads (UULF playlist, UU fallback), from search, the channel dialog or a channel link in "Add via link"
+- Upcoming view: expected releases for the next 7 days from each series' rhythm, late and later ones, and episodes out in the last week
+- Weekly episode goal (Settings → Goals), day streak and time watched on the home page; 25/50/75/100 % milestones celebrated in the dashboard and on YouTube
+- Timestamped episode notes taken on YouTube, synced with Cloud Sync, listed in the detail and exportable as Markdown
+- Shareable lists: a series or a collection as a link (encoded in the URL, no server); share.html on GitHub Pages and an import preview in the dashboard
+
+### Changed
+- Worker: allowlisted channels endpoint (channel id or @handle)
+- Firestore rules: optional notes map (≤ 400 entries)
+- manifest: externally_connectable for the share page only
+- New episodes are counted by new video ids (fixed-size channel windows)
+
 ## [1.2.0] - 2026-10-23
 
 ### Changed

@@ -17,9 +17,15 @@ const artifacts = process.env.E2E_ARTIFACTS || await mkdtemp(join(tmpdir(), 'yts
 await mkdir(artifacts, { recursive: true })
 const axeSource = await readFile(join(root, 'node_modules', 'axe-core', 'axe.min.js'), 'utf8')
 const WORKER = 'https://shy-snowflake-0680.lollo-princigalli.workers.dev'
+const SHARE_SITE = 'https://lorenzoprincigalli.github.io/YtSeries'
 
 // ── YouTube Worker fixtures ──────────────────────────────────────────────
 const RECENT = new Date(Date.now() - 2 * 86_400_000).toISOString()
+const CHANNEL = 'UCgreatchannel0000000001'
+// A followed channel uploads weekly: newest first, like YouTube's uploads playlists.
+const weeklyUploads = playlistId => [0, 1, 2, 3, 4, 5].map(week => ({
+  snippet: { title: `Upload ${6 - week}`, position: week, publishedAt: new Date(Date.now() - (week * 7 + 1) * 86_400_000).toISOString(), resourceId: { videoId: `${playlistId.slice(-5)}up${6 - week}` }, thumbnails: thumb(`up${week}`) }
+}))
 const thumb = id => ({ high: { url: `https://i.ytimg.com/vi/${id}/hqdefault.jpg` } })
 const videoIds = playlistId => [1, 2, 3].map(n => `${playlistId.slice(-6)}vid${n}`)
 let apiMode = 'ok' // 'ok' | 'down' | 'quota'
@@ -31,7 +37,7 @@ function fixture(url) {
   if (endpoint === 'search') {
     return { items: [
       { id: { kind: 'youtube#playlist', playlistId: 'PLsearch0001' }, snippet: { title: 'Search Result Series', channelTitle: 'Search Chan', channelId: 'UCsearch', thumbnails: thumb('s1') } },
-      { id: { kind: 'youtube#channel' }, snippet: { channelId: 'UCchannel01', title: 'Great Channel', description: 'A channel', thumbnails: thumb('c1') } }
+      { id: { kind: 'youtube#channel' }, snippet: { channelId: CHANNEL, title: 'Great Channel', description: 'A channel', thumbnails: thumb('c1') } }
     ] }
   }
   if (endpoint === 'playlists' && q.get('channelId')) {
@@ -40,9 +46,15 @@ function fixture(url) {
   if (endpoint === 'playlists') {
     const id = q.get('id')
     if (id === 'PLmissing000') return { items: [] }
+    if (id.startsWith('UU')) return { items: [{ id, snippet: { title: 'Videos', channelTitle: 'Great Channel', channelId: CHANNEL, thumbnails: thumb(id) }, contentDetails: { itemCount: 6 } }] }
     return { items: [{ id, snippet: { title: `Playlist ${id}`, description: 'Fixture playlist', channelTitle: 'Fixture Channel', channelId: 'UCfixture01', thumbnails: thumb(id) }, contentDetails: { itemCount: 3 } }] }
   }
   if (endpoint === 'playlistItems') {
+    if (q.get('playlistId').startsWith('UU')) return { items: weeklyUploads(q.get('playlistId')) }
+    // PLtrailer001 opens with a trailer, to exercise the "exclude trailers?" suggestion.
+    if (q.get('playlistId') === 'PLtrailer001') {
+      return { items: ['Official Trailer', 'Episode 1', 'Episode 2'].map((title, position) => ({ snippet: { title, position, publishedAt: RECENT, resourceId: { videoId: `trailervid0${position}` }, thumbnails: thumb(`t${position}`) } })) }
+    }
     return { items: videoIds(q.get('playlistId')).map((videoId, position) => ({ snippet: { title: `Episode ${position + 1} of ${q.get('playlistId')}`, position, publishedAt: RECENT, resourceId: { videoId }, thumbnails: thumb(videoId) } })) }
   }
   if (endpoint === 'videos') return { items: q.get('id').split(',').map(id => ({ id, contentDetails: { duration: 'PT3M20S' } })) }
@@ -536,6 +548,169 @@ await step('bug report validates empty text', async () => {
   await page.click('#bugReportSend')
   assert(await page.isVisible('#bugReportError'), 'no validation message')
   await page.keyboard.press('Escape')
+})
+
+console.log('\nProgress tools: exclusions, time left, goals, notes')
+await step('trailer suggestion excludes trailers; time left is shown', async () => {
+  await send('PLAYLIST_ADD', { url: 'https://www.youtube.com/playlist?list=PLtrailer001' })
+  await page.goto(`${DASH}?series=PLtrailer001`)
+  await page.waitForSelector('#detailModal:not(.hidden) .detail-suggestion')
+  await page.click('.detail-suggestion .btn-primary')
+  await page.waitForSelector('.episode-card.episode-excluded')
+  assert(await page.locator('.detail-suggestion').count() === 0, 'suggestion still shown after excluding')
+  assert(/2 episodes · 0\/2 Watched.*1 excluded/.test(await page.textContent('.detail-meta-row')), `meta: ${await page.textContent('.detail-meta-row')}`)
+  assert(/7 min left/.test(await page.textContent('.detail-pace-row')), `pace: ${await page.textContent('.detail-pace-row')}`)
+  const trailer = (await state()).series.PLtrailer001.videos[0]
+  assert(trailer.excluded === true, 'trailer not excluded in the library')
+})
+await step('a milestone is celebrated when an episode crosses it', async () => {
+  await clearToasts()
+  await page.click('.episode-card[data-video-id="trailervid01"] .episode-status')
+  assert(/50% of Playlist PLtrailer001/.test(await toastText()), 'no 50% milestone toast')
+  await page.keyboard.press('Escape')
+})
+await step('weekly goal: set in Settings, shown on the home strip', async () => {
+  await settingsSection('goals')
+  await page.selectOption('#weeklyGoalSelect', '3')
+  await page.waitForFunction(() => new Promise(r => chrome.runtime.sendMessage({ type: 'STATE_GET' }, res => r(res.state.settings.weeklyGoal === 3))))
+  await page.keyboard.press('Escape')
+  await goHome()
+  await page.waitForSelector('.week-strip')
+  assert(/\d+\/3 episodes/.test(await page.textContent('.week-strip-count')), `strip: ${await page.textContent('.week-strip-count')}`)
+  assert(/1-day streak/.test(await page.textContent('.week-strip')), 'streak missing')
+})
+
+console.log('\nYouTube: notes and progress overlay (stubbed youtube.com)')
+const ytPage = body => `<!doctype html><html><body>
+  <ytd-guide-section-renderer></ytd-guide-section-renderer><ytd-guide-section-renderer></ytd-guide-section-renderer>${body}</body></html>`
+await step('a note taken on YouTube appears in the detail and exports as Markdown', async () => {
+  await context.route(url => new URL(url).searchParams.get('v') === 'trailervid02', route => route.fulfill({ status: 200, contentType: 'text/html', body: ytPage(`
+    <video class="video-stream html5-main-video"></video>
+    <ytd-watch-metadata><div id="title"><h1>Episode 2</h1></div></ytd-watch-metadata>`) }))
+  const yt = await context.newPage()
+  watchErrors(yt, 'youtube-notes')
+  await yt.goto('https://www.youtube.com/watch?v=trailervid02&list=PLtrailer001')
+  await yt.waitForSelector('.yt-series-note-btn')
+  await yt.click('.yt-series-note-btn')
+  await yt.fill('.yt-series-note-input', 'Remember this scene')
+  // YouTube's single-key shortcuts listen on the document: typing must not reach them.
+  const leaked = await yt.evaluate(() => {
+    let seen = false
+    document.addEventListener('keydown', () => { seen = true }, { once: true })
+    document.querySelector('.yt-series-note-input').dispatchEvent(new KeyboardEvent('keydown', { key: 'k', bubbles: true }))
+    return seen
+  })
+  assert(!leaked, 'keystrokes reach YouTube shortcuts')
+  await yt.press('.yt-series-note-input', 'Control+Enter')
+  await yt.waitForSelector('.yt-series-toast')
+  await yt.close()
+  await page.goto(`${DASH}?series=PLtrailer001`)
+  await page.waitForSelector('#detailModal:not(.hidden) .note-row')
+  assert(/Remember this scene/.test(await page.textContent('.note-row .note-text')), 'note not listed')
+  const [download] = await Promise.all([page.waitForEvent('download'), page.click('.detail-notes .btn-secondary')])
+  const markdown = await readFile(await download.path(), 'utf8')
+  assert(markdown.includes('# Playlist PLtrailer001') && markdown.includes('Remember this scene') && markdown.includes('watch?v=trailervid02'), `markdown: ${markdown}`)
+  await page.keyboard.press('Escape')
+})
+await step('playlist page shows series progress, watched badges and excluded episodes', async () => {
+  const items = ['trailervid00', 'trailervid01', 'trailervid02'].map(id => `
+    <ytd-playlist-video-renderer><a id="thumbnail" href="/watch?v=${id}&list=PLtrailer001"><ytd-thumbnail style="position:relative;display:block;width:120px;height:68px"></ytd-thumbnail></a></ytd-playlist-video-renderer>`).join('')
+  await context.route(url => new URL(url).pathname === '/playlist' && new URL(url).searchParams.get('list') === 'PLtrailer001', route => route.fulfill({ status: 200, contentType: 'text/html', body: ytPage(`
+    <yt-page-header-view-model><div class="ytPageHeaderViewModelScrollContainer"><button>Play all</button></div></yt-page-header-view-model>${items}`) }))
+  const yt = await context.newPage()
+  watchErrors(yt, 'youtube-progress')
+  await yt.goto('https://www.youtube.com/playlist?list=PLtrailer001')
+  await yt.waitForSelector('.yt-series-progress-summary')
+  assert(/1\/2 watched/.test(await yt.textContent('.yt-series-progress-summary')), `summary: ${await yt.textContent('.yt-series-progress-summary')}`)
+  await yt.waitForSelector('ytd-playlist-video-renderer:nth-of-type(2) .yt-series-item-badge')
+  assert(await yt.getAttribute('ytd-playlist-video-renderer:nth-of-type(1)', 'data-yt-series-excluded') === 'true', 'trailer not dimmed')
+  assert(await yt.locator('.yt-series-item-badge').count() === 1, 'wrong number of watched badges')
+  // Watching another episode elsewhere updates the page.
+  await send('EPISODE_WATCH', { playlistId: 'PLtrailer001', videoId: 'trailervid02' })
+  await yt.waitForFunction(() => document.querySelectorAll('.yt-series-item-badge').length === 2, null, { timeout: 5000 })
+  await yt.close()
+})
+
+console.log('\nChannels and Upcoming')
+await step('follow a channel from search as a series of its latest uploads', async () => {
+  await goHome()
+  await page.waitForTimeout(3100) // server-side search cooldown
+  await page.fill('#searchInput', 'great')
+  await page.press('#searchInput', 'Enter')
+  await page.waitForSelector('.channel-follow-btn')
+  await clearToasts()
+  await page.click('.channel-follow-btn')
+  assert(/Following Great Channel/.test(await toastText()), 'no follow toast')
+  const followed = (await state()).series[`UULF${CHANNEL.slice(2)}`]
+  assert(followed && followed.title === 'Great Channel' && followed.videos[0].title === 'Upload 1', 'channel series wrong')
+  await page.waitForFunction(() => document.querySelector('.channel-follow-btn')?.disabled)
+  await page.click('#searchClear')
+})
+await step('Upcoming shows the expected next upload of a followed channel', async () => {
+  await page.click('.nav-link[data-view="schedule"]')
+  await page.waitForSelector('.schedule-view')
+  assert(/Great Channel/.test(await page.textContent('.schedule-week')), 'channel forecast missing from the week')
+  assert(/every ~7 days/.test(await page.textContent('.schedule-week')), 'rhythm not shown')
+  assert(await page.getAttribute('.nav-link[data-view="schedule"]', 'aria-current') === 'page', 'nav not marked current')
+})
+await step('a11y: Upcoming', () => axe('upcoming'))
+
+console.log('\nShareable lists')
+await step('share a collection, open the link, import the list', async () => {
+  await context.route(`${SHARE_SITE}/**`, async route => {
+    const path = new URL(route.request().url()).pathname.replace('/YtSeries/', '')
+    const types = { html: 'text/html', js: 'text/javascript', png: 'image/png', woff2: 'font/woff2' }
+    try {
+      await route.fulfill({ status: 200, contentType: types[path.split('.').pop()] || 'application/octet-stream', body: await readFile(join(root, path)) })
+    } catch {
+      await route.fulfill({ status: 404, body: '' })
+    }
+  })
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  await send('COLLECTION_MOVE', { ids: ['PLtrailer001'], destination: 'Shared picks' })
+  await page.click('.nav-link[data-view="saved"]')
+  await page.click('.collection-tile[data-collection="Shared picks"]')
+  await clearToasts()
+  await page.click('text=Share collection')
+  assert(/Share link copied/.test(await toastText()), 'no copy toast')
+  const link = await page.evaluate(() => navigator.clipboard.readText())
+  assert(link.startsWith(`${SHARE_SITE}/share.html#d=`), `link: ${link}`)
+
+  await send('SERIES_DELETE', { playlistId: 'PLtrailer001' })
+  const site = await context.newPage()
+  watchErrors(site, 'share-page')
+  await site.goto(link)
+  await site.waitForSelector('.card')
+  assert(/Shared picks/.test(await site.textContent('h1')), 'list name missing on the share page')
+  const [dashboard] = await Promise.all([context.waitForEvent('page'), site.click('text=Open in YT Series')])
+  watchErrors(dashboard, 'dashboard-import')
+  await dashboard.waitForSelector('#shareImportModal:not(.hidden) .share-row')
+  assert(!/#import/.test(dashboard.url()), 'import fragment left in the address bar')
+  await dashboard.click('#shareImportModal .btn-primary')
+  await dashboard.waitForSelector('#shareImportModal', { state: 'detached', timeout: 15000 })
+  const restored = (await state()).series.PLtrailer001
+  assert(restored && restored.collection === 'Shared picks', 'list not imported into its collection')
+  await dashboard.close()
+  await site.close()
+})
+await step('a pasted share link opens the same import preview; forged links are refused', async () => {
+  const link = await page.evaluate(() => navigator.clipboard.readText())
+  await page.click('#addPlaylistBtn')
+  await page.fill('#playlistUrlInput', link)
+  await page.click('#addPlaylistConfirm')
+  await page.waitForSelector('#shareImportModal:not(.hidden) .share-row.is-saved')
+  await page.keyboard.press('Escape')
+  await page.click('#addPlaylistBtn')
+  await page.fill('#playlistUrlInput', `${SHARE_SITE}/share.html#d=forged-garbage`)
+  await clearToasts()
+  await page.click('#addPlaylistConfirm')
+  assert(/invalid or damaged/.test(await toastText()), 'forged link not refused')
+  // Another website cannot talk to the extension at all.
+  const evil = await context.newPage()
+  await context.route('https://evil.example/**', route => route.fulfill({ status: 200, contentType: 'text/html', body: '<p>evil</p>' }))
+  await evil.goto('https://evil.example/')
+  assert(!await evil.evaluate(() => Boolean(window.chrome?.runtime?.sendMessage)), 'unrelated site can message the extension')
+  await evil.close()
 })
 
 console.log('\nDeep links, theme, mobile')
