@@ -1,9 +1,9 @@
 /* Styles injected into youtube.com (declared in manifest content_scripts.css).
    Every selector and custom property is namespaced (#yt-series-*,
    .yt-series-*, --yt-series-*) so nothing leaks into YouTube's own UI.
-   Sidebar text inherits YouTube's own colour (its --yt-spec-* variables are
-   not defined at that point of the tree), so the rest of our UI uses its own
-   tokens, switched by YouTube's dark-theme attribute on <html>.
+   YouTube's --yt-spec-* variables are not defined where our UI sits, so it
+   uses its own tokens, switched by YouTube's dark-theme attribute on <html>
+   (the sidebar too: inheriting gave dark text on the dark guide).
    Injected sheets lose ties against YouTube's, and rules such as
    "#top-level-buttons-computed > *" outrank a lone class: controls placed
    inside YouTube's layout are therefore styled through their id. Buttons do
@@ -37,15 +37,14 @@ html[dark] {
   padding: 6px 24px;
   font-size: 13px;
   font-weight: 500;
-  color: inherit;
-  opacity: 0.7;
+  color: var(--yt-series-text);
 }
 #yt-series-link {
   display: flex;
   align-items: center;
   height: 40px;
   padding: 0 24px;
-  color: inherit;
+  color: var(--yt-series-text);
   font-size: 14px;
   font-weight: 400;
   text-decoration: none;

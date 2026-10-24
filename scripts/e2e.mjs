@@ -823,6 +823,13 @@ await step('new YouTube layout: one button in the visible header, live label, re
   assert(placement.inVisibleHeader, 'button injected into the hidden header')
   assert(placement.marginRight >= 8, 'button has no gap from neighbouring buttons')
   assert(placement.linkColor === placement.bodyColor, `sidebar link colour ${placement.linkColor} ≠ page text ${placement.bodyColor}`)
+  // YouTube's dark theme (<html dark>): the sidebar section reads white.
+  const dark = await yt.evaluate(() => {
+    document.documentElement.setAttribute('dark', '')
+    return [getComputedStyle(document.getElementById('yt-series-link')).color, getComputedStyle(document.getElementById('yt-series-section-title')).color]
+  })
+  assert(dark.every(color => color === 'rgb(241, 241, 241)'), `sidebar in dark theme: ${dark.join(', ')}`)
+  await yt.evaluate(() => document.documentElement.removeAttribute('dark'))
   assert(/Add to Series/.test(await yt.textContent('.yt-series-add-btn')), 'wrong initial label')
   await send('PLAYLIST_ADD', { url: 'https://www.youtube.com/playlist?list=PLlayout0001' })
   await yt.waitForFunction(() => /View on YT Series/.test(document.querySelector('.yt-series-add-btn').textContent), null, { timeout: 5000 })
