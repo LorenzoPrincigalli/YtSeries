@@ -9,7 +9,7 @@ import { getState, getUi, setUi, subscribe } from '../core/store.js'
 import { safeRender } from '../core/errorBoundary.js'
 import { openModal, closeModal, confirmDialog } from '../ui/modal.js'
 import * as actions from '../actions.js'
-import { isChannelFollowed, isChannelSeries, collectionNames, watchedCount, nextEpisode, findNewEpisode, isNewEpisode, latestEpisode, watchUrl, formatDuration, formatLength } from '../seriesView.js'
+import { isChannelFollowed, isChannelSeries, collectionNames, watchedCount, nextEpisode, newEpisodes, isNewEpisode, latestEpisode, watchUrl, formatDuration, formatLength } from '../seriesView.js'
 import { countedVideos, timeLeft, finishEstimate, suggestedExclusions, dormantMonths } from '../../shared/seriesStats.js'
 import { notesSection, activeNotes } from './notes.js'
 import { followButton } from './cards.js'
@@ -94,12 +94,12 @@ export class DetailView {
     this.closeFolderPicker?.(false)
     const title = document.getElementById('detailModalTitle')
     if (title) title.textContent = series.title
-    const newEpisode = findNewEpisode(series)
+    const fresh = newEpisodes(series)
     mount(this.body,
       this.renderInfo(series),
       this.renderSuggestion(series),
       this.renderEndedSuggestion(series),
-      newEpisode && this.renderNewEpisode(series, newEpisode),
+      fresh.length > 0 && this.renderNewEpisode(series, fresh[0], fresh.length - 1),
       notesSection(series),
       this.renderEpisodes(series),
       this.renderRelated(series))
@@ -213,7 +213,7 @@ export class DetailView {
   }
 
   /** @param {any} series @param {any} video */
-  renderNewEpisode(series, video) {
+  renderNewEpisode(series, video, more = 0) {
     return h('div', { class: 'detail-new-highlight' },
       h('div', { class: 'new-accent-bar' }),
       h('div', { class: 'detail-new-highlight-body' },
@@ -222,6 +222,7 @@ export class DetailView {
           h('div', { class: 'detail-new-highlight-title' }, h('span', { class: 'new-badge' }, t('new_episode'))),
           h('div', { class: 'detail-new-highlight-episode' }, video.title),
           video.publishedAt && h('div', { class: 'detail-new-highlight-date' }, shortDate(video.publishedAt)),
+          more > 0 && h('div', { class: 'detail-new-highlight-date' }, t('new_more', { n: more })),
           h('a', { class: 'btn-primary', href: watchUrl(video.id, series.playlistId), target: '_blank', rel: 'noopener noreferrer' }, t('watch_now')))))
   }
 

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   filterSeries, thisWeekSeries, heroSeries, collectionNames, pickRecommendations,
-  cardProgress, heroProgress, watchUrl, formatDuration, findNewEpisode, isComplete
+  cardProgress, heroProgress, watchUrl, formatDuration, findNewEpisode, newEpisodes, isComplete
 } from '../seriesView.js'
 
 const v = (id, extra = {}) => ({ id, title: id, ...extra })
@@ -65,6 +65,19 @@ describe('derived views', () => {
     const now = Date.parse('2026-10-22T00:00:00Z')
     const series = s('x', [v('old', { publishedAt: '2026-10-01T00:00:00Z' }), v('new', { publishedAt: '2026-10-20T00:00:00Z' })])
     expect(findNewEpisode(series, now)?.id).toBe('new')
+  })
+
+  it('highlights the most recent new episode, whatever the list order', () => {
+    const now = Date.parse('2026-10-24T12:00:00Z')
+    // A followed channel lists uploads oldest first.
+    const channel = s('UULFx', [
+      v('oct18', { publishedAt: '2026-10-18T10:00:00Z' }),
+      v('oct21', { publishedAt: '2026-10-21T10:00:00Z' }),
+      v('oct24', { publishedAt: '2026-10-24T08:00:00Z' }),
+      v('trailer', { publishedAt: '2026-10-24T09:00:00Z', excluded: true })
+    ])
+    expect(findNewEpisode(channel, now)?.id).toBe('oct24')
+    expect(newEpisodes(channel, now).map(video => video.id)).toEqual(['oct24', 'oct21', 'oct18'])
   })
 })
 

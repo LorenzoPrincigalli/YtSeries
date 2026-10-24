@@ -65,9 +65,21 @@ export function isNewEpisode(video, now = Date.now()) {
   return (now - new Date(video.publishedAt).getTime()) / DAY_MS <= NEW_EPISODE_WINDOW_DAYS
 }
 
-/** @param {any} series @param {number} [now] */
+/** Unwatched counted episodes published in the last 7 days, newest first. @param {any} series @param {number} [now] */
+export function newEpisodes(series, now = Date.now()) {
+  return countedVideos(series)
+    .filter(video => isNewEpisode(video, now))
+    .sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt))
+}
+
+/**
+ * The most recent new episode, or null. By date, not list position: a
+ * followed channel lists videos oldest first, so the first new one in the
+ * list is the oldest.
+ * @param {any} series @param {number} [now]
+ */
 export function findNewEpisode(series, now = Date.now()) {
-  return (series.videos || []).find(video => isNewEpisode(video, now)) || null
+  return newEpisodes(series, now)[0] || null
 }
 
 /** Latest published episode, or null. @param {any} series */
