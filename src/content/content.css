@@ -62,7 +62,7 @@ html[dark] {
   height: 24px;
   margin-right: 24px;
 }
-#yt-series-link .yt-series-icon img { width: 24px; height: 24px; }
+#yt-series-link .yt-series-icon svg { display: block; width: 24px; height: 24px; }
 #yt-series-link .yt-series-label { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 
 /* ── "Add to Series" button: playlist page header, watch-page playlist panel ── */

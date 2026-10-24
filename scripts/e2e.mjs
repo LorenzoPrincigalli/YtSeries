@@ -827,6 +827,9 @@ await step('new YouTube layout: one button in the visible header, live label, re
     }
   })
   assert(placement.count === 1, `${placement.count} add buttons`)
+  // The sidebar mark is inline SVG: youtube.com never loads extension files.
+  assert(await yt.locator('#yt-series-link .yt-series-icon svg').count() === 1, 'sidebar icon is not inline SVG')
+  assert(await yt.locator('img[src^="chrome-extension:"]').count() === 0, 'page loads an extension file')
   assert(placement.inVisibleHeader, 'button injected into the hidden header')
   assert(placement.marginRight >= 8, 'button has no gap from neighbouring buttons')
   assert(placement.linkColor === placement.bodyColor, `sidebar link colour ${placement.linkColor} ≠ page text ${placement.bodyColor}`)

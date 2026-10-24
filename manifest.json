@@ -71,16 +71,6 @@
     "48": "icons/icon48_light.png",
     "128": "icons/icon128_light.png"
   },
-  "web_accessible_resources": [
-    {
-      "resources": [
-        "icons/*.png"
-      ],
-      "matches": [
-        "https://www.youtube.com/*"
-      ]
-    }
-  ],
   "short_name": "YT Series",
   "externally_connectable": {
     "matches": [

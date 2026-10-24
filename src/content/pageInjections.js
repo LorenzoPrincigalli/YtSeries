@@ -21,6 +21,27 @@ const BUTTON_ID = 'yt-series-add-btn'
 // Notes bar included: every piece of UI an orphaned copy may leave behind.
 const OWNED = `#${SIDEBAR_ID}, .${BUTTON_CLASS}, #${BUTTON_ID}, .${NOTE_BAR_CLASS}, ${PROGRESS_UI}`
 const LOOKUP_RETRY_MS = 2000
+const SVG_NS = 'http://www.w3.org/2000/svg'
+
+/**
+ * The YT Series mark (TV + red play), drawn inline. Loading the extension's
+ * PNG into youtube.com needs web_accessible_resources and fails from an
+ * orphaned copy of this script ("Unsafe attempt to load URL").
+ */
+function logoIcon() {
+  /** @param {string} name @param {Record<string, string>} attrs */
+  const node = (name, attrs) => {
+    const el = document.createElementNS(SVG_NS, name)
+    for (const [key, value] of Object.entries(attrs)) el.setAttribute(key, value)
+    return el
+  }
+  const root = node('svg', { viewBox: '0 0 24 24', width: '24', height: '24', 'aria-hidden': 'true', focusable: 'false' })
+  root.append(
+    node('rect', { x: '2.5', y: '4', width: '19', height: '13.5', rx: '2.5', fill: 'none', stroke: 'currentColor', 'stroke-width': '1.8' }),
+    node('path', { d: 'M8.5 21h7', fill: 'none', stroke: 'currentColor', 'stroke-width': '1.8', 'stroke-linecap': 'round' }),
+    node('path', { d: 'M10 7.8v5.9l4.8-2.95z', fill: '#ff0000' }))
+  return root
+}
 
 export class PageInjections {
   /**
@@ -70,7 +91,7 @@ export class PageInjections {
       h('div', { id: 'yt-series-section-title' }, 'YT Series'),
       h('div', { id: 'yt-series-sidebar-link' },
         h('a', { id: 'yt-series-link', href: '#', onClick: event => { event.preventDefault(); this.openDashboard() } },
-          h('span', { class: 'yt-series-icon' }, h('img', { src: chrome.runtime.getURL('icons/icon16.png'), alt: '' })),
+          h('span', { class: 'yt-series-icon' }, logoIcon()),
           h('span', { class: 'yt-series-label' }, 'YT Series')))), last)
   }
 

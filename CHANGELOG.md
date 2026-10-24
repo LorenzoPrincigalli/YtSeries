@@ -32,7 +32,7 @@
 ### Changed
 - Worker: allowlisted channels endpoint (channel id or @handle)
 - Firestore rules: optional notes map (≤ 400 entries)
-- manifest: externally_connectable for the share page only
+- manifest: externally_connectable for the share page only; no web_accessible_resources (the YouTube sidebar mark is inline SVG, which also removes the "Unsafe attempt to load URL" error from orphaned scripts)
 - New episodes are counted by new video ids (fixed-size channel windows)
 
 ## [1.2.0] - 2026-10-23
