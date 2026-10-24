@@ -235,6 +235,21 @@ class Store {
   }
 
   /** Ended: the creator will publish no more episodes (not the same as completed). */
+  /**
+   * Remembers that a suggestion ("exclude trailers?", "has it ended?") was
+   * closed for this series, so it is never offered again. Local only: not a
+   * library change, so it does not touch localUpdatedAt or sync.
+   * @returns {boolean} whether it was new
+   */
+  dismissSuggestion(playlistId, kind) {
+    const series = this._state.series[playlistId]
+    if (!series) throw new AppError('SERIES_NOT_FOUND')
+    const dismissed = Array.isArray(series.dismissedSuggestions) ? series.dismissedSuggestions : []
+    if (dismissed.includes(kind)) return false
+    series.dismissedSuggestions = [...dismissed, kind]
+    return true
+  }
+
   setSeriesEnded(playlistId, ended) {
     const series = this._state.series[playlistId]
     if (!series || Boolean(series.ended) === ended) return false

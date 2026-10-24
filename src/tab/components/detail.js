@@ -41,8 +41,6 @@ export class DetailView {
     /** @type {Map<string, Promise<any[]>>} channel playlists, fetched once per session */
     this.channelCache = new Map()
     this.closeFolderPicker = null
-    /** Series whose "exclude trailers?" suggestion was dismissed this session. */
-    this.dismissedSuggestions = new Set()
     this.body = this.ensureModal()
     subscribe(() => this.sync())
   }
@@ -174,10 +172,10 @@ export class DetailView {
           h('button', { type: 'button', class: 'btn-secondary text-error', title: t('delete'), 'aria-label': t('delete'), onClick: () => this.confirmDelete(series) }, svg('trash')))))
   }
 
-  /** Offers to leave trailers/teasers out of the progress, once per series and session. @param {any} series */
+  /** Offers to leave trailers/teasers out of the progress, until closed once for this series. @param {any} series */
   renderSuggestion(series) {
     const ids = suggestedExclusions(series)
-    if (!ids.length || this.dismissedSuggestions.has(series.playlistId)) return null
+    if (!ids.length || series.dismissedSuggestions?.includes('exclusions')) return null
     return h('div', { class: 'detail-suggestion', role: 'note' },
       h('p', { class: 'detail-suggestion-text' }, t('suggest_exclude', { n: ids.length })),
       h('div', { class: 'detail-suggestion-actions' },
@@ -185,14 +183,14 @@ export class DetailView {
         h('button', {
           type: 'button',
           class: 'btn-secondary',
-          onClick: () => { this.dismissedSuggestions.add(series.playlistId); this.sync() }
+          onClick: () => actions.dismissSuggestion(series.playlistId, 'exclusions')
         }, t('close'))))
   }
 
-  /** Long silence and no release rhythm: ask whether the series has ended, once per series and session. @param {any} series */
+  /** Long silence and no release rhythm: ask whether the series has ended, until closed once. @param {any} series */
   renderEndedSuggestion(series) {
     const months = dormantMonths(series)
-    if (months === null || this.dismissedSuggestions.has(`ended:${series.playlistId}`)) return null
+    if (months === null || series.dismissedSuggestions?.includes('ended')) return null
     return h('div', { class: 'detail-suggestion', role: 'note' },
       h('p', { class: 'detail-suggestion-text' }, t('suggest_ended', { n: months })),
       h('div', { class: 'detail-suggestion-actions' },
@@ -200,7 +198,7 @@ export class DetailView {
         h('button', {
           type: 'button',
           class: 'btn-secondary',
-          onClick: () => { this.dismissedSuggestions.add(`ended:${series.playlistId}`); this.sync() }
+          onClick: () => actions.dismissSuggestion(series.playlistId, 'ended')
         }, t('close'))))
   }
 

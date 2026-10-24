@@ -93,6 +93,11 @@ export function toggleComplete(playlistId) {
   return command(EVENTS.SERIES_COMPLETE_TOGGLE, { playlistId }, 'something_wrong')
 }
 
+/** Closes a detail suggestion for good. @param {string} playlistId @param {'exclusions' | 'ended'} kind */
+export function dismissSuggestion(playlistId, kind) {
+  return command(EVENTS.SUGGESTION_DISMISS, { playlistId, kind }, 'something_wrong')
+}
+
 /** Ended: the creator will publish no more episodes. @param {string} playlistId @param {boolean} ended */
 export function setSeriesEnded(playlistId, ended) {
   return command(EVENTS.SERIES_ENDED_SET, { playlistId, ended }, 'something_wrong')

@@ -627,6 +627,18 @@ await step('weekly goal: set in Settings, shown in Achievements with the badges'
   await page.keyboard.press('Escape')
   await page.waitForSelector('#achievementsModal', { state: 'detached' })
 })
+await step('closing the trailer suggestion is remembered after a reload', async () => {
+  await send('EPISODE_EXCLUDE', { playlistId: 'PLtrailer001', videoIds: ['trailervid00'], excluded: false })
+  await page.goto(`${DASH}?series=PLtrailer001`)
+  await page.waitForSelector('#detailModal:not(.hidden) .detail-suggestion')
+  await page.click('.detail-suggestion .btn-secondary')
+  await page.waitForSelector('.detail-suggestion', { state: 'detached' })
+  await page.goto(`${DASH}?series=PLtrailer001`)
+  await page.waitForSelector('#detailModal:not(.hidden) .episode-card')
+  assert(await page.locator('.detail-suggestion').count() === 0, 'suggestion offered again')
+  await send('EPISODE_EXCLUDE', { playlistId: 'PLtrailer001', videoIds: ['trailervid00'], excluded: true })
+  await page.keyboard.press('Escape')
+})
 
 console.log('\nYouTube: notes and progress overlay (stubbed youtube.com)')
 const ytPage = body => `<!doctype html><html><body>

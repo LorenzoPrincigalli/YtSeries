@@ -73,3 +73,19 @@ describe('new episodes in a fixed-size window', () => {
     expect(store.getSeriesById('PL1')).toMatchObject({ newEpisodesCount: 1, latestNewVideoId: 'd' })
   })
 })
+
+describe('dismissed suggestions', () => {
+  it('are remembered per series, survive refreshes and backups, and never touch sync', () => {
+    const store = new Store()
+    store.addSeries(fetched(['trailer', 'e1']))
+    const before = store.getSeriesById('PL1').localUpdatedAt
+    expect(store.dismissSuggestion('PL1', 'exclusions')).toBe(true)
+    expect(store.dismissSuggestion('PL1', 'exclusions')).toBe(false)
+    expect(store.getSeriesById('PL1').localUpdatedAt).toBe(before)
+    store.addSeries(fetched(['trailer', 'e1', 'e2']))
+    expect(store.getSeriesById('PL1').dismissedSuggestions).toEqual(['exclusions'])
+    const restored = normalizeSeriesBackup({ PL1: { ...store.getSeriesById('PL1'), dismissedSuggestions: ['exclusions', 'bogus'] } })
+    expect(restored.PL1.dismissedSuggestions).toEqual(['exclusions'])
+    expect(() => store.dismissSuggestion('nope', 'ended')).toThrow()
+  })
+})

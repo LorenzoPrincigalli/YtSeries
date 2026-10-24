@@ -88,7 +88,8 @@ function normalizeSeries(series, playlistId) {
     endedUpdatedAt: Math.max(0, finiteNumber(series.endedUpdatedAt)),
     collectionUpdatedAt: Math.max(0, finiteNumber(series.collectionUpdatedAt)),
     remoteUpdateTime: typeof series.remoteUpdateTime === 'string' ? series.remoteUpdateTime : undefined,
-    notes: normalizeNotes(series.notes)
+    notes: normalizeNotes(series.notes),
+    dismissedSuggestions: Array.isArray(series.dismissedSuggestions) ? series.dismissedSuggestions.filter(kind => kind === 'exclusions' || kind === 'ended') : []
   }
 }
 

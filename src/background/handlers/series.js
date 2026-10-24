@@ -9,6 +9,8 @@ import { createAutomaticBackup } from '../backups.js'
 /** @typedef {import('../context.js').BackgroundContext} Ctx */
 
 const byPlaylist = s.object({ playlistId: s.id() })
+/** Suggestions in the series detail that can be closed for good. */
+const SUGGESTIONS = ['exclusions', 'ended']
 
 /** Saves a freshly fetched playlist (or followed channel). @param {Ctx} ctx @param {any} data */
 async function saveFetched(ctx, data) {
@@ -79,6 +81,13 @@ async function toggleComplete(ctx, { playlistId }) {
   return { success: true, state: ctx.store.getState() }
 }
 
+/** @param {Ctx} ctx @param {{ playlistId: string, kind: string }} payload */
+async function dismissSuggestion(ctx, { playlistId, kind }) {
+  // No sync: the choice is per browser and changes nothing in the library.
+  await commit(ctx, store => { store.dismissSuggestion(playlistId, kind) })
+  return { success: true, state: ctx.store.getState() }
+}
+
 /** @param {Ctx} ctx @param {{ playlistId: string, ended: boolean }} payload */
 async function setEnded(ctx, { playlistId, ended }) {
   if (!ctx.store.playlistExists(playlistId)) throw new AppError('SERIES_NOT_FOUND')
@@ -112,6 +121,7 @@ const seriesRoutes = {
   [EVENTS.SERIES_RESTORE]: { schema: s.object({ series: s.any() }), handler: restoreSeries },
   [EVENTS.SERIES_COMPLETE_TOGGLE]: { schema: byPlaylist, handler: toggleComplete },
   // Also from YouTube: the "all episodes watched" card offers it.
+  [EVENTS.SUGGESTION_DISMISS]: { schema: s.object({ playlistId: s.id(), kind: s.oneOf(SUGGESTIONS) }), handler: dismissSuggestion },
   [EVENTS.SERIES_ENDED_SET]: { contexts: ['extension', 'content'], schema: s.object({ playlistId: s.id(), ended: s.boolean() }), handler: setEnded },
   [EVENTS.SERIES_COLLECTION_SET]: {
     schema: s.object({ playlistId: s.id(), collection: s.string({ max: 40 }) }),
