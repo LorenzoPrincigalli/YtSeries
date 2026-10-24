@@ -41,6 +41,7 @@
 - Upcoming: empty days take little space (one row each on phone); weekday names are capitalised like "Today" and "Tomorrow"
 - Achievements on phone: two badges per row; the goal button sits under the week's numbers
 - Readable "New episode" badge (11 px), 24 px card title targets, list-view details wrap on phone, full channel name and description on hover in search results
+- YouTube note button: its time follows the video while it plays or seeks (it stayed on the time of the note just saved, and before that refreshed only on hover)
 - Long dialogs scroll inside, with header and footer in place: the changelog opened scrolled to its end, with the newest versions out of reach; the FAQ and Settings (on short windows) were cut off the same way
 - Delete confirmation: centred on the screen (it stuck to the top-left corner of the page, half off screen when scrolled); its "Delete" button is white on red (the text was red on the red, blue or green button), and "Reset all data" is readable in dark themes
 - The "Your series" menu panel sits outside the header: inside it (sticky on small screens), scrolling a menu item into view right after a page update could scroll the page and close the menu. Tab from the menu now moves on to the next header link

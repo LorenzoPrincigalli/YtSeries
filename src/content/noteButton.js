@@ -28,6 +28,8 @@ export class NoteButton {
     /** @type {string | null} */ this.playlistId = null
     this.saved = false
     this.lookupToken = 0
+    /** Stops the button label following the player (set while the button is shown). */
+    this.stopClock = () => {}
   }
 
   /** New page: forget the old video and ask whether the new one is an episode. @param {string | null} videoId @param {string | null} playlistId */
@@ -58,6 +60,7 @@ export class NoteButton {
   }
 
   remove() {
+    this.stopClock()
     this.ownBar()?.remove()
   }
 
@@ -74,12 +77,28 @@ export class NoteButton {
 
   /** @param {HTMLElement} bar */
   renderButton(bar) {
-    const label = h('span', null, t('content_note_button', { time: formatDuration(currentTime()) }))
+    this.stopClock()
+    const label = h('span')
     const button = h('button', { type: 'button', class: 'yt-series-note-btn' }, svg('note', { class: 'yt-series-note-icon' }), label)
-    // The label follows the player when the user is about to click.
-    const relabel = () => { label.textContent = t('content_note_button', { time: formatDuration(currentTime()) }) }
-    button.addEventListener('mouseenter', relabel)
-    button.addEventListener('focus', relabel)
+    let shown = -1
+    const show = (/** @type {number} */ time) => {
+      if (time === shown) return
+      shown = time
+      label.textContent = t('content_note_button', { time: formatDuration(time) })
+    }
+    // The label follows the player while it plays or seeks, also after a note was
+    // saved. Media events do not bubble: a capture listener on the document also
+    // covers YouTube swapping its <video> element (and skips hover previews).
+    const onTime = (/** @type {Event} */ event) => {
+      if (!label.isConnected) this.stopClock()
+      else if (event.target === findVideo()) show(Math.floor(/** @type {HTMLVideoElement} */ (event.target).currentTime))
+    }
+    document.addEventListener('timeupdate', onTime, true)
+    this.stopClock = () => {
+      document.removeEventListener('timeupdate', onTime, true)
+      this.stopClock = () => {}
+    }
+    show(currentTime())
     button.addEventListener('click', () => this.openForm(bar))
     bar.replaceChildren(button)
     return bar
@@ -87,6 +106,7 @@ export class NoteButton {
 
   /** @param {HTMLElement} bar */
   openForm(bar) {
+    this.stopClock() // the form shows the time the note is taken at
     const time = currentTime()
     const videoId = /** @type {string} */ (this.videoId)
     const input = /** @type {HTMLTextAreaElement} */ (h('textarea', {

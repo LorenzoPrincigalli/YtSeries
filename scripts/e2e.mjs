@@ -675,6 +675,11 @@ await step('a note taken on YouTube appears in the detail and exports as Markdow
   watchErrors(yt, 'youtube-notes')
   await yt.goto('https://www.youtube.com/watch?v=trailervid02&list=PLtrailer001')
   await yt.waitForSelector('.yt-series-note-btn')
+  // The label follows the player (the stub <video> has no source: set its time, fire timeupdate).
+  const playTo = seconds => yt.evaluate(s => { const video = document.querySelector('video'); video.currentTime = s; video.dispatchEvent(new Event('timeupdate')) }, seconds)
+  const labelShows = time => yt.waitForFunction(text => document.querySelector('.yt-series-note-btn')?.textContent.includes(text), time, { timeout: 3000 })
+  await playTo(65)
+  await labelShows('1:05')
   await yt.click('.yt-series-note-btn')
   await yt.fill('.yt-series-note-input', 'Remember this scene')
   // YouTube's single-key shortcuts listen on the document: typing must not reach them.
@@ -687,6 +692,9 @@ await step('a note taken on YouTube appears in the detail and exports as Markdow
   assert(!leaked, 'keystrokes reach YouTube shortcuts')
   await yt.press('.yt-series-note-input', 'Control+Enter')
   await yt.waitForSelector('.yt-series-toast')
+  // After saving, the button keeps following the player (it used to stay on the note's time).
+  await playTo(754)
+  await labelShows('12:34')
   await yt.close()
   await page.goto(`${DASH}?series=PLtrailer001`)
   await page.waitForSelector('#detailModal:not(.hidden) .note-row')
