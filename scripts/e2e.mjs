@@ -358,9 +358,17 @@ await step('Escape closes the dialog and focus returns to the card', async () =>
 })
 await step('delete asks for confirmation, then Undo restores the series', async () => {
   const before = await seriesCount()
+  await page.evaluate(() => window.scrollTo(0, 400)) // the confirmation must not follow the page scroll
   await page.click('.series-row .card-title-btn')
   await page.waitForSelector('#detailModal:not(.hidden)')
   await page.click('#detailModal [aria-label="Delete"]')
+  await page.waitForSelector('dialog.confirm-modal[open]')
+  await axe('delete confirmation', 'dialog.confirm-modal') // white "Delete" on red; also waits for the entrance animation
+  const placement = await page.$eval('dialog.confirm-modal', el => {
+    const r = el.getBoundingClientRect()
+    return { scrollY, off: Math.max(Math.abs(r.left + r.width / 2 - innerWidth / 2), Math.abs(r.top + r.height / 2 - innerHeight / 2)) }
+  })
+  assert(placement.off <= 2, `delete confirmation is ${Math.round(placement.off)}px off the centre of the screen (page scrolled ${placement.scrollY}px)`)
   await confirm(false) // cancel first: nothing happens
   assert(await seriesCount() === before, 'deleted despite cancel')
   await page.click('#detailModal [aria-label="Delete"]')
@@ -581,9 +589,19 @@ await step('FAQ items expand with aria-expanded', async () => {
   assert(await page.getAttribute('.faq-question >> nth=0', 'aria-expanded') === 'true', 'aria-expanded not updated')
   await page.keyboard.press('Escape')
 })
-await step('changelog lists versions', async () => {
+await step('changelog lists versions and scrolls to the oldest one', async () => {
   await page.click('#footerChangelogLink')
   await page.waitForSelector('#changelogBody .changelog-entry')
+  // Taller than the dialog: the body scrolls, the header stays. (When only the dialog
+  // clipped, focusing its footer button scrolled the dialog itself: the newest
+  // versions were out of reach above.)
+  const layout = await page.$eval('#changelogBody', body => {
+    const modal = body.closest('.modal')
+    body.scrollTop = body.scrollHeight
+    return { modalScrolled: modal.scrollTop, bodyScrolled: body.scrollTop, lastInView: body.lastElementChild.getBoundingClientRect().bottom <= body.getBoundingClientRect().bottom + 1 }
+  })
+  assert(layout.modalScrolled === 0, `the dialog itself scrolled by ${layout.modalScrolled}px`)
+  assert(layout.bodyScrolled > 0 && layout.lastInView, 'the changelog body does not scroll to the oldest version')
   await page.keyboard.press('Escape')
 })
 await step('bug report validates empty text', async () => {

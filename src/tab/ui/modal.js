@@ -100,7 +100,7 @@ export function confirmDialog(message, { confirmLabel = t('confirm'), danger = f
         h('p', { class: 'modal-confirm-msg', id: messageId }, message)),
       h('div', { class: 'modal-footer centered-footer' },
         h('button', { type: 'button', class: 'btn-secondary', onClick: () => finish(false) }, t('cancel')),
-        h('button', { type: 'button', class: danger ? 'btn-primary danger-btn' : 'btn-primary', autofocus: true, onClick: () => finish(true) }, confirmLabel)))
+        h('button', { type: 'button', class: danger ? 'btn-primary btn-danger' : 'btn-primary', autofocus: true, onClick: () => finish(true) }, confirmLabel)))
     dialog.addEventListener('cancel', () => resolve(false))
     dialog.addEventListener('click', event => { if (event.target === dialog) finish(false) })
     dialog.addEventListener('close', () => {

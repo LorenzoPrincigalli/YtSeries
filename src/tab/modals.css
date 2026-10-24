@@ -89,6 +89,22 @@
   padding: 20px var(--space-lg);
 }
 
+/* Overlay dialogs: header and footer stay, the body scrolls when the content is
+   taller than the dialog (changelog, FAQ, Settings on short windows). :where()
+   keeps one-class specificity, so a dialog's own rules still win (for example
+   .settings-layout's min-height). */
+:where(.modal-overlay) > .modal {
+  display: flex;
+  flex-direction: column;
+}
+
+:where(.modal-overlay > .modal) > .modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 .modal-desc {
   color: var(--text-muted);
   font-size: 14px;

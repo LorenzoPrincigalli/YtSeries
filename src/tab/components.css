@@ -74,8 +74,19 @@ a.btn-primary {
 }
 
 .danger-btn {
-  color: var(--danger);
+  color: var(--danger-text);
   width: 100%;
+}
+
+/* Destructive confirmation ("Delete"): white text on red, not the theme's
+   primary colour. */
+.btn-primary.btn-danger {
+  background: var(--danger-fill);
+  color: var(--text-on-danger);
+}
+
+.btn-primary.btn-danger:hover {
+  background: var(--danger-fill-hover);
 }
 
 /* select */
@@ -418,7 +429,25 @@ select option {
   margin-top: 10px;
 }
 
-/* modal confirm */
+/* modal confirm: a native <dialog> in the top layer. The reset's margin: 0 and
+   .modal's position: relative would pin it to the top-left corner of the page;
+   fixed with auto margins centres it on the screen. */
+dialog.confirm-modal {
+  position: fixed;
+  inset: 0;
+  width: min(420px, calc(100vw - 32px));
+  height: fit-content;
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+dialog.confirm-modal::backdrop {
+  background: rgba(0, 0, 0, 0.5);
+}
+
 .modal-confirm-body {
   text-align: center;
   padding: var(--space-xl) var(--space-lg);
@@ -456,7 +485,8 @@ select option {
   margin-bottom: var(--space-lg);
 }
 
-.centered-footer {
+/* Two classes: .modal-footer (modals.css, loaded later) aligns to the end. */
+.modal-footer.centered-footer {
   justify-content: center;
 }
 

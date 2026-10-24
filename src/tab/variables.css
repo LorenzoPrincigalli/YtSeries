@@ -130,6 +130,10 @@
   --danger: #d40000;
   /* Error text (not fills): ≥ 4.5:1 on the page and dialog backgrounds. */
   --danger-text: #b80000;
+  /* Destructive buttons: white on this red is ≥ 4.5:1, the same in every theme. */
+  --danger-fill: #c8000a;
+  --danger-fill-hover: #a50008;
+  --text-on-danger: #ffffff;
   --success: #1a8a3a;
   --warning: #d97706;
 
