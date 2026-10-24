@@ -1019,3 +1019,43 @@ body::before {
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
 }
+
+/* Saved: its own search box above the list; the header search is hidden there. */
+body[data-section="saved"] .header-right > .search-container {
+  visibility: hidden;
+}
+
+.saved-search {
+  position: relative;
+  max-width: 420px;
+  margin: var(--space-lg) 0 var(--space-md);
+}
+
+.saved-search svg {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  width: 18px;
+  height: 18px;
+  color: var(--text-muted);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.saved-search-input {
+  width: 100%;
+  min-height: 42px;
+  padding: var(--space-sm) var(--space-md) var(--space-sm) 40px;
+  border: 1px solid var(--border);
+  border-radius: 21px;
+  background: var(--input-bg);
+  color: var(--text);
+  font-family: var(--font-primary);
+  font-size: 14px;
+  transition: border-color var(--transition);
+}
+
+.saved-search-input:focus {
+  outline: none;
+  border-color: var(--primary);
+}

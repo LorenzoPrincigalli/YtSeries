@@ -56,6 +56,8 @@ const STRINGS = {
     'no_channel_info': 'No channel information available',
     'delete_confirm': 'Delete "{title}"? This cannot be undone.',
     'last_video': 'Last video',
+    'saved_search_placeholder': 'Search your saved series',
+    'saved_search_empty': 'None of your saved series matches "{query}".',
     'celebration_badge': 'Badge unlocked',
     'celebration_badge_level': '{name} · level {level}',
     'celebration_milestone': 'Milestone reached',
@@ -187,7 +189,7 @@ const STRINGS = {
 
     // UI
     'search_placeholder': 'Search series...',
-    'search_hint': 'Press Enter to search',
+    'search_hint': 'Press Enter to search on YouTube',
     'add_series': 'Add Series',
     'add_via_link': '+ Add via Link',
     'home': 'Home',
@@ -489,6 +491,8 @@ const STRINGS = {
     'no_channel_info': 'Nessuna informazione sul canale disponibile',
     'delete_confirm': 'Eliminare "{title}"? Questa azione non può essere annullata.',
     'last_video': 'Ultimo video',
+    'saved_search_placeholder': 'Cerca tra le serie salvate',
+    'saved_search_empty': 'Nessuna serie salvata corrisponde a "{query}".',
     'celebration_badge': 'Nuovo badge',
     'celebration_badge_level': '{name} · livello {level}',
     'celebration_milestone': 'Traguardo raggiunto',
@@ -619,7 +623,7 @@ const STRINGS = {
     'sort_watched': 'Visti prima',
 
     'search_placeholder': 'Cerca serie...',
-    'search_hint': 'Premi Invio per cercare',
+    'search_hint': 'Premi Invio per cercare su YouTube',
     'add_series': 'Aggiungi serie',
     'add_via_link': '+ Aggiungi via link',
     'home': 'Home',

@@ -2,7 +2,8 @@
 // Main content area: home (hero + rows + search results) and saved library.
 import { t } from '../../shared/i18n.js'
 import { logger } from '../../shared/logger.js'
-import { h, mount } from '../../shared/dom.js'
+import { h, mount, byId } from '../../shared/dom.js'
+import { svg } from '../../shared/icons.js'
 import { getState, getUi, setUi } from '../core/store.js'
 import { errorMessage } from '../ui/feedback.js'
 import * as actions from '../actions.js'
@@ -30,6 +31,8 @@ const addFromSearch = async playlist => {
 
 /** @param {HTMLElement} main */
 export function renderMain(main) {
+  // A broadcast can re-render Saved while the user types in its search box.
+  const typing = document.activeElement?.id === 'savedSearchInput'
   disposeHero?.()
   disposeHero = null
   const state = getState()
@@ -42,12 +45,12 @@ export function renderMain(main) {
     ui.section === 'saved' ? savedLibrary(all, ui)
       : ui.section === 'schedule' && !ui.search ? renderSchedule(all)
         : home(all, ui))
+  if (typing) byId('savedSearchInput')?.focus()
 }
 
 /** @param {import('../core/store.js').UiState} ui */
 function searchHeader(ui) {
-  const status = ui.section === 'saved' ? null
-    : ui.searchStatus === 'hint' ? h('p', { class: 'search-header-hint' }, t('search_hint'))
+  const status = ui.searchStatus === 'hint' ? h('p', { class: 'search-header-hint' }, t('search_hint'))
       : ui.searchStatus === 'loading' ? h('p', { class: 'search-header-hint', role: 'status' }, t('searching'))
         : ui.searchStatus === 'error' ? h('p', { class: 'search-header-hint search-header-error', role: 'alert' }, errorMessage({ code: ui.searchError }, 'search_failed'))
           : null
@@ -166,7 +169,31 @@ function savedLibrary(all, ui) {
   const allModes = ['add', 'edit', 'move', 'delete']
   const managementModes = collection ? allModes.filter(mode => mode !== 'move' || all.some(s => s.collection === collection)) : []
   const labels = { add: 'add_collection_series', edit: 'edit_collection', move: 'move_series', delete: 'delete_collection' }
-  const filtered = filterSeries(all, { search: ui.search, collection, filter: ui.filter })
+  // Saved has its own search box above the list (the header one is hidden
+  // here): it filters in place, without re-rendering the page, so typing keeps focus.
+  const results = h('div', { class: 'saved-results' })
+  /** @param {string} query */
+  const showResults = query => {
+    const filtered = filterSeries(all, { search: query, collection, filter: ui.filter })
+    mount(results, filtered.length ? libraryGrid(filtered, openDetail)
+      : h('p', { class: 'search-empty' }, query ? t('saved_search_empty', { query }) : t(collection ? 'collection_empty' : all.length ? 'filtered_empty' : 'saved_empty')))
+  }
+  showResults(ui.savedSearch)
+  const search = /** @type {HTMLInputElement} */ (h('input', {
+    type: 'search',
+    id: 'savedSearchInput',
+    class: 'saved-search-input',
+    value: ui.savedSearch,
+    placeholder: t('saved_search_placeholder'),
+    'aria-label': t('saved_search_placeholder'),
+    maxLength: 200
+  }))
+  search.addEventListener('input', () => {
+    const query = search.value.trim().toLowerCase()
+    setUi({ savedSearch: query })
+    showResults(query)
+  })
+  search.addEventListener('keydown', event => { if (event.key === 'Escape' && search.value) { search.value = ''; setUi({ savedSearch: '' }); showResults('') } })
 
   if (collection) {
     requestAnimationFrame(() => {
@@ -178,6 +205,7 @@ function savedLibrary(all, ui) {
 
   return [
     shelf,
+    all.length > 0 && h('div', { class: 'saved-search' }, svg('search'), search),
     h('h2', { class: 'collection-content-title', tabIndex: -1 }, collection || t('all_saved')),
     managementModes.length > 0 && h('div', { class: 'collection-management' },
       managementModes.map(mode => h('button', { type: 'button', class: 'btn-secondary', onClick: () => manageCollection(mode, collection) }, t(labels[mode]))),
@@ -186,7 +214,6 @@ function savedLibrary(all, ui) {
         class: 'btn-secondary',
         onClick: () => shareSeries(collection, all.filter(s => s.collection === collection))
       }, t('share_collection'))),
-    !filtered.length && h('p', { class: 'search-empty' }, t(collection && !ui.search ? 'collection_empty' : all.length ? 'filtered_empty' : 'saved_empty')),
-    libraryGrid(filtered, openDetail)
+    results
   ]
 }

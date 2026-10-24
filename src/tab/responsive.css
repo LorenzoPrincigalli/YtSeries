@@ -124,6 +124,7 @@
   .header-pro-btn { margin-left: auto; }
   #addPlaylistBtn { margin-left: auto; min-height: 40px; }
   .header-right > .search-container { order: 2; flex: 1 1 100%; margin: 4px 0; }
+  body[data-section="saved"] .header-right > .search-container { display: none; }
   .search-container input { width: 100%; min-height: 42px; }
   .nav-links { gap: 0; }
   .nav-link { padding: 6px 8px; font-size: 12px; }

@@ -34,6 +34,8 @@ function syncNav() {
     if (active) el.setAttribute('aria-current', 'page')
     else el.removeAttribute('aria-current')
   }
+  // Saved has its own search box; the header one is hidden there (CSS).
+  document.body.dataset.section = section
   const clear = byId('searchClear')
   if (clear) clear.classList.toggle('hidden', !getUi().search)
 }
@@ -59,8 +61,10 @@ export function initHeader() {
   })
   input.addEventListener('keydown', event => {
     const { search, section, searchStatus } = getUi()
-    if (event.key === 'Enter' && search && section !== 'saved' && searchStatus !== 'loading') {
+    if (event.key === 'Enter' && search && searchStatus !== 'loading') {
       clearTimeout(hintTimer)
+      // YouTube results live on Home: from Saved or Upcoming, Enter takes you there.
+      if (section !== 'home') setUi({ section: 'home', filter: 'all', collection: '' })
       actions.searchYouTube(search)
     } else if (event.key === 'Escape' && search) {
       clearSearch()

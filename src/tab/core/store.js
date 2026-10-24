@@ -14,7 +14,8 @@
  *   searchStatus: 'idle' | 'hint' | 'loading' | 'error',
  *   searchError: string | null,
  *   recommended: any[] | null,
- *   detailId: string | null
+ *   detailId: string | null,
+ *   savedSearch: string
  * }} UiState
  */
 
@@ -28,7 +29,8 @@ const INITIAL_UI = {
   searchStatus: 'idle',
   searchError: null,
   recommended: null,
-  detailId: null
+  detailId: null,
+  savedSearch: ''
 }
 
 /** @type {{ state: any, syncStatus: any, ui: UiState }} */
