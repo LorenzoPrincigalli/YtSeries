@@ -419,3 +419,16 @@
   color: var(--text);
   cursor: pointer;
 }
+
+/* "Ended" next to the episode counts: no more episodes will come out. */
+.detail-ended-chip {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 1px 10px;
+  border-radius: 12px;
+  background: var(--badge-ended-bg);
+  color: var(--text-on-media);
+  font-size: 12px;
+  font-weight: 600;
+  vertical-align: 1px;
+}

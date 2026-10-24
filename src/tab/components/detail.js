@@ -117,7 +117,6 @@ export class DetailView {
     const meta = [`${total} ${total === 1 ? t('episode') : t('episodes')}`, `${watched}/${total} ${t('watched')} (${Math.round(percent)}%)`]
     if (excluded) meta.push(t('excluded_count', { n: excluded }))
     if (latest) meta.push(`${t('last_video')}: ${shortDate(latest.publishedAt)}`)
-    if (series.ended) meta.push(t('series_ended_desc'))
 
     const left = series.completed ? 0 : timeLeft(series)
     const estimate = series.completed ? null : finishEstimate(series)
@@ -149,7 +148,9 @@ export class DetailView {
             onClick: () => this.openChannelModal(series)
           }, series.channelTitle))),
       h('div', { class: 'detail-info-body' },
-        h('div', { class: 'detail-meta-row' }, meta.join(' · ')),
+        h('div', { class: 'detail-meta-row' },
+          series.ended && h('span', { class: 'detail-ended-chip', title: t('series_ended_desc') }, t('series_ended')),
+          meta.join(' · ')),
         pace && h('div', { class: 'detail-pace-row' }, pace),
         h('div', { class: 'detail-progress-bar', role: 'progressbar', 'aria-label': t('watched'), 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': String(Math.round(percent)) },
           h('div', { class: 'detail-progress-fill', style: { '--progress': `${percent}%` } })),
