@@ -152,7 +152,8 @@ try {
   check(dashboardsAfter >= 1 && dashboardsAfter <= Math.max(1, dashboardsBefore), 'popup "Open Dashboard" opens or focuses the dashboard')
 
   // Saved library view.
-  await page.click('.nav-link[data-view="saved"]')
+  await page.click('#libraryMenuBtn')
+  await page.click('#libraryMenu .nav-menu-item >> nth=0')
   await page.waitForSelector('.collections-section')
   check(await page.locator('.collection-library-grid .series-card').count() > 0, 'saved library renders')
 

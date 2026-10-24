@@ -96,6 +96,49 @@
   line-height: 1.5;
 }
 
+/* "Add via link": the URL field, with a link icon (type="url" had no style). */
+.url-field {
+  position: relative;
+}
+
+.url-field svg {
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  width: 18px;
+  height: 18px;
+  color: var(--text-muted);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.url-field input[type="url"] {
+  width: 100%;
+  min-height: 46px;
+  padding: 12px var(--space-md) 12px 42px;
+  border: 1px solid var(--border);
+  border-radius: 23px;
+  background: var(--input-bg);
+  color: var(--text);
+  font-family: var(--font-primary);
+  font-size: 14px;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.url-field input[type="url"]::placeholder {
+  color: var(--text-muted);
+}
+
+.url-field input[type="url"]:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent);
+}
+
+.url-field input[aria-invalid="true"] {
+  border-color: var(--primary); /* same colour as .error-msg */
+}
+
 .modal-body input[type="text"] {
   width: 100%;
   padding: 12px var(--space-md);

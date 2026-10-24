@@ -49,7 +49,8 @@ const settingsRoutes = {
       language: s.optional(s.oneOf(LANGUAGES)),
       autoRefresh: s.optional(s.boolean()),
       nextEpisodeOverlay: s.optional(s.boolean()),
-      weeklyGoal: s.optional(s.number({ min: 0, max: 50, integer: true }))
+      weeklyGoal: s.optional(s.number({ min: 0, max: 50, integer: true })),
+      libraryView: s.optional(s.oneOf(['grid', 'list']))
     }),
     handler: updateSettings
   },

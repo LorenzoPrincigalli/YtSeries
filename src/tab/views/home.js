@@ -7,7 +7,8 @@ import { svg } from '../../shared/icons.js'
 import { getState, getUi, setUi } from '../core/store.js'
 import { errorMessage } from '../ui/feedback.js'
 import * as actions from '../actions.js'
-import { seriesRow, playlistRow, libraryGrid, heroCarousel, channelCard } from '../components/cards.js'
+import { seriesRow, playlistRow, libraryGrid, libraryList, heroCarousel, channelCard } from '../components/cards.js'
+import { LIBRARY_FILTERS, libraryView } from '../features/libraryMenu.js'
 import { renderCollections } from '../components/collections.js'
 import { renderSchedule } from './schedule.js'
 import { manageCollection } from '../features/collections.js'
@@ -171,11 +172,12 @@ function savedLibrary(all, ui) {
   const labels = { add: 'add_collection_series', edit: 'edit_collection', move: 'move_series', delete: 'delete_collection' }
   // Saved has its own search box above the list (the header one is hidden
   // here): it filters in place, without re-rendering the page, so typing keeps focus.
+  const view = libraryView(state)
   const results = h('div', { class: 'saved-results' })
   /** @param {string} query */
   const showResults = query => {
     const filtered = filterSeries(all, { search: query, collection, filter: ui.filter })
-    mount(results, filtered.length ? libraryGrid(filtered, openDetail)
+    mount(results, filtered.length ? (view === 'list' ? libraryList : libraryGrid)(filtered, openDetail)
       : h('p', { class: 'search-empty' }, query ? t('saved_search_empty', { query }) : t(collection ? 'collection_empty' : all.length ? 'filtered_empty' : 'saved_empty')))
   }
   showResults(ui.savedSearch)
@@ -205,8 +207,26 @@ function savedLibrary(all, ui) {
 
   return [
     shelf,
-    all.length > 0 && h('div', { class: 'saved-search' }, svg('search'), search),
-    h('h2', { class: 'collection-content-title', tabIndex: -1 }, collection || t('all_saved')),
+    all.length > 0 && h('div', { class: 'library-toolbar' },
+      h('div', { class: 'saved-search' }, svg('search'), search),
+      h('div', { class: 'library-chips', role: 'group', 'aria-label': t('library_filters') },
+        LIBRARY_FILTERS.map(entry => h('button', {
+          type: 'button',
+          class: 'library-chip',
+          'aria-pressed': String(ui.filter === entry.filter),
+          onClick: () => setUi({ filter: entry.filter })
+        }, t(entry.label)))),
+      h('div', { class: 'library-views', role: 'group', 'aria-label': t('library_view') },
+        [['grid', 'view_grid'], ['list', 'view_list']].map(([value, label]) => h('button', {
+          type: 'button',
+          class: 'library-view-btn',
+          'aria-pressed': String(view === value),
+          'aria-label': t(label),
+          title: t(label),
+          onClick: () => { if (view !== value) actions.updateSettings({ libraryView: value }) }
+        }, svg(value === 'grid' ? 'grid' : 'list'))))),
+    h('h2', { class: 'collection-content-title', tabIndex: -1 },
+      collection || t(LIBRARY_FILTERS.find(entry => entry.filter === ui.filter)?.label || 'filter_all')),
     managementModes.length > 0 && h('div', { class: 'collection-management' },
       managementModes.map(mode => h('button', { type: 'button', class: 'btn-secondary', onClick: () => manageCollection(mode, collection) }, t(labels[mode]))),
       all.some(s => s.collection === collection) && h('button', {

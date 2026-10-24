@@ -104,6 +104,13 @@ const confirm = async (accept = true) => {
 }
 const settled = () => page.waitForTimeout(250)
 const goHome = async () => { await page.click('.nav-link[data-view="home"]'); await settled() }
+const FILTER_INDEX = { all: 0, watching: 1, completed: 2, new: 3 }
+/** Opens "Your series" from the header menu, on a filter. */
+const openLibrary = async (filter = 'all') => {
+  await page.click('#libraryMenuBtn')
+  await page.click(`#libraryMenu .nav-menu-item >> nth=${FILTER_INDEX[filter]}`)
+  await page.waitForSelector('.library-toolbar')
+}
 /** Opens Settings (if needed) on the given section. */
 async function settingsSection(section) {
   if (await page.locator('#settingsModal.hidden').count()) {
@@ -366,18 +373,46 @@ await step('delete asks for confirmation, then Undo restores the series', async 
 })
 
 console.log('\nNavigation & filters')
-await step('Watching / Completed / New filters set aria-current and filter', async () => {
+await step('"Your series" menu: filters with counts, keyboard, Escape', async () => {
+  assert(await page.locator('.nav-link[data-filter]').count() === 0, 'old filter links still in the header')
+  await page.focus('#libraryMenuBtn')
+  await page.keyboard.press('ArrowDown')
+  await page.waitForSelector('#libraryMenu:not(.hidden)')
+  assert(await page.getAttribute('#libraryMenuBtn', 'aria-expanded') === 'true', 'aria-expanded not set')
+  assert(await page.evaluate(() => document.activeElement?.closest('#libraryMenu') !== null), 'focus not in the menu')
+  const counts = await page.$$eval('#libraryMenu .nav-menu-count', list => list.map(el => Number(el.textContent)))
+  assert(counts.length === 4 && counts[0] === await seriesCount(), `menu counts: ${counts}`)
+  await page.keyboard.press('Escape')
+  await page.waitForSelector('#libraryMenu.hidden', { state: 'attached' })
+  assert(await page.evaluate(() => document.activeElement?.id) === 'libraryMenuBtn', 'focus not returned to the button')
   for (const filter of ['watching', 'completed', 'new']) {
-    await page.click(`.nav-link[data-filter="${filter}"]`)
-    await settled()
-    assert(await page.getAttribute(`.nav-link[data-filter="${filter}"]`, 'aria-current') === 'page', `${filter} not current`)
+    await openLibrary(filter)
+    assert(await page.getAttribute(`.library-chip >> nth=${FILTER_INDEX[filter]}`, 'aria-pressed') === 'true', `${filter} chip not pressed`)
+    assert(await page.locator('#libraryMenuBtn.active').count() === 1, 'menu button not marked active')
   }
+  await goHome()
+})
+await step('Your series: search box, filter chips and list view', async () => {
+  await openLibrary('all')
+  const total = await seriesCount()
+  await page.fill('#savedSearchInput', 'plsearch')
+  await page.waitForFunction(() => document.querySelectorAll('.saved-results .series-card').length === 1)
+  assert(await page.evaluate(() => document.activeElement?.id) === 'savedSearchInput', 'search box lost focus')
+  await page.press('#savedSearchInput', 'Escape')
+  await page.waitForFunction(n => document.querySelectorAll('.saved-results .series-card').length === n, total)
+  await page.click('.library-view-btn >> nth=1')
+  await page.waitForSelector('.library-list .library-row')
+  assert(await page.locator('.library-row').count() === total, 'list view incomplete')
+  assert((await state()).settings.libraryView === 'list', 'view not saved')
+  await axe('your series, list view')
+  await page.click('.library-view-btn >> nth=0')
+  await page.waitForSelector('.collection-library-grid .series-card')
   await goHome()
 })
 
 console.log('\nSaved library & collections')
 await step('Saved view shows the shelf and the full grid', async () => {
-  await page.click('.nav-link[data-view="saved"]')
+  await openLibrary()
   await page.waitForSelector('.collections-section')
   assert(await page.locator('.collection-library-grid .series-card').count() === await seriesCount(), 'grid incomplete')
 })
@@ -452,10 +487,10 @@ await step('theme switch applies instantly and persists', async () => {
 await step('language switch translates the UI (IT) and back', async () => {
   await settingsSection('language')
   await page.selectOption('#languageSelect', 'it')
-  await page.waitForFunction(() => document.querySelector('.nav-link[data-view="saved"]')?.textContent.trim() === 'Salvati')
+  await page.waitForFunction(() => document.querySelector('#libraryMenuBtn')?.textContent.trim() === 'Le tue serie')
   assert(await page.getAttribute('html', 'lang') === 'it', 'lang attribute not updated')
   await page.selectOption('#languageSelect', 'en')
-  await page.waitForFunction(() => document.querySelector('.nav-link[data-view="saved"]')?.textContent.trim() === 'Saved')
+  await page.waitForFunction(() => document.querySelector('#libraryMenuBtn')?.textContent.trim() === 'Your series')
 })
 await step('overlay and notification toggles are keyboard operable and persist', async () => {
   await settingsSection('overlay')
@@ -681,7 +716,7 @@ await step('share a collection, open the link, import the list', async () => {
   })
   await context.grantPermissions(['clipboard-read', 'clipboard-write'])
   await send('COLLECTION_MOVE', { ids: ['PLtrailer001'], destination: 'Shared picks' })
-  await page.click('.nav-link[data-view="saved"]')
+  await openLibrary()
   await page.click('.collection-tile[data-collection="Shared picks"]')
   await clearToasts()
   await page.click('text=Share collection')

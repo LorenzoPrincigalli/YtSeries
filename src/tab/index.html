@@ -43,31 +43,23 @@
               </svg>
               <span data-i18n="home">Home</span>
             </a>
-            <a href="#" class="nav-link" data-view="saved" data-i18n="saved_section">Saved</a>
-            <a
-              href="#"
-              class="nav-link"
-              data-filter="watching"
-              data-i18n="watching"
-              >Watching</a
+            <button
+              type="button"
+              id="libraryMenuBtn"
+              class="nav-link nav-menu-btn"
+              data-view="saved"
+              aria-haspopup="menu"
+              aria-expanded="false"
+              aria-controls="libraryMenu"
             >
-            <a
-              href="#"
-              class="nav-link"
-              data-filter="completed"
-              data-i18n="completed"
-              >Completed</a
-            >
-            <a
-              href="#"
-              class="nav-link"
-              data-filter="new"
-              data-i18n="new_episodes"
-              >New Episodes</a
-            >
+              <span data-i18n="your_series">Your series</span>
+              <svg class="nav-menu-chevron" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            </button>
             <a href="#" class="nav-link" data-view="schedule" data-i18n="nav_upcoming">Upcoming</a>
           </nav>
         </div>
+        <!-- Outside the nav: the nav scrolls horizontally on small screens and would clip it. -->
+        <div id="libraryMenu" class="nav-menu-panel hidden" role="menu" aria-labelledby="libraryMenuBtn"></div>
         <div class="header-right">
           <div class="search-container">
             <input
@@ -179,8 +171,10 @@
         </div>
         <div class="modal-body">
           <p class="modal-desc" id="addPlaylistDesc" data-i18n="add_series_desc">
-            Paste a YouTube playlist URL to add it as a series.
+            Paste a link to a YouTube playlist or channel, or a list shared from YT Series.
           </p>
+          <div class="url-field">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1.2 1.2M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1.2-1.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
           <input
             type="url"
             id="playlistUrlInput"
@@ -192,6 +186,7 @@
             data-i18n="playlist_url_placeholder"
             data-i18n-attr="placeholder,aria-label"
           />
+          </div>
           <div id="playlistError" class="error-msg hidden" role="alert"></div>
         </div>
         <div class="modal-footer">

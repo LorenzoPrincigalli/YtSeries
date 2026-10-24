@@ -1,5 +1,5 @@
 // @ts-check
-// Header: navigation (home / saved / filters) and the search box.
+// Header: navigation (Home, "Your series" menu, Upcoming) and the search box.
 import { byId } from '../../shared/dom.js'
 import { getUi, setUi, subscribe } from '../core/store.js'
 import * as actions from '../actions.js'
@@ -16,22 +16,21 @@ export function clearSearch() {
 }
 
 /** @param {{ section?: 'home' | 'saved' | 'schedule', filter?: any }} target */
-function navigate({ section = 'home', filter = 'all' }) {
+export function navigate({ section = 'home', filter = 'all' }) {
   clearSearch()
-  setUi({ section, filter, collection: '' })
+  setUi({ section, filter, collection: '', savedSearch: '' })
   window.scrollTo({ top: 0 })
 }
 
 /** Reflects the current section/filter on the nav links (active + aria-current). */
 function syncNav() {
-  const { section, filter } = getUi()
+  const { section } = getUi()
   for (const link of document.querySelectorAll('.nav-link')) {
     const el = /** @type {HTMLElement} */ (link)
-    const active = el.dataset.view === 'saved' || el.dataset.view === 'schedule' ? section === el.dataset.view
-      : el.dataset.view === 'home' ? section === 'home' && filter === 'all'
-        : section === 'home' && el.dataset.filter === filter
+    const active = section === el.dataset.view
     el.classList.toggle('active', active)
-    if (active) el.setAttribute('aria-current', 'page')
+    // The "Your series" button opens a menu: it is marked active, not as the current page.
+    if (active && el.tagName === 'A') el.setAttribute('aria-current', 'page')
     else el.removeAttribute('aria-current')
   }
   // Saved has its own search box; the header one is hidden there (CSS).
@@ -41,12 +40,11 @@ function syncNav() {
 }
 
 export function initHeader() {
-  for (const link of document.querySelectorAll('.nav-link')) {
+  for (const link of document.querySelectorAll('a.nav-link')) {
     link.addEventListener('click', event => {
       event.preventDefault()
-      const el = /** @type {HTMLElement} */ (link)
-      if (el.dataset.view === 'saved' || el.dataset.view === 'schedule') navigate({ section: el.dataset.view })
-      else navigate({ section: 'home', filter: el.dataset.filter || 'all' })
+      const view = /** @type {HTMLElement} */ (link).dataset.view
+      navigate({ section: view === 'schedule' ? 'schedule' : 'home' })
     })
   }
 

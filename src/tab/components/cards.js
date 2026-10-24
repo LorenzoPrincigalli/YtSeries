@@ -4,8 +4,8 @@
 import { t } from '../../shared/i18n.js'
 import { h, img } from '../../shared/dom.js'
 import { svg } from '../../shared/icons.js'
-import { isInProgress, isComplete, cardProgress, heroProgress, nextEpisode, watchUrl, formatLength, isChannelSeries } from '../seriesView.js'
-import { timeLeft } from '../../shared/seriesStats.js'
+import { isInProgress, isComplete, cardProgress, heroProgress, nextEpisode, watchUrl, formatLength, isChannelSeries, watchedCount } from '../seriesView.js'
+import { timeLeft, countedVideos } from '../../shared/seriesStats.js'
 
 const SCROLL_STEP = 312
 const HERO_INTERVAL_MS = 10_000
@@ -152,6 +152,42 @@ export function playlistRow(title, playlists, onAdd) {
 /** @param {any[]} seriesList @param {(series: any) => void} onOpen */
 export function libraryGrid(seriesList, onOpen) {
   return h('div', { class: 'collection-library-grid' }, seriesList.map((series, i) => seriesCard(series, onOpen, i)))
+}
+
+/**
+ * Compact list view of the library: one row per series with progress, time
+ * left and a direct "Continue" button. Same click model as the cards.
+ * @param {any[]} seriesList @param {(series: any) => void} onOpen
+ */
+export function libraryList(seriesList, onOpen) {
+  return h('ul', { class: 'library-list' }, seriesList.map(series => {
+    const total = countedVideos(series).length
+    const watched = watchedCount(series)
+    const next = !series.completed ? nextEpisode(series) : null
+    const complete = isComplete(series)
+    const open = () => onOpen(series)
+    const meta = [series.channelTitle, `${watched}/${total} ${t('watched')}`, timeLeftLabel(series)].filter(Boolean).join(' · ')
+    return h('li', { class: 'library-row', dataset: { id: series.playlistId }, onClick: open },
+      h('span', { class: 'library-row-thumb' },
+        img({ src: series.thumbnail, alt: '' }),
+        isChannelSeries(series.playlistId) && h('span', { class: 'card-kind' }, t('channel_badge'))),
+      h('span', { class: 'library-row-main' },
+        h('button', { type: 'button', class: 'card-title-btn library-row-title', onClick: event => { event.stopPropagation(); open() } }, series.title || t('untitled')),
+        h('span', { class: 'library-row-meta' }, meta),
+        h('span', { class: 'library-row-progress', 'aria-hidden': 'true' }, h('span', { style: progressStyle(total ? (watched / total) * 100 : 0) }))),
+      h('span', { class: 'library-row-side' },
+        series.newEpisodesCount > 0 && !complete && h('span', { class: 'card-badge card-badge-new library-row-badge' }, t('new_badge', { n: series.newEpisodesCount })),
+        complete && total > 0 && h('span', { class: 'card-badge card-badge-complete library-row-badge' }, t('done')),
+        next && h('button', {
+          type: 'button',
+          class: 'btn-primary btn-with-icon library-row-play',
+          'aria-label': t('play_episode', { title: next.title }),
+          onClick: event => {
+            event.stopPropagation()
+            window.open(watchUrl(next.id, series.playlistId, next.resumeTime), '_blank', 'noopener')
+          }
+        }, svg('play'), t('continue_ep', { n: series.videos.indexOf(next) + 1 }))))
+  }))
 }
 
 /**

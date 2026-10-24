@@ -1059,3 +1059,324 @@ body[data-section="saved"] .header-right > .search-container {
   outline: none;
   border-color: var(--primary);
 }
+
+/* ── "Your series" header menu ──────────────────────────────────────────── */
+.nav-menu-btn {
+  border: 0;
+  background: transparent;
+  font-family: var(--font-primary);
+  cursor: pointer;
+}
+
+.nav-menu-chevron {
+  transition: transform var(--transition);
+}
+
+.nav-menu-btn[aria-expanded="true"] .nav-menu-chevron {
+  transform: rotate(180deg);
+}
+
+.nav-menu-panel {
+  position: fixed;
+  top: var(--menu-top, 64px);
+  left: var(--menu-left, 16px);
+  z-index: var(--z-dropdown);
+  width: 280px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--modal-bg);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.38);
+  animation: nav-menu-in 0.16s ease-out;
+}
+
+@keyframes nav-menu-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.nav-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font-primary);
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.nav-menu-item svg {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  color: var(--text-muted);
+}
+
+.nav-menu-item:hover,
+.nav-menu-item:focus-visible,
+.nav-menu-view:hover,
+.nav-menu-view:focus-visible {
+  outline: none;
+  background: var(--hover-overlay-strong);
+}
+
+.nav-menu-item[aria-checked="true"] {
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+}
+
+.nav-menu-item[aria-checked="true"] svg {
+  color: var(--primary);
+}
+
+.nav-menu-label {
+  flex: 1;
+}
+
+.nav-menu-count {
+  min-width: 26px;
+  padding: 1px 8px;
+  border-radius: 10px;
+  background: var(--hover-overlay-strong);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.nav-menu-separator {
+  height: 1px;
+  margin: 6px 4px;
+  background: var(--border);
+}
+
+.nav-menu-heading {
+  display: block;
+  padding: 6px 12px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.nav-menu-views {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 4px;
+}
+
+.nav-menu-view {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font-primary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.nav-menu-view svg {
+  width: 16px;
+  height: 16px;
+}
+
+.nav-menu-view[aria-checked="true"] {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+}
+
+/* ── Your series page: search, filter chips, view toggle ────────────────── */
+.library-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-md);
+  margin: var(--space-lg) 0 var(--space-md);
+}
+
+.library-toolbar .saved-search {
+  flex: 1 1 260px;
+  margin: 0;
+}
+
+.library-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.library-chip {
+  padding: 7px 14px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-primary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color var(--transition), border-color var(--transition), background var(--transition);
+}
+
+.library-chip:hover,
+.library-chip:focus-visible {
+  color: var(--text);
+  border-color: var(--text-muted);
+}
+
+.library-chip[aria-pressed="true"] {
+  border-color: var(--primary-fill);
+  background: var(--primary-fill);
+  color: var(--text-on-primary);
+}
+
+.library-views {
+  display: inline-flex;
+  margin-left: auto;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.library-view-btn {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 30px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.library-view-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.library-view-btn[aria-pressed="true"] {
+  background: var(--hover-overlay-strong);
+  color: var(--text);
+}
+
+/* List view */
+.library-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.library-row {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-md);
+  padding: 8px;
+  border-radius: var(--radius-lg);
+  background: var(--card-bg);
+  cursor: pointer;
+  transition: background var(--transition);
+}
+
+.library-row:hover {
+  background: var(--card-hover);
+}
+
+.library-row-thumb {
+  position: relative;
+  display: block;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--border);
+}
+
+.library-row-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.library-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.library-row-title {
+  font-size: 15px;
+  font-weight: 700;
+  text-align: left;
+  -webkit-line-clamp: 1;
+}
+
+.library-row-meta {
+  overflow: hidden;
+  font-size: 13px;
+  color: var(--text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.library-row-progress {
+  display: block;
+  height: 4px;
+  max-width: 320px;
+  border-radius: 2px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.library-row-progress > span {
+  display: block;
+  width: var(--progress, 0%);
+  height: 100%;
+  background: var(--primary-fill);
+}
+
+.library-row-side {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding-right: 8px;
+}
+
+.library-row-badge {
+  position: static;
+}
+
+@media (max-width: 600px) {
+  .library-row {
+    grid-template-columns: 96px minmax(0, 1fr);
+  }
+
+  .library-row-side {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
+
+  .library-views {
+    margin-left: 0;
+  }
+}

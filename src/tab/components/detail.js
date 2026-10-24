@@ -79,7 +79,7 @@ export class DetailView {
       openModal(MODAL_ID, {
         onClose: () => { this.renderedId = null; this.closeFolderPicker?.(false); setUi({ detailId: null }) },
         // The card that opened the dialog may have been re-rendered meanwhile: refocus its replacement.
-        returnFocus: () => document.querySelector(`.series-card[data-id="${CSS.escape(detailId)}"] .card-title-btn`)
+        returnFocus: () => document.querySelector(`[data-id="${CSS.escape(detailId)}"] .card-title-btn`)
       })
     }
   }

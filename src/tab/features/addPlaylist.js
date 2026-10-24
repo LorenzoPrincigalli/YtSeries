@@ -21,6 +21,7 @@ function showError(message) {
   if (!el) return
   el.textContent = message
   el.classList.remove('hidden')
+  byId('playlistUrlInput')?.setAttribute('aria-invalid', 'true')
 }
 
 async function submit() {
@@ -28,6 +29,7 @@ async function submit() {
   const button = /** @type {HTMLButtonElement} */ (byId('addPlaylistConfirm'))
   const url = input.value.trim()
   byId('playlistError')?.classList.add('hidden')
+  input.removeAttribute('aria-invalid')
   if (!url) { showError(t('enter_url')); input.focus(); return }
   if (button.disabled) return
   // A shared list link opens the import preview instead.

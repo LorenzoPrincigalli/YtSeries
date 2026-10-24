@@ -10,13 +10,14 @@
 | `core/errorBoundary.js` | `safeRender()` fallback with Retry, `guarded()` for handlers, global error handlers |
 | `actions.js` | All user intents → background commands; applies returned `state`, shows translated error toasts |
 | `seriesView.js` | Pure derivations (filters, sort, hero, this-week, progress, URLs) — unit-tested |
-| `views/home.js` | Main area: home rows, search results, saved library |
+| `views/home.js` | Main area: home rows, search results, "Your series" (collections shelf, own search box, filter chips, grid or list via `settings.libraryView`) |
 | `views/schedule.js` | Upcoming: expected releases (`releaseForecast`) for the next 7 days, late, later, and episodes out in the last week |
 | `components/cards.js` | Cards, carousel rows, hero carousel, channel results |
 | `components/detail.js` | Series dialog (re-renders from store; keeps scroll/sort): time left / finish estimate, trailer suggestion, "Skip episode" toggles, "Mark as ended" toggle and dormant-series suggestion, notes, share, folder picker, channel dialog with "Follow as series" |
 | `components/notes.js` | Episode notes in the detail: grouped list, inline edit, delete, Markdown export |
 | `components/achievements.js` | Trophy button → Achievements dialog: this week (goal, streak, time watched) and the badge grid; celebration + dot for badges earned while the dashboard is open |
 | `components/collections.js`, `collectionEditor.js` | Collection shelf and editor dialog |
+| `features/libraryMenu.js` | "Your series" header menu (menu button pattern): filters with counts and grid/list view; the filters live only here and in the page chips |
 | `features/*` | Header/search, activity bell, settings (goals, sync, backups, import/export, reset, dev), add-playlist (playlist, channel or share links), footer dialogs, collection management, `share.js` (copy a share link, import preview) |
 | `ui/modal.js` | Accessible modals (focus trap, Escape, focus restore) and `confirmDialog()` |
 | `ui/feedback.js` | Toasts (`role=status`) and `errorMessage(code)` |

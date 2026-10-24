@@ -30,6 +30,9 @@
 - Shareable lists: a series or a collection as a link (encoded in the URL, no server); share.html on GitHub Pages and an import preview in the dashboard
 
 ### Changed
+- Header: Home · Your series · Upcoming. "Your series" is a menu with the library filters (all, in progress, completed, new episodes, with counts) and the view (grid or list); the separate filter links are gone
+- Your series page: its own search box, filter chips and a list view with progress, time left and "Continue"; the header search is hidden there
+- "Add via link": styled URL field with a link icon and error state; mentions channel and shared-list links
 - Worker: allowlisted channels endpoint (channel id or @handle)
 - Firestore rules: optional notes map (≤ 400 entries)
 - manifest: externally_connectable for the share page only; no web_accessible_resources (the YouTube sidebar mark is inline SVG, which also removes the "Unsafe attempt to load URL" error from orphaned scripts)
