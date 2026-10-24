@@ -358,7 +358,7 @@ select option {
 
 /* error */
 .error-msg {
-  color: var(--primary);
+  color: var(--danger-text);
   font-size: 13px;
   margin-top: var(--space-sm);
 }

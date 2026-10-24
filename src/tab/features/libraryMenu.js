@@ -22,6 +22,9 @@ export const LIBRARY_FILTERS = /** @type {const} */ ([
 export const libraryView = state => (state?.settings?.libraryView === 'list' ? 'list' : 'grid')
 
 let open = false
+/** Scroll position when the menu opened: only a real scroll closes it. */
+let openedAtY = 0
+const SCROLL_CLOSE_PX = 40
 
 function items() {
   return /** @type {HTMLElement[]} */ ([...(byId('libraryMenu')?.querySelectorAll('[role^="menuitem"]') || [])])
@@ -35,8 +38,8 @@ function close(restoreFocus = false) {
   const button = byId('libraryMenuBtn')
   button?.setAttribute('aria-expanded', 'false')
   document.removeEventListener('pointerdown', onOutside, true)
-  window.removeEventListener('resize', onViewportChange)
-  window.removeEventListener('scroll', onViewportChange)
+  window.removeEventListener('resize', onResize)
+  window.removeEventListener('scroll', onScroll)
   if (restoreFocus) button?.focus()
 }
 
@@ -46,7 +49,10 @@ function onOutside(event) {
   if (!byId('libraryMenu')?.contains(target) && !byId('libraryMenuBtn')?.contains(target)) close()
 }
 
-function onViewportChange() { close() }
+function onResize() { close() }
+
+// Images loading or scroll anchoring nudge the page by a few pixels: ignore those.
+function onScroll() { if (Math.abs(window.scrollY - openedAtY) > SCROLL_CLOSE_PX) close() }
 
 function render() {
   const panel = /** @type {HTMLElement} */ (byId('libraryMenu'))
@@ -80,9 +86,10 @@ function show(focusFirst) {
   panel.classList.remove('hidden')
   button.setAttribute('aria-expanded', 'true')
   open = true
+  openedAtY = window.scrollY
   document.addEventListener('pointerdown', onOutside, true)
-  window.addEventListener('resize', onViewportChange)
-  window.addEventListener('scroll', onViewportChange, { passive: true })
+  window.addEventListener('resize', onResize)
+  window.addEventListener('scroll', onScroll, { passive: true })
   const list = items()
   // Focus goes into the menu, on the current choice (the first item from the keyboard).
   const target = (!focusFirst && list.find(item => item.getAttribute('aria-checked') === 'true')) || list[0]

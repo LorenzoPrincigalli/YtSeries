@@ -56,6 +56,12 @@ Behaviour unchanged from 1.1: collections are whole-series assignments synced wi
 - **Goal, milestones, badges**: `settings.weeklyGoal` (Settings → Goals); `EPISODE_WATCH` returns the milestone crossed, celebrated by `actions.celebrate`. Badges are pure functions of the library (`src/shared/achievements.js`: 12 badges × 3 levels, no stored state); the dialog lives off the home page on purpose.
 - **Sharing**: `shareCodec` encodes the list in the link (`share.html#d=…`); importing re-adds playlists with `PLAYLIST_ADD` (concurrency 2) and optionally files them with `COLLECTION_MOVE`.
 
+## Layout notes
+
+- The window is the scroll container: `html, body` use `overflow-x: clip` (`hidden` would make `<body>` scroll and break `window.scrollTo` and scroll listeners).
+- Phone (≤ 600 px): one row of icons — magnifier (`#searchToggle`, opens the search row), settings, achievements, bell, "+" (add via link); Support is in Settings there.
+- YouTube search: playlists first; channels below, three shown. A query returning only channels triggers one extra playlists-only search.
+
 ## Search
 
 Typing filters locally; Enter queries YouTube (`PLAYLIST_SEARCH`, 3 s server cooldown). Loading and failure are explicit states (`searchStatus`); previous results stay visible on failure.

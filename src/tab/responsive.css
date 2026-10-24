@@ -121,9 +121,15 @@
   #header { gap: 4px; }
   .header-logo-icon { width: 76px; }
   .header-right { display: contents; }
-  .header-pro-btn { margin-left: auto; }
-  #addPlaylistBtn { margin-left: auto; min-height: 40px; }
-  .header-right > .search-container { order: 2; flex: 1 1 100%; margin: 4px 0; }
+  /* One row of icons; Support lives in Settings here; search opens on demand. */
+  .header-pro-btn { display: none; }
+  .icon-btn.search-toggle { display: inline-grid; place-items: center; margin-left: auto; }
+  body[data-section="saved"] .icon-btn.search-toggle { display: none; }
+  #addPlaylistBtn { display: inline-grid; place-items: center; width: 40px; height: 40px; padding: 0; border-radius: 50%; }
+  .add-playlist-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .header-right > .search-container { display: none; order: 4; flex: 1 1 100%; margin: 4px 0; }
+  #header.search-open .header-right > .search-container,
+  #header.has-search .header-right > .search-container { display: block; }
   body[data-section="saved"] .header-right > .search-container { display: none; }
   .search-container input { width: 100%; min-height: 42px; }
   .nav-links { gap: 0; }

@@ -145,30 +145,48 @@
 
 .hero-dots {
   position: absolute;
-  bottom: var(--space-lg);
+  bottom: calc(var(--space-lg) - 7px);
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  gap: 10px;
+  gap: 0;
   z-index: 5;
 }
 
+/* 24 px hit area around a 10 px dot (WCAG 2.5.8). */
 .hero-dot {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+
+.hero-dot::before {
+  content: "";
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.35);
-  cursor: pointer;
+  background: rgba(255, 255, 255, 0.35);
   transition: background 0.2s, transform 0.2s;
 }
 
-.hero-dot.active {
+.hero-dot.active::before {
   background: var(--surface-on-media);
   transform: scale(1.25);
 }
 
-.hero-dot:hover {
-  background: rgba(255,255,255,0.7);
+.hero-dot:hover::before {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.hero-dot:focus-visible {
+  outline: 2px solid var(--surface-on-media);
+  outline-offset: -2px;
 }
 
 #mainContent {

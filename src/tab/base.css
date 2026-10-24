@@ -1,9 +1,11 @@
+/* clip, not hidden: overflow-x: hidden would turn <body> into the scroll
+   container, so the window never scrolls (scrollTo, scroll listeners). */
 html, body {
-  height: 100%;
+  min-height: 100%;
   font-family: var(--font-primary);
   background: var(--bg);
   color: var(--text);
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 body {

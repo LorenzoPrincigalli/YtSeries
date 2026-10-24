@@ -33,6 +33,10 @@
 - Header: Home · Your series · Upcoming. "Your series" is a menu with the library filters (all, in progress, completed, new episodes, with counts); the separate filter links are gone
 - Your series page: its own search box, filter chips and a grid/list toggle (the list shows progress, time left and "Continue"); the header search is hidden there
 - "Add via link": styled URL field with a link icon and error state; mentions channel and shared-list links
+- Phone header: one row of icons ("+" to add, magnifier to open search; Support moves to Settings) instead of four rows
+- YouTube search: playlists first; a broad query that returns only channels asks once more for playlists; channels listed under their own heading, three at a time
+- YouTube search results showed HTML entities in titles ("Earth&#39;s"); they are decoded
+- Changing section resets the scroll position (the page scrolled the body, not the window); readable error text in dark themes; 24 px targets for the hero dots and the search clear button
 - Worker: allowlisted channels endpoint (channel id or @handle)
 - Firestore rules: optional notes map (≤ 400 entries)
 - manifest: externally_connectable for the share page only; no web_accessible_resources (the YouTube sidebar mark is inline SVG, which also removes the "Unsafe attempt to load URL" error from orphaned scripts)

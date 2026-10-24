@@ -136,7 +136,7 @@
 }
 
 .url-field input[aria-invalid="true"] {
-  border-color: var(--primary); /* same colour as .error-msg */
+  border-color: var(--danger-text); /* same colour as .error-msg */
 }
 
 .modal-body input[type="text"] {

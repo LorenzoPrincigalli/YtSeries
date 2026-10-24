@@ -109,6 +109,8 @@ function inspect({ minTarget, minFont }) {
     for (let j = i + 1; j < interactive.length; j++) {
       const a = interactive[i]; const b = interactive[j]
       if (a.contains(b) || b.contains(a)) continue
+      // A button placed inside a text field (clear, reveal) is part of the field.
+      if (a.parentElement === b.parentElement && [a, b].some(el => el.tagName === 'INPUT')) continue
       const ra = a.getBoundingClientRect(); const rb = b.getBoundingClientRect()
       const w = Math.min(ra.right, rb.right) - Math.max(ra.left, rb.left)
       const h = Math.min(ra.bottom, rb.bottom) - Math.max(ra.top, rb.top)
@@ -190,7 +192,7 @@ const SCREENS = [
   { name: 'add-via-link-error', go: async () => { await page.goto(DASH); await page.click('#addPlaylistBtn'); await page.fill('#playlistUrlInput', 'not a link'); await page.click('#addPlaylistConfirm'); await page.waitForSelector('#playlistError:not(.hidden)') } },
   { name: 'settings-goals', go: async () => { await page.goto(`${DASH}?settings=1`); await page.click('.settings-tab[data-section="goals"]') } },
   { name: 'achievements', go: async () => { await page.goto(DASH); await page.click('#achievementsBtn'); await page.waitForSelector('#achievementsModal:not(.hidden) .badge-card') } },
-  { name: 'search-youtube', go: async () => { await page.goto(DASH); await page.fill('#searchInput', 'documentary'); await page.press('#searchInput', 'Enter'); await page.waitForSelector('.search-playlist-card, .channel-card, .search-header-error', { timeout: 20000 }) } }
+  { name: 'search-youtube', go: async () => { await page.goto(DASH); if (await page.isVisible('#searchToggle')) await page.click('#searchToggle'); await page.fill('#searchInput', 'documentary'); await page.press('#searchInput', 'Enter'); await page.waitForSelector('.search-playlist-card, .channel-card, .search-header-error', { timeout: 20000 }) } }
 ]
 
 const results = []

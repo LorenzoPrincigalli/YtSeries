@@ -32,6 +32,23 @@ function pickThumbnail(thumbnails, order = ['maxres', 'high', 'medium', 'default
 /** @param {unknown} value @param {string} fallback */
 const text = (value, fallback = '') => (typeof value === 'string' ? value : fallback)
 
+const ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" }
+/**
+ * The search endpoint HTML-escapes snippet text ("Earth&#39;s"). The UI only
+ * ever sets textContent, so decoding is safe and nothing becomes markup.
+ * @param {string} value
+ */
+function unescapeHtml(value) {
+  return value.replace(/&(#x[0-9a-f]+|#\d+|amp|lt|gt|quot|apos);/gi, (match, code) => {
+    if (code[0] !== '#') return ENTITIES[/** @type {keyof typeof ENTITIES} */ (code.toLowerCase())]
+    const point = code[1].toLowerCase() === 'x' ? parseInt(code.slice(2), 16) : parseInt(code.slice(1), 10)
+    return point > 0 && point < 0x110000 ? String.fromCodePoint(point) : match
+  })
+}
+
+/** @param {unknown} value @param {string} [fallback] */
+const searchText = (value, fallback = '') => unescapeHtml(text(value, fallback))
+
 /**
  * Maps an HTTP failure to a typed error. Transient failures (429, 5xx) are
  * retryable; quota exhaustion is not.
@@ -222,7 +239,18 @@ class YouTubeApiService {
   async search(query) {
     if (!query || !query.trim()) return { playlists: [], channels: [] }
     const data = await this._fetch(this._buildUrl('/search', { part: 'snippet', type: 'playlist,channel', maxResults: 15, q: query.trim() }))
+    const result = this._parseSearch(data)
+    // Broad queries ("documentary") can return only channels; the user came for
+    // series, so ask once more for playlists alone (cached by the Worker).
+    if (!result.playlists.length && result.channels.length) {
+      const more = await this._fetch(this._buildUrl('/search', { part: 'snippet', type: 'playlist', maxResults: 12, q: query.trim() }))
+      result.playlists = this._parseSearch(more).playlists
+    }
+    return result
+  }
 
+  /** @param {any} data */
+  _parseSearch(data) {
     const playlists = []
     const channels = []
     for (const item of Array.isArray(data.items) ? data.items : []) {
@@ -230,18 +258,18 @@ class YouTubeApiService {
       if (item?.id?.kind === 'youtube#playlist' && this._isSafeIdentifier(item.id.playlistId)) {
         playlists.push({
           playlistId: item.id.playlistId,
-          title: text(snippet.title, 'Untitled'),
-          description: text(snippet.description),
+          title: searchText(snippet.title, 'Untitled'),
+          description: searchText(snippet.description),
           thumbnail: pickThumbnail(snippet.thumbnails, ['high', 'medium', 'default']),
-          channelTitle: text(snippet.channelTitle),
+          channelTitle: searchText(snippet.channelTitle),
           channelId: text(snippet.channelId),
           publishedAt: text(snippet.publishedAt)
         })
       } else if (item?.id?.kind === 'youtube#channel' && this._isSafeIdentifier(snippet.channelId)) {
         channels.push({
           channelId: snippet.channelId,
-          title: text(snippet.title, 'Untitled'),
-          description: text(snippet.description),
+          title: searchText(snippet.title, 'Untitled'),
+          description: searchText(snippet.description),
           thumbnail: pickThumbnail(snippet.thumbnails, ['high', 'medium', 'default']),
           publishedAt: text(snippet.publishedAt)
         })

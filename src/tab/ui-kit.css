@@ -111,13 +111,13 @@ body.modal-open { overflow: hidden; }
   cursor: pointer;
 }
 
-.search-header-error { color: var(--danger); }
+.search-header-error { color: var(--danger-text); }
 .section-error { margin: var(--space-2xl) auto; }
 
 /* ── Settings ─────────────────────────────────────────────────────────── */
 .settings-divider { border: 0; border-top: 1px solid var(--border); margin: var(--space-md) 0; }
 .settings-actions-row { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
-#syncMessage { color: var(--danger); }
+#syncMessage { color: var(--danger-text); }
 
 @media (max-width: 480px) {
   .toast-region { right: var(--space-md); left: var(--space-md); bottom: var(--space-md); }

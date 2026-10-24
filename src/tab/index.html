@@ -61,6 +61,9 @@
         <!-- Outside the nav: the nav scrolls horizontally on small screens and would clip it. -->
         <div id="libraryMenu" class="nav-menu-panel hidden" role="menu" aria-labelledby="libraryMenuBtn"></div>
         <div class="header-right">
+          <button id="searchToggle" type="button" class="icon-btn search-toggle" aria-expanded="false" aria-controls="searchInput" title="Search" aria-label="Search" data-i18n="open_search" data-i18n-attr="title,aria-label">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zm9 2-4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
           <div class="search-container">
             <input
               type="search"
@@ -114,7 +117,10 @@
               <div id="activityPanelList" class="activity-panel-list"></div>
             </div>
           </div>
-          <button id="addPlaylistBtn" type="button" class="btn-primary" data-i18n="add_via_link">+ Add Series</button>
+          <button id="addPlaylistBtn" type="button" class="btn-primary add-playlist-btn" title="Add via link" data-i18n="add_via_link_label" data-i18n-attr="title">
+            <svg class="add-playlist-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+            <span class="add-playlist-label" data-i18n="add_via_link_label">Add via link</span>
+          </button>
         </div>
       </header>
 

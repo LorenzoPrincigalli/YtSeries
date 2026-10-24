@@ -805,7 +805,13 @@ await step('mobile 375px: no horizontal overflow, header usable', async () => {
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
   await page.screenshot({ path: join(artifacts, 'mobile-home.png') })
   assert(overflow <= 1, `page overflows horizontally by ${overflow}px`)
-  assert(await page.isVisible('#searchInput') && await page.isVisible('#settingsBtn'), 'header controls hidden')
+  assert(await page.isVisible('#settingsBtn') && await page.isVisible('#addPlaylistBtn'), 'header controls hidden')
+  // One row of icons: search opens from the magnifier, and the header stays compact.
+  const headerHeight = await page.$eval('#header', el => el.getBoundingClientRect().height)
+  assert(headerHeight <= 120, `phone header is ${Math.round(headerHeight)}px tall`)
+  assert(!await page.isVisible('#searchInput'), 'search row open by default')
+  await page.click('#searchToggle')
+  assert(await page.isVisible('#searchInput') && await page.evaluate(() => document.activeElement?.id) === 'searchInput', 'search toggle does not open and focus the search')
 })
 await step('mobile 375px: detail dialog fits the screen', async () => {
   await page.click('.series-card .card-title-btn >> nth=0')

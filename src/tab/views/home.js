@@ -101,15 +101,39 @@ function home(all, ui) {
   }
 
   if (results) {
-    sections.push(playlistRow('YouTube', results.playlists, addFromSearch))
-    for (const channel of results.channels) {
-      sections.push(channelCard(channel, addFromSearch, channelId => actions.fetchChannelPlaylists(channelId),
-        { followed: isChannelFollowed(getState()?.series, channel.channelId), onFollow: actions.followChannel }))
-    }
+    // Playlists first (what the user is looking for), then a short list of channels.
+    sections.push(playlistRow(t('search_playlists_title'), results.playlists, addFromSearch))
+    if (results.channels.length) sections.push(channelResults(results.channels))
   }
 
   if (showcase && all.length) sections.push(recommendedSection(all, ui))
   return sections
+}
+
+const CHANNELS_SHOWN = 3
+
+/** Channel results: the first three, the rest one click away. @param {any[]} channels */
+function channelResults(channels) {
+  const cards = channels.map((channel, i) => {
+    const card = channelCard(channel, addFromSearch, channelId => actions.fetchChannelPlaylists(channelId),
+      { followed: isChannelFollowed(getState()?.series, channel.channelId), onFollow: actions.followChannel })
+    if (i >= CHANNELS_SHOWN) card.classList.add('hidden')
+    return card
+  })
+  const more = channels.length > CHANNELS_SHOWN && h('button', {
+    type: 'button',
+    class: 'btn-secondary channel-more-btn',
+    onClick: event => {
+      const button = /** @type {HTMLElement} */ (event.currentTarget)
+      for (const card of cards) card.classList.remove('hidden')
+      cards[CHANNELS_SHOWN]?.querySelector('button')?.focus()
+      button.remove()
+    }
+  }, t('search_more_channels', { n: channels.length - CHANNELS_SHOWN }))
+  return h('section', { class: 'channel-results', 'aria-labelledby': 'channelResultsTitle' },
+    h('h2', { class: 'section-title', id: 'channelResultsTitle' }, t('search_channels')),
+    cards,
+    more)
 }
 
 /** Recommendations depend only on which channels are saved. @param {any[]} all */

@@ -19,7 +19,7 @@ export function clearSearch() {
 export function navigate({ section = 'home', filter = 'all' }) {
   clearSearch()
   setUi({ section, filter, collection: '', savedSearch: '' })
-  window.scrollTo({ top: 0 })
+  window.scrollTo({ top: 0, behavior: 'instant' })
 }
 
 /** Reflects the current section/filter on the nav links (active + aria-current). */
@@ -35,6 +35,8 @@ function syncNav() {
   }
   // Saved has its own search box; the header one is hidden there (CSS).
   document.body.dataset.section = section
+  // Phone: the search row stays open while there is a query.
+  byId('header')?.classList.toggle('has-search', Boolean(getUi().search))
   const clear = byId('searchClear')
   if (clear) clear.classList.toggle('hidden', !getUi().search)
 }
@@ -69,6 +71,20 @@ export function initHeader() {
     }
   })
   byId('searchClear')?.addEventListener('click', () => { clearSearch(); input.focus() })
+
+  // Phone: the magnifier opens (and closes) the search row.
+  const toggle = byId('searchToggle')
+  toggle?.addEventListener('click', () => {
+    const open = !byId('header')?.classList.contains('search-open')
+    byId('header')?.classList.toggle('search-open', open)
+    toggle.setAttribute('aria-expanded', String(open))
+    if (open) input.focus()
+  })
+  input.addEventListener('blur', () => {
+    if (input.value) return
+    byId('header')?.classList.remove('search-open')
+    toggle?.setAttribute('aria-expanded', 'false')
+  })
 
   const header = byId('header')
   let ticking = false

@@ -72,3 +72,37 @@ describe('YouTubeApiService resilience', () => {
     expect(fetchImpl).not.toHaveBeenCalled()
   })
 })
+
+describe('YouTube search', () => {
+  const channelItem = { id: { kind: 'youtube#channel' }, snippet: { channelId: 'UCaaaaaaaaaaaaaaaaaaaaaa', title: 'Docs Channel' } }
+  const playlistItem = { id: { kind: 'youtube#playlist', playlistId: 'PLdocs0001' }, snippet: { title: 'Docs', channelTitle: 'Docs Channel' } }
+
+  it('asks once more for playlists when a broad query returns only channels', async () => {
+    const types = []
+    const fetchImpl = vi.fn(async url => {
+      const type = new URL(url).searchParams.get('type')
+      types.push(type)
+      return json(200, { items: type === 'playlist' ? [playlistItem] : [channelItem] })
+    })
+    const result = await new YouTubeApiService({ fetchImpl, sleep }).search('documentary')
+    expect(types).toEqual(['playlist,channel', 'playlist'])
+    expect(result.playlists.map(p => p.playlistId)).toEqual(['PLdocs0001'])
+    expect(result.channels.map(c => c.channelId)).toEqual(['UCaaaaaaaaaaaaaaaaaaaaaa'])
+  })
+
+  it('makes a single request when playlists are already there', async () => {
+    const fetchImpl = vi.fn(async () => json(200, { items: [playlistItem, channelItem] }))
+    await new YouTubeApiService({ fetchImpl, sleep }).search('docs')
+    expect(fetchImpl).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('search text', () => {
+  it('decodes the HTML entities the search endpoint adds, without producing markup', async () => {
+    const item = { id: { kind: 'youtube#playlist', playlistId: 'PLx' }, snippet: { title: 'Earth&#39;s Great Seasons &amp; more &lt;b&gt;', channelTitle: 'Tom &quot;T&quot;', description: '&#x1F30D; planet &bogus;' } }
+    const fetchImpl = vi.fn(async () => json(200, { items: [item, { id: { kind: 'youtube#channel' }, snippet: { channelId: 'UCaaaaaaaaaaaaaaaaaaaaaa', title: 'A&amp;B' } }] }))
+    const { playlists, channels } = await new YouTubeApiService({ fetchImpl, sleep }).search('earth')
+    expect(playlists[0]).toMatchObject({ title: "Earth's Great Seasons & more <b>", channelTitle: 'Tom "T"', description: '🌍 planet &bogus;' })
+    expect(channels[0].title).toBe('A&B')
+  })
+})

@@ -192,3 +192,15 @@
   flex: 0 0 auto;
   width: 200px;
 }
+
+.channel-results {
+  margin-bottom: 56px;
+}
+
+.channel-results .channel-section {
+  margin-bottom: var(--space-md);
+}
+
+.channel-results .channel-section.hidden {
+  display: none;
+}

@@ -64,6 +64,25 @@
   gap: var(--space-md);
 }
 
+/* Phone only (responsive.css): opens the search row. Two classes: .icon-btn
+   (components.css, loaded later) would otherwise show it everywhere. */
+.icon-btn.search-toggle {
+  display: none;
+}
+
+.search-toggle svg,
+.add-playlist-icon {
+  display: block;
+  width: 18px;
+  height: 18px;
+}
+
+.add-playlist-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 /* Only the search field gives up width when the header is tight: buttons keep
    their label on one line. */
 .header-right > * {
@@ -100,20 +119,40 @@
 
 .search-clear {
   position: absolute;
-  right: var(--space-sm);
+  right: 4px;
   top: 50%;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
   transform: translateY(-50%);
-  background: none;
   border: none;
+  border-radius: 50%;
+  background: none;
   color: var(--text-muted);
   cursor: pointer;
-  font-size: 18px;
-  padding: 2px;
   font-family: var(--font-primary);
+}
+
+.search-clear svg {
+  width: 14px;
+  height: 14px;
+}
+
+.search-clear:hover,
+.search-clear:focus-visible {
+  background: var(--hover-overlay-strong);
+  color: var(--text);
 }
 
 .search-clear.hidden {
   display: none;
+}
+
+/* Our own clear button replaces the browser's: never show two "×". */
+.search-container input::-webkit-search-cancel-button {
+  display: none;
+  appearance: none;
 }
 
 .header-pro-btn {
