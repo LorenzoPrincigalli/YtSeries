@@ -4,6 +4,7 @@ import { AppError, toAppError } from '../shared/errors.js'
 import { logger } from '../shared/logger.js'
 import { withRetry, CircuitBreaker } from '../shared/resilience.js'
 import { YT_ID } from '../shared/schema.js'
+import { isChannelSeries } from '../shared/seriesStats.js'
 
 const log = logger.child('youtube')
 
@@ -17,8 +18,7 @@ const CHANNEL_WINDOW = 100
 const CHANNEL_ID = /^UC[A-Za-z0-9_-]{22}$/
 const HANDLE = /^@[A-Za-z0-9._-]{3,100}$/
 
-/** True for the uploads playlist of a followed channel. @param {string} playlistId */
-export const isChannelSeries = playlistId => /^UU/.test(playlistId)
+export { isChannelSeries }
 
 /** @param {any} thumbnails @param {string[]} order */
 function pickThumbnail(thumbnails, order = ['maxres', 'high', 'medium', 'default']) {

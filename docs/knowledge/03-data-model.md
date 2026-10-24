@@ -55,7 +55,7 @@ Storage keys are defined in `src/shared/constants.js` → `STORAGE_KEYS`.
 | `collectionUpdatedAt` | number | Timestamp of the collection assignment for sync conflict resolution |
 | `notes` | object | `{ [noteId]: { v: videoId, t: seconds, x: text ≤ 1000, a: updatedAt, d?: true } }`; deletions are tombstones (`d`, empty `x`) so they sync; ≤ 300 active, ≤ 400 entries (oldest tombstones pruned). Synced in the series document, merged per note (newer `a` wins, a same-time deletion wins) |
 
-A followed **channel** is an ordinary series whose `playlistId` is the channel's uploads playlist: `UULF…` (long-form only) or `UU…` (fallback). `youtube.refreshPlaylist` recognises the `UU` prefix and keeps the latest 100 uploads, oldest first, titled with the channel name — so auto-refresh and sync hydration need no extra field. `newEpisodesCount` counts new video ids (the window size does not change).
+A followed **channel** is an ordinary series whose `playlistId` is the channel's uploads playlist: `UULF…` (long-form only) or `UU…` (fallback). `youtube.refreshPlaylist` recognises the `UU` prefix and keeps the latest 100 uploads, oldest first, titled with the channel name — so auto-refresh and sync hydration need no extra field. A channel keeps publishing, so it can never be marked as ended (`store.setSeriesEnded` throws `CHANNEL_CANNOT_END`; the detail, the "has it ended?" suggestion and the YouTube finale card offer nothing; `isChannelSeries` in `src/shared/seriesStats.js`). `newEpisodesCount` counts new video ids (the window size does not change).
 
 `Activity` entries contain `{ type, playlistId?, videoId?, title?, at }`. They are intentionally local-only and are not sent to Firestore.
 

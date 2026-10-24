@@ -41,3 +41,14 @@ describe('series milestones', () => {
     expect(response.milestone).toBeNull()
   })
 })
+
+describe('end of the last episode', () => {
+  it('offers "mark as ended" for playlists, never for followed channels', async () => {
+    const c = ctx()
+    const next = await episodeRoutes[EVENTS.GET_NEXT_EPISODE].handler(c, { playlistId: 'PL1', videoId: 'd' })
+    expect(next.canEnd).toBe(true)
+    c.store.addSeries({ playlistId: 'UULFHnyfMqiRRG1u-2MsSQLbXA', title: 'Channel', videos: [{ id: 'v1', title: 'v1' }] })
+    const channel = await episodeRoutes[EVENTS.GET_NEXT_EPISODE].handler(c, { playlistId: 'UULFHnyfMqiRRG1u-2MsSQLbXA', videoId: 'v1' })
+    expect(channel.canEnd).toBe(false)
+  })
+})

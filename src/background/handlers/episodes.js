@@ -2,7 +2,7 @@
 import { EVENTS } from '../../shared/events.js'
 import { AppError } from '../../shared/errors.js'
 import { s } from '../../shared/schema.js'
-import { progressRatio, milestoneCrossed, countedVideos } from '../../shared/seriesStats.js'
+import { progressRatio, milestoneCrossed, countedVideos, isChannelSeries } from '../../shared/seriesStats.js'
 import { commit } from '../context.js'
 
 /** @typedef {import('../context.js').BackgroundContext} Ctx */
@@ -81,7 +81,8 @@ const episodeRoutes = {
       const series = ctx.store.getSeriesById(playlistId)
       // allWatched ignores the episode on screen: its "watched" may still be in flight.
       const allWatched = Boolean(series) && countedVideos(series).every(video => video.watched || video.id === videoId)
-      return { success: true, nextEpisode: ctx.store.getNextEpisode(playlistId, videoId), allWatched, ended: Boolean(series?.ended) }
+      // canEnd: a followed channel keeps publishing, so the finale never offers "mark as ended".
+      return { success: true, nextEpisode: ctx.store.getNextEpisode(playlistId, videoId), allWatched, ended: Boolean(series?.ended), canEnd: !isChannelSeries(playlistId) }
     }
   }
 }

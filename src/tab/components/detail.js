@@ -160,7 +160,8 @@ export class DetailView {
             svg('play'), t('continue_ep', { n: series.videos.indexOf(next) + 1 })),
           h('button', { type: 'button', class: 'btn-secondary', onClick: () => actions.toggleComplete(series.playlistId) },
             series.completed ? t('mark_incomplete') : t('mark_complete')),
-          h('button', {
+          // A followed channel keeps publishing: no "mark as ended" (only an undo, should one be flagged).
+          (!isChannelSeries(series.playlistId) || series.ended) && h('button', {
             type: 'button',
             class: 'btn-secondary btn-with-icon',
             'aria-pressed': String(Boolean(series.ended)),

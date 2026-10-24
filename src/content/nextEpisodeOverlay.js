@@ -55,7 +55,7 @@ export class NextEpisodeOverlay {
       const next = await this.messenger.send(EVENTS.GET_NEXT_EPISODE, { videoId, playlistId })
       if (!stillWanted() || !next.success) return
       if (next.nextEpisode) this.render(next.nextEpisode, videoId, playlistId)
-      else if (atEnd && next.allWatched) this.renderFinale(playlistId, Boolean(next.ended))
+      else if (atEnd && next.allWatched) this.renderFinale(playlistId, Boolean(next.ended), next.canEnd !== false)
     } finally {
       if (token === this.requestToken) this.pending = false
     }
@@ -79,10 +79,10 @@ export class NextEpisodeOverlay {
         h('span', null, t('content_watch_next'))))
   }
 
-  /** Last episode finished. @param {string} playlistId @param {boolean} ended */
-  renderFinale(playlistId, ended) {
+  /** Last episode finished. @param {string} playlistId @param {boolean} ended @param {boolean} canEnd false for followed channels */
+  renderFinale(playlistId, ended, canEnd) {
     const message = h('div', { class: 'yt-series-next-text' }, ended ? t('content_series_ended') : t('content_caught_up'))
-    if (ended) { this.mount(t('content_all_watched'), message); return }
+    if (ended || !canEnd) { this.mount(t('content_all_watched'), message); return }
     const markEnded = h('button', { type: 'button', class: 'yt-series-next-btn yt-series-next-btn-secondary' },
       svg('flag', { class: 'yt-series-next-icon' }), h('span', null, t('mark_ended')))
     markEnded.addEventListener('click', async () => {

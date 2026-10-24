@@ -11,6 +11,13 @@ const DORMANT_DAYS = 90 // no upload for this long: offer to mark the series as 
 export const MILESTONES = [25, 50, 75, 100]
 const EXTRA_TITLE = /\b(trailer|teaser|first look|anteprima|sneak peek)\b/i
 
+/**
+ * A followed channel is stored as its uploads playlist (UULF… or UU…). It keeps
+ * publishing, so it can never be marked as ended.
+ * @param {string} playlistId
+ */
+export const isChannelSeries = playlistId => /^UU/.test(playlistId || '')
+
 /** Episodes that count: everything not excluded. @param {any} series @returns {any[]} */
 export function countedVideos(series) {
   return (series?.videos || []).filter(video => !video.excluded)
@@ -164,7 +171,7 @@ export function releaseForecast(series, now = Date.now()) {
  * @param {any} series @param {number} [now]
  */
 export function dormantMonths(series, now = Date.now()) {
-  if (!series || series.ended || !series.videos?.length) return null
+  if (!series || series.ended || isChannelSeries(series.playlistId) || !series.videos?.length) return null
   const latest = Math.max(...(series.videos || []).map(video => Date.parse(video.publishedAt)).filter(Number.isFinite))
   if (!Number.isFinite(latest) || now - latest < DORMANT_DAYS * DAY_MS || releaseForecast(series, now)) return null
   return Math.floor((now - latest) / (30 * DAY_MS))

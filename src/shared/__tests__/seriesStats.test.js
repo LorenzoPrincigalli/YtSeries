@@ -178,6 +178,10 @@ describe('dormantMonths', () => {
     expect(dormantMonths(s([]), NOW)).toBeNull()
     expect(dormantMonths(s([v('undated')]), NOW)).toBeNull()
   })
+
+  it('never asks about a followed channel, which keeps publishing', () => {
+    expect(dormantMonths(s([at(400), at(200), at(130)], { playlistId: 'UULFHnyfMqiRRG1u-2MsSQLbXA' }), NOW)).toBeNull()
+  })
 })
 
 describe('suggestedExclusions', () => {

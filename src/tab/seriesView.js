@@ -2,9 +2,9 @@
 // Pure presentation logic: derives view data from the server state. No DOM,
 // no messaging, no mutation of inputs — every function here is unit-testable.
 // Excluded episodes never count (see src/shared/seriesStats.js).
-import { countedVideos, watchedCount, nextCountedEpisode, formatDuration, formatLength } from '../shared/seriesStats.js'
+import { countedVideos, watchedCount, nextCountedEpisode, formatDuration, formatLength, isChannelSeries } from '../shared/seriesStats.js'
 
-export { watchedCount, formatDuration, formatLength }
+export { watchedCount, formatDuration, formatLength, isChannelSeries }
 
 const DAY_MS = 86_400_000
 const NEW_EPISODE_WINDOW_DAYS = 7
@@ -175,8 +175,6 @@ export function pickRecommendations(playlistsByChannel, channelWeights, savedIds
   return picked.slice(0, target)
 }
 
-/** A followed channel is stored as its uploads playlist (UULF… or UU…). @param {string} playlistId */
-export const isChannelSeries = playlistId => /^UU/.test(playlistId || '')
 
 /** Whether the channel is already followed as a series. @param {Record<string, any> | undefined} seriesMap @param {string} channelId */
 export function isChannelFollowed(seriesMap, channelId) {

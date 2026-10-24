@@ -1,6 +1,7 @@
 import { AppError } from '../shared/errors.js'
 import { STORAGE_KEYS } from '../shared/constants.js'
 import { logger } from '../shared/logger.js'
+import { isChannelSeries } from '../shared/seriesStats.js'
 
 /** Active notes per series; deletions are kept as tombstones so they sync. */
 const MAX_NOTES = 300
@@ -237,6 +238,7 @@ class Store {
   setSeriesEnded(playlistId, ended) {
     const series = this._state.series[playlistId]
     if (!series || Boolean(series.ended) === ended) return false
+    if (ended && isChannelSeries(playlistId)) throw new AppError('CHANNEL_CANNOT_END', 'A followed channel keeps publishing')
     series.ended = ended
     series.endedUpdatedAt = this._touch(series)
     return true

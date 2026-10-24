@@ -9,6 +9,17 @@ beforeAll(() => {
 
 const fetched = ids => ({ playlistId: 'PL1', title: 'S', videos: ids.map(id => ({ id, title: id, duration: 60 })) })
 
+describe('followed channels', () => {
+  it('can never be marked as ended, but a stray flag can still be cleared', () => {
+    const store = new Store()
+    store.addSeries({ playlistId: 'UULFHnyfMqiRRG1u-2MsSQLbXA', title: 'Channel', videos: [{ id: 'v1', title: 'v1' }] })
+    expect(() => store.setSeriesEnded('UULFHnyfMqiRRG1u-2MsSQLbXA', true)).toThrow(/keeps publishing/)
+    expect(store.getSeriesById('UULFHnyfMqiRRG1u-2MsSQLbXA').ended).toBeFalsy()
+    store._getSeriesMutable('UULFHnyfMqiRRG1u-2MsSQLbXA').ended = true
+    expect(store.setSeriesEnded('UULFHnyfMqiRRG1u-2MsSQLbXA', false)).toBe(true)
+  })
+})
+
 describe('ended series', () => {
   /** @type {Store} */
   let store
