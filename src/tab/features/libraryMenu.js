@@ -2,7 +2,7 @@
 // "Your series" header menu: the library filters (all, in progress, completed,
 // new episodes, with counts). Choosing one opens the "Your series" page, where
 // the grid/list view is chosen. Menu button pattern: Enter/Space/ArrowDown
-// open it, arrows move, Escape and Tab close it.
+// open it, arrows move, Escape and Tab close it (focus back on the button).
 import { t } from '../../shared/i18n.js'
 import { h, byId } from '../../shared/dom.js'
 import { svg } from '../../shared/icons.js'
@@ -108,7 +108,8 @@ export function initLibraryMenu() {
     const list = items()
     const index = list.indexOf(/** @type {HTMLElement} */ (document.activeElement))
     if (event.key === 'Escape') { event.preventDefault(); close(true) }
-    else if (event.key === 'Tab') close()
+    // The panel sits after the header: Tab moves on from the menu button, not from it.
+    else if (event.key === 'Tab') close(true)
     else if (event.key === 'ArrowDown' || event.key === 'ArrowRight') { event.preventDefault(); list[(index + 1) % list.length]?.focus() }
     else if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') { event.preventDefault(); list[(index - 1 + list.length) % list.length]?.focus() }
     else if (event.key === 'Home') { event.preventDefault(); list[0]?.focus() }

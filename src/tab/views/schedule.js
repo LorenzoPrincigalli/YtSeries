@@ -19,11 +19,12 @@ const rhythm = cadenceDays => (cadenceDays < 1.5 ? t('schedule_every_day') : t('
 /** @param {number} at */
 const dayMonth = at => new Date(at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
 
-/** @param {number} dayStart @param {number} today */
+/** "Today", "Tomorrow", then the weekday, capitalised like them ("lunedì" → "Lunedì"). @param {number} dayStart @param {number} today */
 function dayLabel(dayStart, today) {
   if (dayStart === today) return t('schedule_today')
   if (dayStart === startOfDay(today + DAY_MS + 3_600_000)) return t('schedule_tomorrow')
-  return new Date(dayStart).toLocaleDateString(undefined, { weekday: 'long' })
+  const weekday = new Date(dayStart).toLocaleDateString(undefined, { weekday: 'long' })
+  return weekday.charAt(0).toLocaleUpperCase() + weekday.slice(1)
 }
 
 /**
@@ -74,7 +75,7 @@ export function renderSchedule(all, now = Date.now()) {
   const columns = days.map(day => {
     const next = startOfDay(day + DAY_MS + 3_600_000)
     const due = entries.filter(entry => !entry.forecast.overdue && entry.forecast.nextAt < next && (entry.forecast.nextAt >= day || day === today))
-    return h('div', { class: ['schedule-day', day === today && 'is-today'] },
+    return h('div', { class: ['schedule-day', day === today && 'is-today', !due.length && 'is-empty'] },
       h('h3', { class: 'schedule-day-title' }, dayLabel(day, today), h('span', { class: 'schedule-day-date' }, dayMonth(day))),
       due.length
         ? due.map(({ series, forecast }) => seriesChip(series, `${t('schedule_expected')} · ${rhythm(forecast.cadenceDays)}`))

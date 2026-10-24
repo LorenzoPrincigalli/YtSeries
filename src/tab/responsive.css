@@ -138,6 +138,16 @@
   .modal-detail { max-width: calc(100vw - 16px); max-height: calc(100dvh - 16px); }
   .modal-detail-body { padding: 12px; min-height: 0; }
   .detail-hero { margin: -12px -12px 20px; }
+  .detail-actions .detail-secondary { display: none; }
+  .detail-new-highlight-body { flex-direction: column; align-items: stretch; gap: 12px; padding: 16px 16px 12px; }
+  .detail-new-highlight-thumb { width: 100%; aspect-ratio: 16 / 9; }
+  .detail-actions .detail-more-btn { display: inline-flex; width: 40px; height: 40px; padding: 9px; }
+  /* Achievements: the goal button goes under the week's numbers; two badges per row. */
+  .modal-achievements .modal-body { padding: 16px; }
+  .week-panel { display: flex; flex-direction: column; padding: var(--space-md); }
+  .week-panel-head { display: contents; }
+  .week-panel-head .btn-secondary { order: 1; align-self: flex-start; margin-top: var(--space-md); padding: 8px 16px; }
+  .badge-grid { gap: var(--space-sm); }
   .detail-episodes .episode-thumb { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
   .episodes-header { flex-wrap: wrap; gap: 12px; }
   .detail-info-body { min-width: 0; }

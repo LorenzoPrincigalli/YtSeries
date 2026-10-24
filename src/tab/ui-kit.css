@@ -51,7 +51,7 @@ body.modal-open { overflow: hidden; }
 }
 /* Size and weight come from the element's own class (.card-title, …);
    these two have none of their own, so they take the parent's font. */
-.card-title-btn { display: -webkit-box; width: 100%; color: inherit; }
+.card-title-btn { display: -webkit-box; width: 100%; min-height: 24px; color: inherit; }
 .hero-title-btn { color: inherit; font: inherit; letter-spacing: inherit; }
 .related-card { display: flex; flex-direction: column; align-items: stretch; }
 .episode-title-link { color: inherit; text-decoration: none; }

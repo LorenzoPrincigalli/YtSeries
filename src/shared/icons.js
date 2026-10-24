@@ -33,7 +33,8 @@ const ICONS = {
   grid: { viewBox: '0 0 24 24', attrs: STROKE, paths: ['M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z'] },
   list: { viewBox: '0 0 24 24', attrs: STROKE, paths: ['M4 6h3M4 12h3M4 18h3', 'M10 6h10M10 12h10M10 18h10'] },
   search: { viewBox: '0 0 24 24', attrs: STROKE, paths: ['M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14z', 'm20 20-4-4'] },
-  stack: { viewBox: '0 0 24 24', attrs: STROKE, paths: ['M7 3.5h10M5 6.5h14', 'M3 9.5h18v11H3z'] }
+  stack: { viewBox: '0 0 24 24', attrs: STROKE, paths: ['M7 3.5h10M5 6.5h14', 'M3 9.5h18v11H3z'] },
+  more: { viewBox: '0 0 24 24', attrs: FILL, paths: ['M5 10a2 2 0 1 1 0 4 2 2 0 0 1 0-4zm7 0a2 2 0 1 1 0 4 2 2 0 0 1 0-4zm7 0a2 2 0 1 1 0 4 2 2 0 0 1 0-4z'] }
 }
 
 /**

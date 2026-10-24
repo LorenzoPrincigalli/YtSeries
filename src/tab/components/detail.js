@@ -8,6 +8,7 @@ import { svg } from '../../shared/icons.js'
 import { getState, getUi, setUi, subscribe } from '../core/store.js'
 import { safeRender } from '../core/errorBoundary.js'
 import { openModal, closeModal, confirmDialog } from '../ui/modal.js'
+import { toast } from '../ui/feedback.js'
 import * as actions from '../actions.js'
 import { isChannelFollowed, isChannelSeries, collectionNames, watchedCount, nextEpisode, newEpisodes, isNewEpisode, latestEpisode, watchUrl, formatDuration, formatLength } from '../seriesView.js'
 import { countedVideos, timeLeft, finishEstimate, suggestedExclusions, dormantMonths } from '../../shared/seriesStats.js'
@@ -17,6 +18,8 @@ import { shareSeries } from '../features/share.js'
 
 const log = logger.child('detail')
 const MODAL_ID = 'detailModal'
+/** How far the dialog must scroll to close the "⋯" menu (as for the "Your series" menu). */
+const SCROLL_CLOSE_PX = 40
 
 const SORTS = {
   default: null,
@@ -33,6 +36,8 @@ const shortDate = iso => (iso ? new Date(iso).toLocaleDateString(undefined, { ye
 const dayMonth = at => new Date(at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
 /** 2 → "2", 2.33 → "2.3" @param {number} value */
 const oneDecimal = value => String(Math.round(value * 10) / 10)
+/** A followed channel keeps publishing: no "mark as ended" (only an undo, should one be flagged). @param {any} series */
+const canToggleEnded = series => !isChannelSeries(series.playlistId) || Boolean(series.ended)
 
 export class DetailView {
   constructor() {
@@ -41,6 +46,7 @@ export class DetailView {
     /** @type {Map<string, Promise<any[]>>} channel playlists, fetched once per session */
     this.channelCache = new Map()
     this.closeFolderPicker = null
+    this.closeMoreMenu = null
     this.body = this.ensureModal()
     subscribe(() => this.sync())
   }
@@ -70,12 +76,19 @@ export class DetailView {
     const firstOpen = this.renderedId !== detailId
     if (firstOpen) this.sort = 'default'
     const scrollTop = firstOpen ? 0 : this.body.scrollTop
+    // Re-rendering replaces the action buttons: popups anchored to them close
+    // (focus back on their button) and keyboard focus stays on the same action.
+    this.closeFolderPicker?.()
+    this.closeMoreMenu?.()
+    const focused = /** @type {HTMLElement | null} */ (document.activeElement)
+    const focusKey = !firstOpen && focused && this.body.contains(focused) ? focused.dataset.focusKey : undefined
     safeRender(this.body, 'detail', () => this.render(series))
     this.body.scrollTop = scrollTop
+    if (focusKey) /** @type {HTMLElement | null} */ (this.body.querySelector(`[data-focus-key="${focusKey}"]`))?.focus()
     if (firstOpen) {
       this.renderedId = detailId
       openModal(MODAL_ID, {
-        onClose: () => { this.renderedId = null; this.closeFolderPicker?.(false); setUi({ detailId: null }) },
+        onClose: () => { this.renderedId = null; this.closeFolderPicker?.(false); this.closeMoreMenu?.(false); setUi({ detailId: null }) },
         // The card that opened the dialog may have been re-rendered meanwhile: refocus its replacement.
         returnFocus: () => document.querySelector(`[data-id="${CSS.escape(detailId)}"] .card-title-btn`)
       })
@@ -89,7 +102,6 @@ export class DetailView {
 
   /** @param {any} series */
   render(series) {
-    this.closeFolderPicker?.(false)
     const title = document.getElementById('detailModalTitle')
     if (title) title.textContent = series.title
     const fresh = newEpisodes(series)
@@ -129,16 +141,34 @@ export class DetailView {
       title: t('collection'),
       'aria-label': series.collection ? `${t('collection')}: ${series.collection}` : t('collection'),
       'aria-haspopup': 'dialog',
-      'aria-expanded': 'false'
+      'aria-expanded': 'false',
+      dataset: { focusKey: 'folder' }
     }, svg('folder'))
     folderButton.addEventListener('click', () => this.openFolderPicker(series, folderButton))
+
+    const moreButton = h('button', {
+      type: 'button',
+      class: 'btn-secondary detail-more-btn',
+      title: t('more_actions'),
+      'aria-label': t('more_actions'),
+      'aria-haspopup': 'menu',
+      'aria-expanded': 'false',
+      dataset: { focusKey: 'more' }
+    }, svg('more'))
+    moreButton.addEventListener('click', () => (this.closeMoreMenu ? this.closeMoreMenu() : this.openMoreMenu(series, moreButton)))
+    moreButton.addEventListener('keydown', event => {
+      if ((event.key !== 'ArrowDown' && event.key !== 'ArrowUp') || this.closeMoreMenu) return
+      event.preventDefault()
+      this.openMoreMenu(series, moreButton, event.key === 'ArrowUp')
+    })
 
     return h('div', { class: 'detail-info' },
       h('div', { class: 'detail-hero' },
         img({ class: 'detail-hero-img', src: series.videos[0]?.thumbnail || series.thumbnail, loading: 'eager' }),
         h('div', { class: 'detail-hero-gradient' }),
         h('div', { class: 'detail-hero-content' },
-          h('h1', { class: 'detail-hero-title' }, series.title),
+          // Initial focus when the dialog opens: the title, not the first button.
+          h('h1', { class: 'detail-hero-title', tabIndex: -1, autofocus: true }, series.title),
           series.channelTitle && series.channelId && h('button', {
             type: 'button',
             class: 'detail-hero-channel',
@@ -153,23 +183,98 @@ export class DetailView {
         h('div', { class: 'detail-progress-bar', role: 'progressbar', 'aria-label': t('watched'), 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': String(Math.round(percent)) },
           h('div', { class: 'detail-progress-fill', style: { '--progress': `${percent}%` } })),
         series.description && h('p', { class: 'detail-hero-desc' }, series.description),
+        // Phone: "Continue" and "⋯" (the menu holds the .detail-secondary actions).
         h('div', { class: 'detail-actions' },
-          next && h('button', { type: 'button', class: 'btn-primary btn-with-icon', onClick: () => actions.continueWatching(series) },
+          next && h('button', { type: 'button', class: 'btn-primary btn-with-icon', dataset: { focusKey: 'continue' }, onClick: () => actions.continueWatching(series) },
             svg('play'), t('continue_ep', { n: series.videos.indexOf(next) + 1 })),
-          h('button', { type: 'button', class: 'btn-secondary', onClick: () => actions.toggleComplete(series.playlistId) },
+          // Nothing left to watch: the completed toggle stays in view on phone too.
+          h('button', { type: 'button', class: ['btn-secondary', next && 'detail-secondary'], dataset: { focusKey: 'complete' }, onClick: () => actions.toggleComplete(series.playlistId) },
             series.completed ? t('mark_incomplete') : t('mark_complete')),
-          // A followed channel keeps publishing: no "mark as ended" (only an undo, should one be flagged).
-          (!isChannelSeries(series.playlistId) || series.ended) && h('button', {
+          canToggleEnded(series) && h('button', {
             type: 'button',
-            class: 'btn-secondary btn-with-icon',
+            class: 'btn-secondary btn-with-icon detail-secondary',
             'aria-pressed': String(Boolean(series.ended)),
             title: series.ended ? t('mark_ongoing_named', { title: series.title }) : t('mark_ended_named', { title: series.title }),
+            dataset: { focusKey: 'ended' },
             onClick: () => actions.setSeriesEnded(series.playlistId, !series.ended)
           }, svg('flag'), series.ended ? t('mark_ongoing') : t('mark_ended')),
-          h('button', { type: 'button', class: 'btn-secondary detail-refresh-btn', title: t('refresh'), 'aria-label': t('refresh'), onClick: event => this.refresh(series, event.currentTarget) }, svg('refresh')),
-          folderButton,
-          h('button', { type: 'button', class: 'btn-secondary detail-share-btn', title: t('share'), 'aria-label': t('share_series_named', { title: series.title }), onClick: () => shareSeries(series.title, [series]) }, svg('share')),
-          h('button', { type: 'button', class: 'btn-secondary text-error', title: t('delete'), 'aria-label': t('delete'), onClick: () => this.confirmDelete(series) }, svg('trash')))))
+          // The icon buttons wrap as one group, never one of them alone on a row.
+          h('div', { class: 'detail-icon-actions detail-secondary' },
+            h('button', { type: 'button', class: 'btn-secondary detail-refresh-btn', title: t('refresh'), 'aria-label': t('refresh'), dataset: { focusKey: 'refresh' }, onClick: event => this.refresh(series, event.currentTarget) }, svg('refresh')),
+            folderButton,
+            h('button', { type: 'button', class: 'btn-secondary detail-share-btn', title: t('share'), 'aria-label': t('share_series_named', { title: series.title }), dataset: { focusKey: 'share' }, onClick: () => shareSeries(series.title, [series]) }, svg('share')),
+            h('button', { type: 'button', class: 'btn-secondary text-error', title: t('delete'), 'aria-label': t('delete'), dataset: { focusKey: 'delete' }, onClick: () => this.confirmDelete(series) }, svg('trash'))),
+          moreButton)))
+  }
+
+  /**
+   * Phone: the secondary actions in a menu under "⋯" (menu button pattern, as
+   * in the "Your series" menu). Choosing an item puts focus back on "⋯".
+   * @param {any} series @param {HTMLButtonElement} anchor @param {boolean} [focusLast]
+   */
+  openMoreMenu(series, anchor, focusLast = false) {
+    this.closeFolderPicker?.(false)
+    /** @param {Parameters<typeof svg>[0]} icon @param {string} label @param {() => void} run */
+    const item = (icon, label, run, danger = false) => h('button', {
+      type: 'button',
+      role: 'menuitem',
+      class: ['nav-menu-item', danger && 'nav-menu-item-danger'],
+      tabIndex: -1,
+      onClick: () => { this.closeMoreMenu?.(); run() }
+    }, svg(icon), h('span', { class: 'nav-menu-label' }, label))
+    const menu = h('div', { class: 'nav-menu-panel detail-more-menu', role: 'menu', 'aria-label': t('more_actions') },
+      nextEpisode(series) && item('check', series.completed ? t('mark_incomplete') : t('mark_complete'), () => actions.toggleComplete(series.playlistId)),
+      canToggleEnded(series) && item('flag', series.ended ? t('mark_ongoing') : t('mark_ended'), () => actions.setSeriesEnded(series.playlistId, !series.ended)),
+      item('refresh', t('refresh'), async () => {
+        // No spinning button here: a toast says when the episode list is up to date.
+        if (await actions.refreshSeries(series.playlistId)) toast(t('series_refreshed'), { variant: 'success' })
+      }),
+      item('folder', t('collection'), () => this.openFolderPicker(series, anchor)),
+      item('share', t('share'), () => shareSeries(series.title, [series])),
+      item('trash', t('delete'), () => this.confirmDelete(series), true))
+    document.body.append(menu)
+
+    // Below "⋯" when it fits, otherwise above; right-aligned with it.
+    const rect = anchor.getBoundingClientRect()
+    const below = rect.bottom + 8
+    const top = below + menu.offsetHeight <= window.innerHeight - 12 ? below : Math.max(12, rect.top - 8 - menu.offsetHeight)
+    menu.style.setProperty('--menu-top', `${Math.round(top)}px`)
+    menu.style.setProperty('--menu-left', `${Math.round(Math.max(12, Math.min(rect.right - menu.offsetWidth, window.innerWidth - menu.offsetWidth - 12)))}px`)
+
+    const items = /** @type {HTMLElement[]} */ ([...menu.querySelectorAll('[role="menuitem"]')])
+    menu.addEventListener('keydown', event => {
+      const index = items.indexOf(/** @type {HTMLElement} */ (document.activeElement))
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        event.stopPropagation() // close the menu, not the detail dialog
+        this.closeMoreMenu?.()
+      } else if (event.key === 'Tab') this.closeMoreMenu?.() // Tab then moves on from "⋯"
+      else if (event.key === 'ArrowDown') { event.preventDefault(); items[(index + 1) % items.length]?.focus() }
+      else if (event.key === 'ArrowUp') { event.preventDefault(); items[(index - 1 + items.length) % items.length]?.focus() }
+      else if (event.key === 'Home') { event.preventDefault(); items[0]?.focus() }
+      else if (event.key === 'End') { event.preventDefault(); items.at(-1)?.focus() }
+    })
+    const outside = event => { if (!menu.contains(event.target) && !anchor.contains(event.target)) this.closeMoreMenu?.(false) }
+    const dismiss = () => this.closeMoreMenu?.(false)
+    // A real scroll of the dialog closes it; a scroll event still in flight from
+    // before it opened, or images nudging the list, do not.
+    const openedAt = this.body.scrollTop
+    const onScroll = () => { if (Math.abs(this.body.scrollTop - openedAt) > SCROLL_CLOSE_PX) dismiss() }
+    this.closeMoreMenu = (restoreFocus = true) => {
+      document.removeEventListener('pointerdown', outside, true)
+      window.removeEventListener('resize', dismiss)
+      this.body.removeEventListener('scroll', onScroll)
+      menu.remove()
+      anchor.setAttribute('aria-expanded', 'false')
+      this.closeMoreMenu = null
+      if (restoreFocus && anchor.isConnected) anchor.focus()
+    }
+    anchor.setAttribute('aria-expanded', 'true')
+    document.addEventListener('pointerdown', outside, true)
+    window.addEventListener('resize', dismiss)
+    this.body.addEventListener('scroll', onScroll, { passive: true })
+    const first = focusLast ? items.at(-1) : items[0]
+    first?.focus()
   }
 
   /** Offers to leave trailers/teasers out of the progress, until closed once for this series. @param {any} series */
@@ -392,16 +497,18 @@ export class DetailView {
       this.closeFolderPicker?.()
     }
     const resize = () => this.closeFolderPicker?.(false)
+    // From the "⋯" menu (phone) the anchor is the menu button: its aria-expanded is the menu's.
+    const ownsPicker = anchor.getAttribute('aria-haspopup') === 'dialog'
     this.closeFolderPicker = (restoreFocus = true) => {
       document.removeEventListener('pointerdown', outside)
       document.removeEventListener('keydown', keyboard, true)
       window.removeEventListener('resize', resize)
       picker.remove()
-      anchor.setAttribute('aria-expanded', 'false')
+      if (ownsPicker) anchor.setAttribute('aria-expanded', 'false')
       this.closeFolderPicker = null
       if (restoreFocus && anchor.isConnected) anchor.focus()
     }
-    anchor.setAttribute('aria-expanded', 'true')
+    if (ownsPicker) anchor.setAttribute('aria-expanded', 'true')
     document.addEventListener('pointerdown', outside)
     document.addEventListener('keydown', keyboard, true)
     window.addEventListener('resize', resize)

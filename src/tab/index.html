@@ -58,8 +58,6 @@
             <a href="#" class="nav-link" data-view="schedule" data-i18n="nav_upcoming">Upcoming</a>
           </nav>
         </div>
-        <!-- Outside the nav: the nav scrolls horizontally on small screens and would clip it. -->
-        <div id="libraryMenu" class="nav-menu-panel hidden" role="menu" aria-labelledby="libraryMenuBtn"></div>
         <div class="header-right">
           <button id="searchToggle" type="button" class="icon-btn search-toggle" aria-expanded="false" aria-controls="searchInput" title="Search" aria-label="Search" data-i18n="open_search" data-i18n-attr="title,aria-label">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zm9 2-4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -123,6 +121,11 @@
           </button>
         </div>
       </header>
+      <!-- Outside the header: there the panel's position would be relative to the
+           header (backdrop-filter), sticky on small screens, and scrolling a menu
+           item into view could scroll the page and close the menu. The nav would
+           also clip it (it scrolls horizontally on small screens). -->
+      <div id="libraryMenu" class="nav-menu-panel hidden" role="menu" aria-labelledby="libraryMenuBtn"></div>
 
       <main id="mainContent" tabindex="-1">
         <div id="loadingScreen" class="loading-screen" role="status">

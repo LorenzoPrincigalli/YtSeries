@@ -385,6 +385,12 @@ await step('"Your series" menu: filters with counts, keyboard, Escape', async ()
   await page.keyboard.press('Escape')
   await page.waitForSelector('#libraryMenu.hidden', { state: 'attached' })
   assert(await page.evaluate(() => document.activeElement?.id) === 'libraryMenuBtn', 'focus not returned to the button')
+  // Tab closes it and moves on from the button (the panel sits after the header).
+  await page.keyboard.press('ArrowDown')
+  await page.waitForSelector('#libraryMenu:not(.hidden)')
+  await page.keyboard.press('Tab')
+  await page.waitForSelector('#libraryMenu.hidden', { state: 'attached' })
+  assert(await page.evaluate(() => document.activeElement?.getAttribute('data-view')) === 'schedule', 'Tab did not move on to the next nav link')
   for (const filter of ['watching', 'completed', 'new']) {
     await openLibrary(filter)
     assert(await page.getAttribute(`.library-chip >> nth=${FILTER_INDEX[filter]}`, 'aria-pressed') === 'true', `${filter} chip not pressed`)
@@ -820,6 +826,24 @@ await step('mobile 375px: detail dialog fits the screen', async () => {
   const box = await page.locator('#detailModal .modal').boundingBox()
   await page.screenshot({ path: join(artifacts, 'mobile-detail.png') })
   assert(box && box.width <= 375, `dialog is ${box?.width}px wide`)
+  assert(await page.evaluate(() => document.activeElement?.classList.contains('detail-hero-title')), 'initial focus is not on the title')
+})
+await step('mobile 375px: the other detail actions are in a "⋯" menu', async () => {
+  assert(await page.isVisible('#detailModal .detail-more-btn') && !await page.isVisible('#detailModal .detail-share-btn'), 'secondary actions not folded into "⋯"')
+  await page.click('#detailModal .detail-more-btn')
+  await page.waitForSelector('.detail-more-menu')
+  assert(await page.evaluate(() => document.activeElement?.getAttribute('role')) === 'menuitem', 'focus not in the menu')
+  await page.keyboard.press('Escape')
+  await page.waitForSelector('.detail-more-menu', { state: 'detached' })
+  assert(await page.isVisible('#detailModal .modal'), 'Escape closed the dialog too')
+  assert(await page.evaluate(() => document.activeElement?.classList.contains('detail-more-btn')), 'focus not back on "⋯"')
+  // An action re-renders the dialog: focus stays on "⋯". The same item again undoes it.
+  for (let i = 0; i < 2; i++) {
+    await page.click('#detailModal .detail-more-btn')
+    await page.click('.detail-more-menu [role="menuitem"] >> nth=0')
+    await settled()
+    assert(await page.evaluate(() => document.activeElement?.classList.contains('detail-more-btn')), 'focus lost after the re-render')
+  }
   await page.keyboard.press('Escape')
   await page.setViewportSize({ width: 1280, height: 800 })
 })

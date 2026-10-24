@@ -312,6 +312,13 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-xs);
+  min-height: 24px;
+  border-radius: 6px; /* the focus ring follows it */
+}
+
+/* Initial focus of the dialog (tabindex -1, not interactive): no ring. */
+.detail-hero-title:focus {
+  outline: none;
 }
 
 .detail-hero-channel:hover {
@@ -372,6 +379,11 @@
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.detail-icon-actions {
+  display: flex;
+  gap: 10px;
 }
 
 .detail-pace-row {

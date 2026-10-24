@@ -302,8 +302,9 @@ export function channelCard(channel, onAdd, loadPlaylists, follow) {
     h('div', { class: 'channel-card' },
       img({ class: 'channel-avatar', src: channel.thumbnail }),
       h('div', { class: 'channel-info' },
-        h('div', { class: 'channel-title' }, channel.title),
-        h('div', { class: 'channel-desc' }, channel.description || '')),
+        // One line each, clipped: the full text on hover.
+        h('div', { class: 'channel-title', title: channel.title }, channel.title),
+        h('div', { class: 'channel-desc', title: channel.description || undefined }, channel.description || '')),
       h('div', { class: 'channel-actions' }, followButton(channel.channelId, follow.followed, follow.onFollow), toggle)),
     container)
 }

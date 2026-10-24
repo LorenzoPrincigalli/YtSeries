@@ -518,10 +518,14 @@ body::before {
 .folder-icon-btn svg { display: block; width: 100%; height: 100%; }
 .detail-actions .text-error,
 .detail-actions .detail-share-btn,
-.detail-actions .detail-refresh-btn { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 7px; }
+.detail-actions .detail-refresh-btn,
+.detail-actions .detail-more-btn { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 7px; }
 .detail-actions .text-error svg,
 .detail-actions .detail-share-btn svg,
-.detail-actions .detail-refresh-btn svg { display: block; width: 100%; height: 100%; }
+.detail-actions .detail-refresh-btn svg,
+.detail-actions .detail-more-btn svg { display: block; width: 100%; height: 100%; }
+/* Phone only (responsive.css): "⋯" opens the menu with the secondary actions. */
+.detail-actions .detail-more-btn { display: none; }
 .folder-picker { position: fixed; z-index: var(--z-popover); width: min(290px, calc(100vw - 24px)); padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--modal-bg); box-shadow: 0 18px 45px rgba(0,0,0,.38); }
 .folder-picker strong { display: block; margin: 2px 2px 8px; font-size: 13px; }
 .folder-picker-option { display: block; width: 100%; padding: 8px; border: 0; border-radius: 4px; color: var(--text); background: transparent; text-align: left; cursor: pointer; }
@@ -683,9 +687,11 @@ body::before {
   gap: var(--space-sm);
 }
 
+/* Each day is as tall as its episodes: empty days stay small. */
 .schedule-week {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
+  align-items: start;
   gap: var(--space-sm);
   margin-bottom: var(--space-xl);
 }
@@ -694,7 +700,6 @@ body::before {
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
-  min-height: 160px;
   padding: var(--space-sm);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -714,10 +719,6 @@ body::before {
   color: var(--text);
 }
 
-.schedule-day-title::first-letter {
-  text-transform: uppercase;
-}
-
 .schedule-day-date {
   font-size: 12px;
   font-weight: 400;
@@ -725,8 +726,7 @@ body::before {
 }
 
 .schedule-day-empty {
-  margin: auto 0;
-  text-align: center;
+  margin: 0;
   color: var(--text-muted);
 }
 
@@ -795,8 +795,17 @@ body::before {
     grid-template-columns: 1fr;
   }
 
-  .schedule-day {
-    min-height: 0;
+  /* One row per day: "Today 24 Oct", and "—" on the same row when empty. */
+  .schedule-day-title {
+    flex-direction: row;
+    align-items: baseline;
+    gap: var(--space-sm);
+  }
+
+  .schedule-day.is-empty {
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: space-between;
   }
 
   .schedule-week .schedule-item {
@@ -918,7 +927,7 @@ body::before {
 
 .badge-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(156px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
   gap: var(--space-md);
   margin: 0;
   padding: 0;
@@ -1133,6 +1142,11 @@ body[data-section="saved"] .header-right > .search-container {
   color: var(--primary);
 }
 
+.nav-menu-item-danger,
+.nav-menu-item-danger svg {
+  color: var(--danger-text);
+}
+
 .nav-menu-label {
   flex: 1;
 }
@@ -1323,6 +1337,13 @@ body[data-section="saved"] .header-right > .search-container {
   .library-row-side {
     grid-column: 1 / -1;
     justify-content: flex-end;
+  }
+
+  .library-row-meta {
+    display: -webkit-box;
+    white-space: normal;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
   }
 
   .library-views {

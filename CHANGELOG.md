@@ -37,6 +37,11 @@
 - YouTube search: playlists first; a broad query that returns only channels asks once more for playlists; channels listed under their own heading, three at a time
 - YouTube search results showed HTML entities in titles ("Earth&#39;s"); they are decoded
 - Changing section resets the scroll position (the page scrolled the body, not the window); readable error text in dark themes; 24 px targets for the hero dots and the search clear button
+- Series detail on phone: "Continue" plus a "⋯" menu with the other actions (completed, ended, refresh, collection, share, delete); the "New episode" card stacks. On wider screens the icon buttons wrap together (no trash icon alone on a row). The dialog opens with focus on the title (no square ring on the channel name), and keyboard focus stays on the same button when the dialog updates
+- Upcoming: empty days take little space (one row each on phone); weekday names are capitalised like "Today" and "Tomorrow"
+- Achievements on phone: two badges per row; the goal button sits under the week's numbers
+- Readable "New episode" badge (11 px), 24 px card title targets, list-view details wrap on phone, full channel name and description on hover in search results
+- The "Your series" menu panel sits outside the header: inside it (sticky on small screens), scrolling a menu item into view right after a page update could scroll the page and close the menu. Tab from the menu now moves on to the next header link
 - Worker: allowlisted channels endpoint (channel id or @handle)
 - Firestore rules: optional notes map (≤ 400 entries)
 - manifest: externally_connectable for the share page only; no web_accessible_resources (the YouTube sidebar mark is inline SVG, which also removes the "Unsafe attempt to load URL" error from orphaned scripts)
