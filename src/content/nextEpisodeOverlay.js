@@ -75,7 +75,7 @@ export class NextEpisodeOverlay {
     this.mount(t('content_next_episode'),
       h('div', { class: 'yt-series-next-title' }, episode.title),
       h('button', { type: 'button', class: 'yt-series-next-btn', onClick: watchNext },
-        svg('play', { class: 'yt-series-next-icon' }),
+        svg('play', { class: 'yt-series-next-icon yt-series-next-icon-fill' }),
         h('span', null, t('content_watch_next'))))
   }
 

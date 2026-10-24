@@ -236,6 +236,8 @@ html[dark] {
 .yt-series-next-btn:active { transform: scale(0.98); }
 .yt-series-next-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 .yt-series-next-icon { flex-shrink: 0; width: 18px; height: 18px; }
+/* Filled icon in the button's text colour, whatever YouTube's own svg styles say. */
+.yt-series-next-icon-fill { fill: currentColor; }
 
 @media (prefers-reduced-motion: reduce) {
   .yt-series-next-overlay { animation: none; }
