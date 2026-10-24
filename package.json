@@ -29,7 +29,8 @@
     "e2e": "node scripts/e2e.mjs",
     "package": "node scripts/package.mjs",
     "screenshots": "node scripts/store-screenshots.mjs",
-    "promo": "node scripts/store-promo.mjs"
+    "promo": "node scripts/store-promo.mjs",
+    "ux": "node scripts/ux-audit.mjs"
   },
   "engines": {
     "node": ">=18"

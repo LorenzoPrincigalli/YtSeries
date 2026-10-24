@@ -39,3 +39,6 @@ pw-profile/
 # Firebase CLI project binding (local only, like firebase.config.js)
 .firebaserc
 dist-release/
+
+# UX audit output (npm run ux)
+ux-report/

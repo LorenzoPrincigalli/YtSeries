@@ -38,6 +38,7 @@ Before publishing, check `PUBLISH-CHECKLIST.md` for blockers and required steps.
 ## Note
 - Non duplicare documentazione già presente: **linka** sempre ai file esistenti.
 - Prima di analizzare o modificare codice, consulta SEMPRE la knowledge in `docs/knowledge/`.
+- Agente `ux-reviewer` (`.claude/agents/ux-reviewer.md`): esegue `npm run ux`, guarda gli screenshot e scrive una revisione UX/UI prioritizzata in `ux-report/` (non modifica il codice)
 - Skill locali disponibili:
   - `senior-engineer` (`.agents/skills/senior-engineer/SKILL.md`) — architettura, refactoring, planning
   - `greploop` (`.agents/skills/greploop/SKILL.md`) — esplorazione iterativa del codebase via grep
