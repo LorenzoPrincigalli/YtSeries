@@ -18,7 +18,7 @@ YT Series turns any YouTube playlist into a Netflix-style TV series tracker. Add
 - Time left and a finish estimate for every series, based on your pace
 - Leave trailers and filler out of your progress (suggested automatically)
 - Upcoming view: when each series and channel is expected to release its next episode
-- Weekly episode goal, day streak and milestones
+- Achievements: badges with bronze, silver and gold levels, a weekly episode goal and day streaks
 - Timestamped notes while you watch, exportable as Markdown
 - Share a series or a whole collection with a link
 - "Next Episode" overlay on YouTube 30s before a video ends
@@ -50,7 +50,7 @@ English, Italian
 
 1280×800, 24-bit PNG (no alpha), in `src/assets/store/screenshots/`. Regenerate with `npm run build && npm run screenshots`: it loads real YouTube playlists from their official channels (BBC Earth, WWF UK, LEMMiNO, Kurzgesagt, Veritasium, CrashCourse, Mark Rober, Gordon Ramsay, Mark Wiens, Kara and Nate) and follows two channels (Veritasium, Kurzgesagt) through the live Worker, exactly like the extension does; `scripts/store-library.mjs` lists them and stages only the viewing state, notes and goal. Needs network; results follow whatever the channels publish.
 
-1. `screenshot-01-home.png` — Home: featured series with time left and "Continue Watching", "This week" goal and streak, New This Week with followed channels (Classic Red)
+1. `screenshot-01-home.png` — Home: featured series with time left and "Continue Watching", New This Week with followed channels (Classic Red)
 2. `screenshot-02-detail.png` — Series detail: time left and finish estimate, trailers excluded, timestamped notes, share (Classic Red)
 3. `screenshot-03-collections.png` — Saved library organised in collections (Ocean Blue)
 4. `screenshot-04-search.png` — YouTube search: playlists, and channels you can follow as a series (Light)

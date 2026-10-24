@@ -648,79 +648,6 @@ body::before {
   gap: var(--space-sm);
 }
 
-/* Home: "This week" — goal, streak, time watched. */
-.week-strip {
-  position: relative;
-  z-index: var(--z-base);
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-md) var(--space-xl);
-  margin: 0 0 40px;
-  padding: var(--space-md) var(--space-lg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--card-bg);
-}
-
-.week-strip-main {
-  flex: 1 1 260px;
-  min-width: 0;
-}
-
-.week-strip-title {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-
-.week-strip-count {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  margin: 2px 0 6px;
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text);
-}
-
-.week-strip-reached {
-  padding: 2px 10px;
-  border-radius: 20px;
-  background: color-mix(in srgb, var(--primary) 18%, transparent);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.week-strip-bar {
-  height: 6px;
-  border-radius: 3px;
-  background: var(--border);
-  overflow: hidden;
-}
-
-.week-strip-fill {
-  width: var(--progress, 0%);
-  height: 100%;
-  border-radius: inherit;
-  background: var(--primary-fill);
-  transition: width var(--transition);
-}
-
-.week-strip-stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-sm) var(--space-lg);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text);
-}
 
 /* "Upcoming" view. */
 .schedule-header {
@@ -880,4 +807,215 @@ body::before {
   .schedule-week .schedule-item-thumb {
     width: 64px;
   }
+}
+
+/* Achievements: trophy in the header, dot when a badge was earned this session. */
+.achievements-btn { position: relative; }
+.achievements-btn svg { display: block; width: 20px; height: 20px; }
+.achievements-dot {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 9px;
+  height: 9px;
+  border: 2px solid var(--bg);
+  border-radius: 50%;
+  background: var(--primary-fill);
+  opacity: 0;
+  transform: scale(0.4);
+  transition: opacity var(--transition), transform var(--transition);
+}
+.achievements-btn.has-new .achievements-dot {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.modal.modal-achievements {
+  width: min(760px, calc(100vw - 32px));
+  max-width: none;
+}
+
+.modal-achievements .modal-body {
+  max-height: min(78vh, 760px);
+  overflow-y: auto;
+}
+
+.week-panel {
+  margin-bottom: var(--space-lg);
+  padding: var(--space-md) var(--space-lg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--card-bg);
+}
+
+.week-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.week-panel-head h3 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.week-panel-head .btn-secondary {
+  padding: 4px 14px;
+  font-size: 13px;
+}
+
+.week-panel-count {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin: 4px 0 8px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.week-panel-reached {
+  padding: 2px 10px;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--primary) 18%, transparent);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.week-panel-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.week-panel-bar > span,
+.badge-progress-bar > span {
+  display: block;
+  width: var(--progress, 0%);
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary-fill);
+}
+
+.week-panel-stats {
+  margin: 10px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.achievements-summary {
+  margin: 0 0 var(--space-md);
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.badge-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(156px, 1fr));
+  gap: var(--space-md);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.badge-card {
+  /* Locked: neutral, from the theme. Earned tiers override below. */
+  --medal-from: var(--border);
+  --medal-to: color-mix(in srgb, var(--border) 60%, var(--text-muted));
+  --medal-ring: var(--border);
+  --medal-icon: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: var(--space-md) var(--space-sm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--card-bg);
+  text-align: center;
+}
+
+.badge-card.tier-bronze { --medal-from: #e3a46a; --medal-to: #a0582a; --medal-ring: #f3c79e; --medal-icon: #3b1d07; }
+.badge-card.tier-silver { --medal-from: #f1f3f6; --medal-to: #9aa3ad; --medal-ring: #ffffff; --medal-icon: #2b3138; }
+.badge-card.tier-gold { --medal-from: #ffe17a; --medal-to: #d49a10; --medal-ring: #fff1b8; --medal-icon: #4a3200; }
+
+.badge-medal {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border: 3px solid var(--medal-ring);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--medal-from), var(--medal-to));
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.28);
+  color: var(--medal-icon);
+}
+
+.badge-medal svg {
+  width: 30px;
+  height: 30px;
+}
+
+.tier-locked .badge-medal {
+  border-style: dashed;
+  box-shadow: none;
+  opacity: 0.6;
+}
+
+.badge-pips {
+  display: flex;
+  gap: 4px;
+}
+
+.badge-pip {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border);
+}
+
+.badge-pip.is-on {
+  background: var(--medal-to);
+}
+
+.badge-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.badge-desc {
+  min-height: 2.8em;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+.badge-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  padding: 0 6px;
+}
+
+.badge-progress-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.badge-progress-text {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
 }

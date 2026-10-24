@@ -28,11 +28,6 @@
   margin-top: 24px;
 }
 
-/* Clears the carousel dots, which sit in the hero's overlapping bottom edge. */
-.hero-section + .week-strip {
-  margin-top: 44px;
-}
-
 .carousel-grid {
   display: flex;
   gap: 2px;

@@ -7,7 +7,7 @@ const CHANGELOG = [
       'Time left and finish estimate for every series, based on your recent pace',
       'Exclude trailers and filler from your progress (YT Series suggests them for you)',
       'Follow a channel as a series of its latest videos (no Shorts), and see expected releases in the new Upcoming view',
-      'Weekly episode goal, day streak and milestones at 25/50/75/100%',
+      'Achievements: collect badges with bronze, silver and gold levels; weekly episode goal, day streak and milestones at 25/50/75/100%',
       'Timestamped notes while you watch, synced and exportable as Markdown',
       'Share a series or a collection with a link: friends can add the whole list in one click'
     ],
@@ -16,7 +16,7 @@ const CHANGELOG = [
       'Tempo rimanente e stima di fine per ogni serie, in base al tuo ritmo recente',
       'Escludi trailer e riempitivi dal progresso (YT Series te li suggerisce)',
       'Segui un canale come serie dei suoi ultimi video (senza Shorts) e guarda le uscite previste nella nuova vista Uscite',
-      'Obiettivo settimanale di episodi, giorni di fila e traguardi al 25/50/75/100%',
+      'Traguardi: colleziona badge di livello bronzo, argento e oro; obiettivo settimanale, giorni di fila e traguardi al 25/50/75/100%',
       'Note con timestamp mentre guardi, sincronizzate ed esportabili in Markdown',
       'Condividi una serie o una collezione con un link: chi lo riceve aggiunge tutta la lista con un clic'
     ]

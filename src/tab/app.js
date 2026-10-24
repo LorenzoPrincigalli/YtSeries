@@ -19,6 +19,7 @@ import { initSettings, openSettings } from './features/settings.js'
 import { initAddPlaylist } from './features/addPlaylist.js'
 import { initFooter } from './features/footer.js'
 import { openImport } from './features/share.js'
+import { initAchievements } from './components/achievements.js'
 
 const log = logger.child('tab')
 
@@ -114,6 +115,7 @@ function init() {
   initModalTriggers()
   initHeader()
   initActivity()
+  initAchievements()
   initSettings()
   initAddPlaylist()
   initFooter()

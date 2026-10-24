@@ -346,8 +346,9 @@
 }
 
 /* Import of a shared list. */
-.modal-share {
+.modal.modal-share {
   width: min(560px, calc(100vw - 32px));
+  max-width: none;
 }
 
 .share-list {

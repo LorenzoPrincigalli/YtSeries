@@ -19,7 +19,18 @@ const ICONS = {
   share: { viewBox: '0 0 24 24', attrs: STROKE, paths: ['M12 15V4m0 0L8 8m4-4 4 4', 'M5 12v6.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V12'] },
   note: { viewBox: '0 0 24 24', attrs: STROKE, paths: ['M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z', 'M13.5 6.5l4 4'] },
   warning: { viewBox: '0 0 24 24', attrs: STROKE, paths: ['M12 4 2.8 19.5h18.4z', 'M12 10v4.5m0 2.5v.01'] },
-  flag: { viewBox: '0 0 24 24', attrs: STROKE, paths: ['M5 21V4', 'M5 4h12l-2.5 4L17 12H5'] }
+  flag: { viewBox: '0 0 24 24', attrs: STROKE, paths: ['M5 21V4', 'M5 4h12l-2.5 4L17 12H5'] },
+  // Achievement badges (src/shared/achievements.js)
+  film: { viewBox: '0 0 24 24', attrs: STROKE, paths: ['M4 5h16v14H4z', 'M8 5v14M16 5v14M4 9.5h4M4 14.5h4M16 9.5h4M16 14.5h4'] },
+  clock: { viewBox: '0 0 24 24', attrs: STROKE, paths: ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z', 'M12 7v5l3.5 2'] },
+  trophy: { viewBox: '0 0 24 24', attrs: STROKE, paths: ['M8 4h8v5a4 4 0 0 1-8 0z', 'M8 6H5.5a2.5 2.5 0 0 0 2.6 4M16 6h2.5a2.5 2.5 0 0 1-2.6 4', 'M12 13v4M8.5 20.5h7M10 17h4v3.5h-4z'] },
+  flame: { viewBox: '0 0 24 24', attrs: STROKE, paths: ['M12 3c.8 3.5 5 5.4 5 10.2A5 5 0 0 1 7 13.3c0-2.6 1.4-4.2 2.6-5.3.2 2 1.2 3.2 2.4 3.6C11.6 9 11 6.3 12 3z'] },
+  layers: { viewBox: '0 0 24 24', attrs: STROKE, paths: ['M12 4 3 8.5l9 4.5 9-4.5z', 'M3 12.5l9 4.5 9-4.5', 'M3 16.5l9 4.5 9-4.5'] },
+  target: { viewBox: '0 0 24 24', attrs: STROKE, paths: ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z', 'M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z', 'M12 12.01V12'] },
+  moon: { viewBox: '0 0 24 24', attrs: STROKE, paths: ['M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z'] },
+  sun: { viewBox: '0 0 24 24', attrs: STROKE, paths: ['M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z', 'M12 2.5v2M12 19.5v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2.5 12h2M19.5 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4'] },
+  compass: { viewBox: '0 0 24 24', attrs: STROKE, paths: ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z', 'M15.5 8.5l-2 5-5 2 2-5z'] },
+  stack: { viewBox: '0 0 24 24', attrs: STROKE, paths: ['M7 3.5h10M5 6.5h14', 'M3 9.5h18v11H3z'] }
 }
 
 /**
