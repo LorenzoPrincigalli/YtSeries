@@ -15,11 +15,12 @@
 | `components/cards.js` | Cards, carousel rows, hero carousel, channel results |
 | `components/detail.js` | Series dialog (re-renders from store; keeps scroll/sort): time left / finish estimate, trailer suggestion, "Skip episode" toggles, "Mark as ended" toggle and dormant-series suggestion, notes, share, folder picker, channel dialog with "Follow as series" |
 | `components/notes.js` | Episode notes in the detail: grouped list, inline edit, delete, Markdown export |
-| `components/achievements.js` | Trophy button → Achievements dialog: this week (goal, streak, time watched) and the badge grid; toast + dot for badges earned while the dashboard is open |
+| `components/achievements.js` | Trophy button → Achievements dialog: this week (goal, streak, time watched) and the badge grid; celebration + dot for badges earned while the dashboard is open |
 | `components/collections.js`, `collectionEditor.js` | Collection shelf and editor dialog |
 | `features/*` | Header/search, activity bell, settings (goals, sync, backups, import/export, reset, dev), add-playlist (playlist, channel or share links), footer dialogs, collection management, `share.js` (copy a share link, import preview) |
 | `ui/modal.js` | Accessible modals (focus trap, Escape, focus restore) and `confirmDialog()` |
 | `ui/feedback.js` | Toasts (`role=status`) and `errorMessage(code)` |
+| `ui/celebration.js` | Queued celebration for badge levels and series milestones (medal spin, light sweep, confetti; fade only with `prefers-reduced-motion`; waits while the tab is hidden) |
 | `theme.js`, `i18nDom.js` | `data-theme` switch (colours live in CSS); declarative `data-i18n` / `data-i18n-attr` translation |
 
 DOM is built with `h()` / `svg()` from `src/shared/dom.js` and `src/shared/icons.js`. Dynamic values reach CSS only through custom properties (`--progress`, `--picker-top`).

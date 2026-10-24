@@ -95,16 +95,23 @@ export function playlistCard(playlist, onAdd, index, extraClass = 'search-playli
       h('div', { class: 'card-subtitle' }, subtitle)))
 }
 
-/** Horizontal carousel scaffolding shared by every row. @param {string} title @param {HTMLElement[]} cards */
-function carouselRow(title, cards) {
+/**
+ * Horizontal carousel scaffolding shared by every row: arrows, drag to
+ * scroll, hidden scrollbar. `title` adds a visible heading.
+ * @param {HTMLElement[]} cards @param {string} label @param {string} [title]
+ */
+function carousel(cards, label, title) {
   const grid = h('div', { class: 'carousel-grid' }, cards)
   enableDragScroll(grid)
-  return h('section', { class: 'series-row', 'aria-label': title },
-    h('h2', { class: 'section-title' }, title),
+  return h('section', { class: 'series-row', 'aria-label': label },
+    title && h('h2', { class: 'section-title' }, title),
     h('button', { type: 'button', class: 'carousel-btn carousel-btn-left', 'aria-label': t('scroll_left'), onClick: () => grid.scrollBy({ left: -SCROLL_STEP, behavior: 'smooth' }) }, svg('chevronLeft')),
     h('div', { class: 'carousel-wrapper' }, grid),
     h('button', { type: 'button', class: 'carousel-btn carousel-btn-right', 'aria-label': t('scroll_right'), onClick: () => grid.scrollBy({ left: SCROLL_STEP, behavior: 'smooth' }) }, svg('chevronRight')))
 }
+
+/** @param {string} title @param {HTMLElement[]} cards */
+const carouselRow = (title, cards) => carousel(cards, title, title)
 
 /** Click-and-drag horizontal scrolling for mouse users. @param {HTMLElement} grid */
 function enableDragScroll(grid) {
@@ -245,7 +252,7 @@ export function channelCard(channel, onAdd, loadPlaylists, follow) {
       const playlists = await loadPlaylists(channel.channelId)
       loaded = true
       container.replaceChildren(playlists.length
-        ? h('div', { class: 'carousel-grid' }, playlists.map((playlist, i) => playlistCard(playlist, onAdd, i, 'channel-playlist-card')))
+        ? carousel(playlists.map((playlist, i) => playlistCard(playlist, onAdd, i, 'channel-playlist-card')), t('more_from', { channel: channel.title }))
         : h('p', { class: 'search-empty' }, t('no_playlists_found')))
     } catch {
       container.replaceChildren(h('p', { class: 'search-empty', role: 'alert' }, t('load_error')))

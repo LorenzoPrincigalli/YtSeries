@@ -24,7 +24,7 @@
 - Exclude episodes from progress (synced), with a one-click suggestion for trailers and teasers
 - Follow channels as series: latest 100 long-form uploads (UULF playlist, UU fallback), from search, the channel dialog or a channel link in "Add via link"
 - Upcoming view: expected releases for the next 7 days from each series' rhythm, late and later ones, and episodes out in the last week
-- Achievements (trophy in the header): 12 badges with bronze/silver/gold levels and progress to the next, this week's goal, streak and time watched; new badges announced while the dashboard is open
+- Achievements (trophy in the header): 12 badges with bronze/silver/gold levels and progress to the next, this week's goal, streak and time watched; new badges and series milestones celebrated with an animated medal and confetti (a plain fade with reduced motion)
 - Weekly episode goal (Settings → Goals); 25/50/75/100 % milestones celebrated in the dashboard and on YouTube
 - Timestamped episode notes taken on YouTube, synced with Cloud Sync, listed in the detail and exportable as Markdown
 - Shareable lists: a series or a collection as a link (encoded in the URL, no server); share.html on GitHub Pages and an import preview in the dashboard

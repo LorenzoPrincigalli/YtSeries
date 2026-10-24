@@ -69,7 +69,8 @@
   box-shadow: var(--shadow-card);
 }
 
-.series-row:hover .carousel-btn {
+.series-row:hover .carousel-btn,
+.carousel-btn:focus-visible {
   opacity: 1;
 }
 
@@ -177,6 +178,10 @@
 .channel-playlists {
   margin-top: 12px;
   padding-left: 80px;
+}
+
+.channel-playlists .series-row {
+  margin-bottom: 0;
 }
 
 .channel-playlists .carousel-grid {

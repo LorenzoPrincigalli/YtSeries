@@ -9,7 +9,7 @@ import { computeBadges, earnedLevels } from '../../shared/achievements.js'
 import { streak, weekProgress, formatLength } from '../../shared/seriesStats.js'
 import { getState, subscribe } from '../core/store.js'
 import { openModal, closeModal } from '../ui/modal.js'
-import { toast } from '../ui/feedback.js'
+import { celebrate } from '../ui/celebration.js'
 import { openSettings } from '../features/settings.js'
 
 const MODAL_ID = 'achievementsModal'
@@ -87,8 +87,19 @@ export function initAchievements() {
     if (known) {
       const fresh = [...now].filter(key => !known?.has(key))
       for (const key of fresh.slice(0, 2)) {
-        const [id, level] = key.split(':')
-        toast(t('achievements_new', { name: t(`badge_${id}`), level }), { variant: 'success', action: { label: t('achievements'), run: openAchievements } })
+        const [id, levelText] = key.split(':')
+        const badge = badges.find(entry => entry.id === id)
+        if (!badge) continue
+        const level = Number(levelText)
+        const target = badge.levels[level - 1]
+        celebrate({
+          icon: badge.icon,
+          tier: /** @type {'bronze' | 'silver' | 'gold'} */ (TIERS[level]),
+          label: t('celebration_badge'),
+          title: t('celebration_badge_level', { name: t(`badge_${id}`), level }),
+          detail: target === 1 ? t(`badge_${id}_desc_one`) : t(`badge_${id}_desc`, { n: target }),
+          onOpen: openAchievements
+        })
       }
       if (fresh.length) byId('achievementsBtn')?.classList.add('has-new')
     }

@@ -8,6 +8,7 @@ import { logger } from '../shared/logger.js'
 import { request, send } from './core/api.js'
 import { getState, setServer, setUi } from './core/store.js'
 import { toast, toastError } from './ui/feedback.js'
+import { celebrate as showCelebration } from './ui/celebration.js'
 import { watchUrl, nextEpisode } from './seriesView.js'
 
 const log = logger.child('actions')
@@ -49,10 +50,15 @@ export function continueWatching(series) {
   if (episode) openExternal(watchUrl(episode.id, series.playlistId, episode.resumeTime))
 }
 
-/** Toast for a 25/50/75/100 % milestone returned by EPISODE_WATCH. @param {{ percent: number, title: string } | null | undefined} milestone */
+/** Celebration for a 25/50/75/100 % milestone returned by EPISODE_WATCH. @param {{ percent: number, title: string } | null | undefined} milestone */
 export function celebrate(milestone) {
   if (!milestone) return
-  toast(t(milestone.percent === 100 ? 'milestone_done' : 'milestone_toast', milestone), { variant: 'success' })
+  showCelebration({
+    icon: milestone.percent === 100 ? 'trophy' : 'flag',
+    tier: milestone.percent === 100 ? 'gold' : milestone.percent >= 50 ? 'silver' : 'bronze',
+    label: t('celebration_milestone'),
+    title: t(milestone.percent === 100 ? 'milestone_done' : 'milestone_toast', milestone)
+  })
 }
 
 /** @param {string} playlistId @param {string} videoId @param {boolean} watched */

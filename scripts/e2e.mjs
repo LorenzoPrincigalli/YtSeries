@@ -568,8 +568,12 @@ await step('trailer suggestion excludes trailers; time left is shown', async () 
 await step('a milestone is celebrated when an episode crosses it', async () => {
   await clearToasts()
   await page.click('.episode-card[data-video-id="trailervid01"] .episode-status')
-  assert(/50% of Playlist PLtrailer001/.test(await toastText()), 'no 50% milestone toast')
-  await page.keyboard.press('Escape')
+  const celebration = await page.waitForSelector('.celebration', { timeout: 5000 })
+  assert(/50% of Playlist PLtrailer001/.test(await celebration.textContent()), 'no 50% milestone celebration')
+  assert(await page.locator('.celebration.tier-silver .celebration-confetti').count() > 0, 'no confetti')
+  await page.keyboard.press('Escape') // closes the celebration
+  await page.waitForSelector('.celebration', { state: 'detached' })
+  await page.keyboard.press('Escape') // and the detail dialog
 })
 await step('weekly goal: set in Settings, shown in Achievements with the badges', async () => {
   await settingsSection('goals')
