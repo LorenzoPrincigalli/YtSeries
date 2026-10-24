@@ -1,7 +1,7 @@
 // @ts-check
 // "Your series" header menu: the library filters (all, in progress, completed,
-// new episodes, with counts) and the view (grid or list). Choosing a filter
-// opens the "Your series" page. Menu button pattern: Enter/Space/ArrowDown
+// new episodes, with counts). Choosing one opens the "Your series" page, where
+// the grid/list view is chosen. Menu button pattern: Enter/Space/ArrowDown
 // open it, arrows move, Escape and Tab close it.
 import { t } from '../../shared/i18n.js'
 import { h, byId } from '../../shared/dom.js'
@@ -9,7 +9,6 @@ import { svg } from '../../shared/icons.js'
 import { getState, getUi, subscribe } from '../core/store.js'
 import { isInProgress, isComplete } from '../seriesView.js'
 import { navigate } from './header.js'
-import * as actions from '../actions.js'
 
 /** Library filters, in menu order: filter id, label key, icon, predicate. */
 export const LIBRARY_FILTERS = /** @type {const} */ ([
@@ -54,7 +53,6 @@ function render() {
   const state = getState()
   const all = Object.values(state?.series || {})
   const { section, filter } = getUi()
-  const view = libraryView(state)
   const choose = (/** @type {string} */ next) => { close(); navigate({ section: 'saved', filter: next }) }
   panel.replaceChildren(
     h('div', { class: 'nav-menu-group', role: 'group', 'aria-label': t('library_filters') },
@@ -68,23 +66,7 @@ function render() {
       },
       svg(/** @type {any} */ (entry.icon)),
       h('span', { class: 'nav-menu-label' }, t(entry.label)),
-      h('span', { class: 'nav-menu-count' }, String(all.filter(entry.match).length))))),
-    h('div', { class: 'nav-menu-separator', role: 'separator' }),
-    h('div', { class: 'nav-menu-group', role: 'group', 'aria-label': t('library_view') },
-      h('span', { class: 'nav-menu-heading', 'aria-hidden': 'true' }, t('library_view')),
-      h('div', { class: 'nav-menu-views' },
-        [['grid', 'view_grid'], ['list', 'view_list']].map(([value, label]) => h('button', {
-          type: 'button',
-          role: 'menuitemradio',
-          class: 'nav-menu-view',
-          'aria-checked': String(view === value),
-          tabIndex: -1,
-          onClick: () => {
-            if (view !== value) actions.updateSettings({ libraryView: value })
-            close()
-            if (section !== 'saved') navigate({ section: 'saved', filter: 'all' })
-          }
-        }, svg(value === 'grid' ? 'grid' : 'list'), t(label))))))
+      h('span', { class: 'nav-menu-count' }, String(all.filter(entry.match).length))))))
 }
 
 /** @param {boolean} focusFirst */
@@ -103,7 +85,7 @@ function show(focusFirst) {
   window.addEventListener('scroll', onViewportChange, { passive: true })
   const list = items()
   // Focus goes into the menu, on the current choice (the first item from the keyboard).
-  const target = (!focusFirst && list.find(item => item.classList.contains('nav-menu-item') && item.getAttribute('aria-checked') === 'true')) || list[0]
+  const target = (!focusFirst && list.find(item => item.getAttribute('aria-checked') === 'true')) || list[0]
   target?.focus()
 }
 

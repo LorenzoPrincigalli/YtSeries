@@ -30,8 +30,8 @@
 - Shareable lists: a series or a collection as a link (encoded in the URL, no server); share.html on GitHub Pages and an import preview in the dashboard
 
 ### Changed
-- Header: Home · Your series · Upcoming. "Your series" is a menu with the library filters (all, in progress, completed, new episodes, with counts) and the view (grid or list); the separate filter links are gone
-- Your series page: its own search box, filter chips and a list view with progress, time left and "Continue"; the header search is hidden there
+- Header: Home · Your series · Upcoming. "Your series" is a menu with the library filters (all, in progress, completed, new episodes, with counts); the separate filter links are gone
+- Your series page: its own search box, filter chips and a grid/list toggle (the list shows progress, time left and "Continue"); the header search is hidden there
 - "Add via link": styled URL field with a link icon and error state; mentions channel and shared-list links
 - Worker: allowlisted channels endpoint (channel id or @handle)
 - Firestore rules: optional notes map (≤ 400 entries)

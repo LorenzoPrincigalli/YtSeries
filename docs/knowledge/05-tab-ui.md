@@ -17,7 +17,7 @@
 | `components/notes.js` | Episode notes in the detail: grouped list, inline edit, delete, Markdown export |
 | `components/achievements.js` | Trophy button → Achievements dialog: this week (goal, streak, time watched) and the badge grid; celebration + dot for badges earned while the dashboard is open |
 | `components/collections.js`, `collectionEditor.js` | Collection shelf and editor dialog |
-| `features/libraryMenu.js` | "Your series" header menu (menu button pattern): filters with counts and grid/list view; the filters live only here and in the page chips |
+| `features/libraryMenu.js` | "Your series" header menu (menu button pattern): filters with counts; the filters live only here and in the page chips, the grid/list view only in the page |
 | `features/*` | Header/search, activity bell, settings (goals, sync, backups, import/export, reset, dev), add-playlist (playlist, channel or share links), footer dialogs, collection management, `share.js` (copy a share link, import preview) |
 | `ui/modal.js` | Accessible modals (focus trap, Escape, focus restore) and `confirmDialog()` |
 | `ui/feedback.js` | Toasts (`role=status`) and `errorMessage(code)` |
