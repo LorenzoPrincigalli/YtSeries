@@ -1,8 +1,9 @@
 // @ts-check
 // Tracks one (video, playlist) viewing session: binds to YouTube's <video>,
 // saves progress (throttled), marks the episode watched on "ended" and
-// triggers the next-episode card near the end. Disposing the session
-// releases every timer, listener and pending request it created.
+// triggers the next-episode card near the end (kept through pause and the
+// end of the video, where it also covers "all episodes watched"). Disposing
+// the session releases every timer, listener and pending request it created.
 import { EVENTS } from '../shared/events.js'
 import { t } from '../shared/i18n.js'
 import { logger } from '../shared/logger.js'
@@ -73,7 +74,8 @@ export class PlaybackSession {
       this.videoListeners.push(() => video.removeEventListener(event, handler))
     }
     on('ended', () => this.onEnded())
-    on('seeking', () => this.clearTransient())
+    on('seeking', () => this.cancelSave())
+    on('seeked', () => this.hideOverlayIfEarly())
     on('pause', () => this.pause())
     on('playing', () => { if (!this.disposed) this.startTicking() })
     this.startTicking()
@@ -85,15 +87,26 @@ export class PlaybackSession {
     this.stopTicking()
   }
 
+  /** Pausing keeps the card: the browser fires "pause" right before "ended". */
   pause() {
-    this.clearTransient()
     this.stopTicking()
+  }
+
+  cancelSave() {
+    clearTimeout(this.saveTimer)
+    this.saveTimer = null
   }
 
   clearTransient() {
     this.overlay.hide()
-    clearTimeout(this.saveTimer)
-    this.saveTimer = null
+    this.cancelSave()
+  }
+
+  /** Seeked back out of the last seconds: the card is no longer relevant. */
+  hideOverlayIfEarly() {
+    const video = this.video
+    if (!video || !(video.duration > 0) || !Number.isFinite(video.duration)) return
+    if (video.duration - video.currentTime > OVERLAY_WINDOW_S && this.overlay.active) this.overlay.hide()
   }
 
   startTicking() {
@@ -107,8 +120,7 @@ export class PlaybackSession {
   stopTicking() {
     clearInterval(this.tickTimer)
     this.tickTimer = null
-    clearTimeout(this.saveTimer)
-    this.saveTimer = null
+    this.cancelSave()
   }
 
   tick() {
@@ -121,12 +133,10 @@ export class PlaybackSession {
     const duration = Math.round(video.duration)
     const remaining = duration - currentTime
 
-    if (remaining > OVERLAY_WINDOW_S || remaining <= 0) {
+    if (remaining > OVERLAY_WINDOW_S) {
       if (this.overlay.active) this.overlay.hide()
-    } else if (this.playlistId) {
-      const playlistId = this.playlistId
-      this.overlay.maybeShow(this.videoId, playlistId, () => !this.disposed)
-        .catch(err => log.warn('Next-episode lookup failed', err))
+    } else {
+      this.showOverlay(false)
     }
 
     // Debounced and rate-limited: at most one write every 10 s of playback.
@@ -149,13 +159,21 @@ export class PlaybackSession {
       })
   }
 
+  /** @param {boolean} atEnd the video finished: also offer the "all episodes watched" card */
+  showOverlay(atEnd) {
+    if (!this.playlistId || this.disposed) return
+    this.overlay.maybeShow(this.videoId, this.playlistId, () => !this.disposed, { atEnd })
+      .catch(err => log.warn('Next-episode lookup failed', err))
+  }
+
   onEnded() {
-    this.clearTransient()
     this.stopTicking()
     if (this.disposed) return
     this.messenger.send(EVENTS.EPISODE_WATCH, { videoId: this.videoId, playlistId: this.playlistId || '' }).then(response => {
       const milestone = response?.milestone
       if (milestone) showToast(t(milestone.percent === 100 ? 'milestone_done' : 'milestone_toast', milestone))
     })
+    // Skipped to the end, or a short episode: the card may not be up yet.
+    this.showOverlay(true)
   }
 }

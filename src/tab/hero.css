@@ -90,6 +90,12 @@
   color: var(--text-on-surface-media);
 }
 
+.hero-btn svg {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+}
+
 .hero-btn-play:hover {
   background: rgba(255,255,255,0.8);
 }

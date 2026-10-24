@@ -2,6 +2,7 @@
 // Recent-activity bell: unread badge and dropdown panel.
 import { t } from '../../shared/i18n.js'
 import { h, byId, mount } from '../../shared/dom.js'
+import { svg } from '../../shared/icons.js'
 import { getState, setUi, subscribe } from '../core/store.js'
 import * as actions from '../actions.js'
 import { watchUrl } from '../seriesView.js'
@@ -12,6 +13,8 @@ const LABELS = {
   series_completed: 'activity_series_completed',
   series_reopened: 'activity_series_reopened',
   series_restored: 'activity_series_restored',
+  series_ended: 'activity_series_ended',
+  series_ongoing: 'activity_series_ongoing',
   collection_changed: 'activity_collection_changed',
   episode_watched: 'activity_episode_watched',
   episode_unwatched: 'activity_episode_unwatched',
@@ -43,7 +46,7 @@ function activityRow(event) {
   const video = series?.videos?.find(v => v.id === event.videoId)
   const title = video?.title || series?.title || event.title || t('unknown_series')
   const content = [
-    h('span', { class: 'activity-panel-marker', 'aria-hidden': 'true' }, event.type === 'episode_watched' ? '✓' : event.type === 'series_milestone' ? '★' : '•'),
+    h('span', { class: 'activity-panel-marker', 'aria-hidden': 'true' }, event.type === 'episode_watched' ? svg('check') : event.type === 'series_milestone' ? svg('flag') : '•'),
     h('span', { class: 'activity-panel-body' }, t(LABELS[event.type] || 'recent_activity_item', { title })),
     h('time', { datetime: new Date(event.at).toISOString() }, relativeTime(event.at))
   ]

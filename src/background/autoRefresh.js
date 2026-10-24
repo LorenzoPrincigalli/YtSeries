@@ -33,7 +33,8 @@ async function notifyNewEpisodes(ctx, updates) {
 async function autoRefresh(ctx) {
   if (!ctx.store.getSettings().autoRefresh) return
 
-  const series = Object.values(ctx.store.getSeries())
+  // Ended series publish nothing new; a manual refresh still updates them.
+  const series = Object.values(ctx.store.getSeries()).filter(entry => !entry.ended)
   const results = await mapLimit(series, CONCURRENCY, async ({ playlistId }) => ({
     playlistId,
     data: await ctx.youtube.refreshPlaylist(playlistId)

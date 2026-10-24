@@ -1,9 +1,12 @@
 // @ts-check
 // "Watch next episode" card shown near the end of an episode. One instance
-// per playback session; dismissal is remembered for that session only.
+// per playback session; dismissal is remembered for that session only. When
+// the last episode ends it says so instead: the series has ended, or the user
+// is caught up (and can mark it as ended from there).
 import { EVENTS } from '../shared/events.js'
 import { t } from '../shared/i18n.js'
 import { h } from '../shared/dom.js'
+import { svg } from '../shared/icons.js'
 import { isAdPlaying, isMusicContent, playerMode, SELECTORS } from './youtubeDom.js'
 
 export class NextEpisodeOverlay {
@@ -39,8 +42,9 @@ export class NextEpisodeOverlay {
    * Looks up the next unwatched episode and shows the card, unless anything
    * changed meanwhile (session ended, user dismissed, ad started…).
    * @param {string} videoId @param {string} playlistId @param {() => boolean} sessionCurrent
+   * @param {{ atEnd?: boolean }} [options] atEnd: the video finished, so "all watched" is worth saying
    */
-  async maybeShow(videoId, playlistId, sessionCurrent) {
+  async maybeShow(videoId, playlistId, sessionCurrent, { atEnd = false } = {}) {
     if (this.active || this.dismissed || !this.isEnabled() || isMusicContent() || isAdPlaying()) return
     const token = ++this.requestToken
     this.pending = true
@@ -49,8 +53,9 @@ export class NextEpisodeOverlay {
       const exists = await this.messenger.send(EVENTS.PLAYLIST_EXISTS, { playlistId })
       if (!stillWanted() || !exists.success || !exists.exists) return
       const next = await this.messenger.send(EVENTS.GET_NEXT_EPISODE, { videoId, playlistId })
-      if (!stillWanted() || !next.success || !next.nextEpisode) return
-      this.render(next.nextEpisode, videoId, playlistId)
+      if (!stillWanted() || !next.success) return
+      if (next.nextEpisode) this.render(next.nextEpisode, videoId, playlistId)
+      else if (atEnd && next.allWatched) this.renderFinale(playlistId, Boolean(next.ended))
     } finally {
       if (token === this.requestToken) this.pending = false
     }
@@ -67,15 +72,39 @@ export class NextEpisodeOverlay {
       window.location.href = url.href
     }
 
-    this.element = h('div', { class: 'yt-series-next-overlay', role: 'dialog', 'aria-label': t('content_next_episode'), 'aria-live': 'polite' },
+    this.mount(t('content_next_episode'),
+      h('div', { class: 'yt-series-next-title' }, episode.title),
+      h('button', { type: 'button', class: 'yt-series-next-btn', onClick: watchNext },
+        svg('play', { class: 'yt-series-next-icon' }),
+        h('span', null, t('content_watch_next'))))
+  }
+
+  /** Last episode finished. @param {string} playlistId @param {boolean} ended */
+  renderFinale(playlistId, ended) {
+    const message = h('div', { class: 'yt-series-next-text' }, ended ? t('content_series_ended') : t('content_caught_up'))
+    if (ended) { this.mount(t('content_all_watched'), message); return }
+    const markEnded = h('button', { type: 'button', class: 'yt-series-next-btn yt-series-next-btn-secondary' },
+      svg('flag', { class: 'yt-series-next-icon' }), h('span', null, t('mark_ended')))
+    markEnded.addEventListener('click', async () => {
+      markEnded.disabled = true
+      const response = await this.messenger.send(EVENTS.SERIES_ENDED_SET, { playlistId, ended: true })
+      if (!markEnded.isConnected) return
+      if (!response?.success) { markEnded.disabled = false; return }
+      message.textContent = t('content_series_ended')
+      markEnded.remove()
+    })
+    this.mount(t('content_all_watched'), message, markEnded)
+  }
+
+  /** Shared card shell: label, content (first item under the label), close button, mode tracking. @param {string} label @param {...HTMLElement} content */
+  mount(label, ...content) {
+    this.element = h('div', { class: 'yt-series-next-overlay', role: 'dialog', 'aria-label': label, 'aria-live': 'polite' },
       h('div', { class: 'yt-series-next-content' },
-        h('button', { type: 'button', class: 'yt-series-next-close', 'aria-label': t('close'), onClick: () => this.hide({ dismiss: true }) }, '×'),
+        h('button', { type: 'button', class: 'yt-series-next-close', 'aria-label': t('close'), onClick: () => this.hide({ dismiss: true }) }, svg('close')),
         h('div', { class: 'yt-series-next-info' },
-          h('div', { class: 'yt-series-next-label' }, t('content_next_episode')),
-          h('div', { class: 'yt-series-next-title' }, episode.title)),
-        h('button', { type: 'button', class: 'yt-series-next-btn', onClick: watchNext },
-          h('span', { class: 'yt-series-next-icon', 'aria-hidden': 'true' }, '▶'),
-          h('span', null, t('content_watch_next')))))
+          h('div', { class: 'yt-series-next-label' }, label),
+          content[0]),
+        content.slice(1)))
     document.body.append(this.element)
     this.reposition()
 

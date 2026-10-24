@@ -34,7 +34,7 @@ function seriesToFirestorePayload(series) {
       updatedAt = Math.max(updatedAt, at)
     }
   }
-  return {
+  const payload = {
     deleted: false,
     metadata: {
       title: series.title || '', thumbnail: series.thumbnail || '', channelTitle: series.channelTitle || '',
@@ -50,6 +50,12 @@ function seriesToFirestorePayload(series) {
     progress,
     notes: normalizeNotes(series.notes)
   }
+  // Only once the user has toggled it, so series that never did still match older deployed rules.
+  if (number(series.endedUpdatedAt) > 0) {
+    payload.ended = Boolean(series.ended)
+    payload.endedAt = number(series.endedUpdatedAt)
+  }
+  return payload
 }
 
 function mergeRemoteIntoSeries(series, remote) {
@@ -59,6 +65,11 @@ function mergeRemoteIntoSeries(series, remote) {
   if (remote.completed !== undefined && completedAt >= localCompletedAt) {
     series.completed = Boolean(remote.completed)
     series.completedUpdatedAt = completedAt
+  }
+  const endedAt = number(remote.endedAt) || remoteAt
+  if (remote.ended !== undefined && endedAt >= number(series.endedUpdatedAt)) {
+    series.ended = Boolean(remote.ended)
+    series.endedUpdatedAt = endedAt
   }
   const collectionAt = number(remote.collectionAt) || remoteAt
   const localCollectionAt = number(series.collectionUpdatedAt) || seriesLocalUpdatedAt(series)

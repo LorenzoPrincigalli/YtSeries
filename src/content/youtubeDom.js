@@ -4,7 +4,11 @@
 
 export const SELECTORS = {
   video: '.video-stream, .html5-main-video',
+  // The watch-page player. YouTube also keeps a hover-preview player
+  // (#inline-preview-player, same classes) in the DOM, often before it.
+  mainVideo: '#movie_player video',
   player: '#movie_player, .html5-video-player',
+  previewPlayer: '#inline-preview-player, ytd-video-preview',
   watchFlexy: 'ytd-watch-flexy',
   miniPlayer: '.ytp-miniplayer',
   guideSections: 'ytd-guide-section-renderer',
@@ -31,13 +35,19 @@ export function findVisible(selector) {
   return null
 }
 
-/** @returns {HTMLVideoElement | null} */
+/** The episode's <video>, never the thumbnail hover preview. @returns {HTMLVideoElement | null} */
 export function findVideo() {
-  return document.querySelector(SELECTORS.video)
+  const main = /** @type {HTMLVideoElement | null} */ (document.querySelector(SELECTORS.mainVideo))
+  if (main) return main
+  for (const video of /** @type {NodeListOf<HTMLVideoElement>} */ (document.querySelectorAll(SELECTORS.video))) {
+    if (!video.closest(SELECTORS.previewPlayer)) return video
+  }
+  return null
 }
 
 export function isAdPlaying() {
-  return Boolean(document.querySelector(SELECTORS.player)?.classList.contains('ad-showing'))
+  const player = findVideo()?.closest(SELECTORS.player) || document.querySelector(SELECTORS.player)
+  return Boolean(player?.classList.contains('ad-showing'))
 }
 
 /** A YouTube dialog (consent, sign-in) is on screen: do not touch the page. */

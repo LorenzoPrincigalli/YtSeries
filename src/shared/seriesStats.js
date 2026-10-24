@@ -7,6 +7,7 @@ const DAY_MS = 86_400_000
 const PACE_WINDOW_DAYS = 21
 const MIN_RELEASE_GAP_MS = 12 * 3_600_000 // closer uploads are bulk adds, not a release rhythm
 const MAX_CADENCE_DAYS = 45
+const DORMANT_DAYS = 90 // no upload for this long: offer to mark the series as ended
 export const MILESTONES = [25, 50, 75, 100]
 const EXTRA_TITLE = /\b(trailer|teaser|first look|anteprima|sneak peek)\b/i
 
@@ -130,11 +131,12 @@ export function weekProgress(seriesList, now = Date.now()) {
 
 /**
  * Expected next release from the series' own rhythm: the median gap between
- * its latest uploads. Null for irregular, slow (> 45 days) or dormant series.
+ * its latest uploads. Null for irregular, slow (> 45 days), dormant or ended series.
  * @param {any} series @param {number} [now]
  * @returns {{ cadenceDays: number, lastAt: number, nextAt: number, overdue: boolean } | null}
  */
 export function releaseForecast(series, now = Date.now()) {
+  if (series?.ended) return null
   const dates = [...new Set((series?.videos || [])
     .map(video => Date.parse(video.publishedAt))
     .filter(Number.isFinite))]
@@ -153,6 +155,19 @@ export function releaseForecast(series, now = Date.now()) {
   if (cadence > MAX_CADENCE_DAYS * DAY_MS || now - lastAt > 3 * cadence) return null
   const nextAt = lastAt + cadence
   return { cadenceDays: cadence / DAY_MS, lastAt, nextAt, overdue: nextAt < now - DAY_MS }
+}
+
+/**
+ * Whole months since the latest upload when the series looks finished: no
+ * release rhythm (see releaseForecast) and nothing new for DORMANT_DAYS.
+ * Null when the user already marked it as ended, or it still looks active.
+ * @param {any} series @param {number} [now]
+ */
+export function dormantMonths(series, now = Date.now()) {
+  if (!series || series.ended || !series.videos?.length) return null
+  const latest = Math.max(...(series.videos || []).map(video => Date.parse(video.publishedAt)).filter(Number.isFinite))
+  if (!Number.isFinite(latest) || now - latest < DORMANT_DAYS * DAY_MS || releaseForecast(series, now)) return null
+  return Math.floor((now - latest) / (30 * DAY_MS))
 }
 
 /** Counted episodes whose title marks them as trailers or teasers. @param {any} series @returns {string[]} */

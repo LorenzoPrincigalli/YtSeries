@@ -13,7 +13,7 @@
 | `views/home.js` | Main area: home rows (with the "This week" strip), search results, saved library |
 | `views/schedule.js` | Upcoming: expected releases (`releaseForecast`) for the next 7 days, late, later, and episodes out in the last week |
 | `components/cards.js` | Cards, carousel rows, hero carousel, channel results |
-| `components/detail.js` | Series dialog (re-renders from store; keeps scroll/sort): time left / finish estimate, trailer suggestion, exclude toggles, notes, share, folder picker, channel dialog with "Follow as series" |
+| `components/detail.js` | Series dialog (re-renders from store; keeps scroll/sort): time left / finish estimate, trailer suggestion, "Skip episode" toggles, "Mark as ended" toggle and dormant-series suggestion, notes, share, folder picker, channel dialog with "Follow as series" |
 | `components/notes.js` | Episode notes in the detail: grouped list, inline edit, delete, Markdown export |
 | `components/weekStrip.js` | Home "This week": weekly goal, day streak, time watched |
 | `components/collections.js`, `collectionEditor.js` | Collection shelf and editor dialog |
@@ -47,7 +47,9 @@ Behaviour unchanged from 1.1: collections are whole-series assignments synced wi
 
 ## 1.3 progress tools
 
-- **Excluded episodes** stay listed (dimmed) but never count: progress, time left, next episode, milestones. Trailers/teasers are suggested once per series and session.
+- **Excluded ("skipped") episodes** stay listed (dimmed) but never count: progress, time left, next episode, milestones. The button reads "Skip episode" / "Salta episodio"; the data field stays `excluded`. Trailers/teasers are suggested once per series and session.
+- **Ended series** (`ended`): "Ended" badge on cards, a note in the detail meta row, no Upcoming forecast. The detail offers "Mark as ended" when nothing was uploaded for 90 days and there is no release rhythm.
+- **No emoji** anywhere in the UI: icons are SVG from `src/shared/icons.js` (enforced by `src/shared/__tests__/no-emoji.test.js`).
 - **Time left / finish estimate**: `timeLeft` and `finishEstimate` from `src/shared/seriesStats.js`; the estimate appears only when the series has a recent pace (≥ 2 episodes in 21 days).
 - **Goal and milestones**: `settings.weeklyGoal` (Settings → Goals); `EPISODE_WATCH` returns the milestone crossed, celebrated by `actions.celebrate`.
 - **Sharing**: `shareCodec` encodes the list in the link (`share.html#d=…`); importing re-adds playlists with `PLAYLIST_ADD` (concurrency 2) and optionally files them with `COLLECTION_MOVE`.

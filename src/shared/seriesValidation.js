@@ -77,6 +77,7 @@ function normalizeSeries(series, playlistId) {
     lastEpisodeIndex: Math.max(0, Math.floor(finiteNumber(series.lastEpisodeIndex))),
     newEpisodesCount: Math.max(0, Math.floor(finiteNumber(series.newEpisodesCount))),
     completed: Boolean(series.completed),
+    ended: Boolean(series.ended),
     collection: typeof series.collection === 'string' ? series.collection.trim().slice(0, 40) : '',
     collectionCover: typeof series.collectionCover === 'string' && series.collectionCover.startsWith('https://') ? series.collectionCover : '',
     addedAt: Math.max(0, finiteNumber(series.addedAt, Date.now())),
@@ -84,6 +85,7 @@ function normalizeSeries(series, playlistId) {
     localUpdatedAt: Math.max(0, finiteNumber(series.localUpdatedAt)),
     syncUpdatedAt: Math.max(0, finiteNumber(series.syncUpdatedAt)),
     completedUpdatedAt: Math.max(0, finiteNumber(series.completedUpdatedAt)),
+    endedUpdatedAt: Math.max(0, finiteNumber(series.endedUpdatedAt)),
     collectionUpdatedAt: Math.max(0, finiteNumber(series.collectionUpdatedAt)),
     remoteUpdateTime: typeof series.remoteUpdateTime === 'string' ? series.remoteUpdateTime : undefined,
     notes: normalizeNotes(series.notes)

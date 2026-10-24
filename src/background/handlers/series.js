@@ -79,6 +79,18 @@ async function toggleComplete(ctx, { playlistId }) {
   return { success: true, state: ctx.store.getState() }
 }
 
+/** @param {Ctx} ctx @param {{ playlistId: string, ended: boolean }} payload */
+async function setEnded(ctx, { playlistId, ended }) {
+  if (!ctx.store.playlistExists(playlistId)) throw new AppError('SERIES_NOT_FOUND')
+  await commit(ctx, store => {
+    if (!store.setSeriesEnded(playlistId, ended)) return { changed: [] }
+    const series = /** @type {any} */ (store.getSeriesById(playlistId))
+    store.recordActivity(ended ? 'series_ended' : 'series_ongoing', { playlistId, title: series.title })
+    return { changed: [playlistId] }
+  })
+  return { success: true, state: ctx.store.getState() }
+}
+
 /** @param {Ctx} ctx @param {{ playlistId: string, collection: string }} payload */
 async function setCollection(ctx, { playlistId, collection }) {
   const existing = ctx.store.getSeriesById(playlistId)
@@ -99,6 +111,8 @@ const seriesRoutes = {
   [EVENTS.SERIES_DELETE]: { schema: byPlaylist, handler: deleteSeries },
   [EVENTS.SERIES_RESTORE]: { schema: s.object({ series: s.any() }), handler: restoreSeries },
   [EVENTS.SERIES_COMPLETE_TOGGLE]: { schema: byPlaylist, handler: toggleComplete },
+  // Also from YouTube: the "all episodes watched" card offers it.
+  [EVENTS.SERIES_ENDED_SET]: { contexts: ['extension', 'content'], schema: s.object({ playlistId: s.id(), ended: s.boolean() }), handler: setEnded },
   [EVENTS.SERIES_COLLECTION_SET]: {
     schema: s.object({ playlistId: s.id(), collection: s.string({ max: 40 }) }),
     handler: setCollection

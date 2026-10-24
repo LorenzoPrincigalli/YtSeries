@@ -10,7 +10,7 @@ import { safeRender } from '../core/errorBoundary.js'
 import { openModal, closeModal, confirmDialog } from '../ui/modal.js'
 import * as actions from '../actions.js'
 import { isChannelFollowed, isChannelSeries, collectionNames, watchedCount, nextEpisode, findNewEpisode, isNewEpisode, latestEpisode, watchUrl, formatDuration, formatLength } from '../seriesView.js'
-import { countedVideos, timeLeft, finishEstimate, suggestedExclusions } from '../../shared/seriesStats.js'
+import { countedVideos, timeLeft, finishEstimate, suggestedExclusions, dormantMonths } from '../../shared/seriesStats.js'
 import { notesSection, activeNotes } from './notes.js'
 import { followButton } from './cards.js'
 import { shareSeries } from '../features/share.js'
@@ -98,6 +98,7 @@ export class DetailView {
     mount(this.body,
       this.renderInfo(series),
       this.renderSuggestion(series),
+      this.renderEndedSuggestion(series),
       newEpisode && this.renderNewEpisode(series, newEpisode),
       notesSection(series),
       this.renderEpisodes(series),
@@ -116,6 +117,7 @@ export class DetailView {
     const meta = [`${total} ${total === 1 ? t('episode') : t('episodes')}`, `${watched}/${total} ${t('watched')} (${Math.round(percent)}%)`]
     if (excluded) meta.push(t('excluded_count', { n: excluded }))
     if (latest) meta.push(`${t('last_video')}: ${shortDate(latest.publishedAt)}`)
+    if (series.ended) meta.push(t('series_ended_desc'))
 
     const left = series.completed ? 0 : timeLeft(series)
     const estimate = series.completed ? null : finishEstimate(series)
@@ -153,11 +155,18 @@ export class DetailView {
           h('div', { class: 'detail-progress-fill', style: { '--progress': `${percent}%` } })),
         series.description && h('p', { class: 'detail-hero-desc' }, series.description),
         h('div', { class: 'detail-actions' },
-          next && h('button', { type: 'button', class: 'btn-primary', onClick: () => actions.continueWatching(series) },
-            `▶ ${t('continue_ep', { n: series.videos.indexOf(next) + 1 })}`),
+          next && h('button', { type: 'button', class: 'btn-primary btn-with-icon', onClick: () => actions.continueWatching(series) },
+            svg('play'), t('continue_ep', { n: series.videos.indexOf(next) + 1 })),
           h('button', { type: 'button', class: 'btn-secondary', onClick: () => actions.toggleComplete(series.playlistId) },
             series.completed ? t('mark_incomplete') : t('mark_complete')),
-          h('button', { type: 'button', class: 'btn-secondary', title: t('refresh'), 'aria-label': t('refresh'), onClick: event => this.refresh(series, event.currentTarget) }, '↻'),
+          h('button', {
+            type: 'button',
+            class: 'btn-secondary btn-with-icon',
+            'aria-pressed': String(Boolean(series.ended)),
+            title: series.ended ? t('mark_ongoing_named', { title: series.title }) : t('mark_ended_named', { title: series.title }),
+            onClick: () => actions.setSeriesEnded(series.playlistId, !series.ended)
+          }, svg('flag'), series.ended ? t('mark_ongoing') : t('mark_ended')),
+          h('button', { type: 'button', class: 'btn-secondary detail-refresh-btn', title: t('refresh'), 'aria-label': t('refresh'), onClick: event => this.refresh(series, event.currentTarget) }, svg('refresh')),
           folderButton,
           h('button', { type: 'button', class: 'btn-secondary detail-share-btn', title: t('share'), 'aria-label': t('share_series_named', { title: series.title }), onClick: () => shareSeries(series.title, [series]) }, svg('share')),
           h('button', { type: 'button', class: 'btn-secondary text-error', title: t('delete'), 'aria-label': t('delete'), onClick: () => this.confirmDelete(series) }, svg('trash')))))
@@ -175,6 +184,21 @@ export class DetailView {
           type: 'button',
           class: 'btn-secondary',
           onClick: () => { this.dismissedSuggestions.add(series.playlistId); this.sync() }
+        }, t('close'))))
+  }
+
+  /** Long silence and no release rhythm: ask whether the series has ended, once per series and session. @param {any} series */
+  renderEndedSuggestion(series) {
+    const months = dormantMonths(series)
+    if (months === null || this.dismissedSuggestions.has(`ended:${series.playlistId}`)) return null
+    return h('div', { class: 'detail-suggestion', role: 'note' },
+      h('p', { class: 'detail-suggestion-text' }, t('suggest_ended', { n: months })),
+      h('div', { class: 'detail-suggestion-actions' },
+        h('button', { type: 'button', class: 'btn-primary', onClick: () => actions.setSeriesEnded(series.playlistId, true) }, t('suggest_ended_yes')),
+        h('button', {
+          type: 'button',
+          class: 'btn-secondary',
+          onClick: () => { this.dismissedSuggestions.add(`ended:${series.playlistId}`); this.sync() }
         }, t('close'))))
   }
 
@@ -229,7 +253,7 @@ export class DetailView {
         h('div', { class: 'episode-progress-bar', style: { '--progress': `${video.progress}%` } })),
       h('div', { class: 'episode-info' },
         h('div', { class: 'episode-number' }, number,
-          notes > 0 && h('span', { class: 'episode-notes-chip', title: t('notes_chip', { n: notes }) }, `📝 ${notes}`)),
+          notes > 0 && h('span', { class: 'episode-notes-chip', title: t('notes_chip', { n: notes }) }, svg('note'), String(notes))),
         h('div', { class: 'episode-title' },
           h('a', { class: 'episode-title-link', href, target: '_blank', rel: 'noopener noreferrer', onClick: event => event.stopPropagation() },
             isNewEpisode(video) && h('span', { class: 'new-dot' }, t('new_short')),

@@ -10,13 +10,17 @@ Runs on `https://www.youtube.com/*` with `content.css`.
 |--------|----------------|
 | `index.js` | Bootstrap: settings (`CONTENT_SETTINGS_GET` at start, then broadcasts), SPA navigation (`yt-navigate-finish`), DOM observer throttled to one pass per frame |
 | `messaging.js` | `send()` that never throws; detects "Extension context invalidated" and shuts the integration down |
-| `playbackSession.js` | One object per (video, playlist): binds `<video>`, progress every 5 s (3 s debounce, ≥ 10 s between writes), `ended` → `EPISODE_WATCH`, triggers the overlay in the last 30 s; stops sending progress after `VIDEO_NOT_FOUND` (video in no saved series) until the library changes; `dispose()` releases every timer/listener |
-| `nextEpisodeOverlay.js` | "Watch next" card: lookup via `PLAYLIST_EXISTS` + `GET_NEXT_EPISODE`, stale-request tokens, Escape/close dismiss for the session, follows fullscreen/theater/mini modes |
-| `progressOverlay.js` | Series progress on YouTube: summary on the playlist page, "✓ Watched" badge / progress bar / dimmed excluded episode on each playlist item (playlist page and watch-page panel). Data from `CONTENT_SERIES_PROGRESS` for the current playlist only, reloaded (debounced) on `STATE_UPDATED`; recycled list items are re-decorated by video id |
-| `noteButton.js` | "📝 Note at 12:34" under the title of an episode of a saved series (`CONTENT_VIDEO_SERIES`), inline field → `NOTE_ADD`; keydown never reaches YouTube's shortcuts; Ctrl+Enter saves, Esc cancels |
+| `playbackSession.js` | One object per (video, playlist): binds `<video>`, progress every 5 s (3 s debounce, ≥ 10 s between writes), `ended` → `EPISODE_WATCH`, triggers the overlay in the last 30 s and again on `ended`; the card survives `pause` (the browser fires it right before `ended`) and is hidden only when seeking back out of the last 30 s; stops sending progress after `VIDEO_NOT_FOUND` (video in no saved series) until the library changes; `dispose()` releases every timer/listener |
+| `nextEpisodeOverlay.js` | "Watch next" card: lookup via `PLAYLIST_EXISTS` + `GET_NEXT_EPISODE`, stale-request tokens, Escape/close dismiss for the session, follows fullscreen/theater/mini modes. When the last episode ends: "All episodes watched" with "the series has ended" or "you're caught up" + "Mark as ended" (`SERIES_ENDED_SET`) |
+| `progressOverlay.js` | Series progress on YouTube: summary on the playlist page (with an "Ended" chip), "Watched" badge (SVG check) / progress bar / dimmed excluded episode on each playlist item (playlist page and watch-page panel). Data from `CONTENT_SERIES_PROGRESS` for the current playlist only, reloaded (debounced) on `STATE_UPDATED`; recycled list items are re-decorated by video id |
+| `noteButton.js` | "Note at 12:34" (SVG pencil icon) under the title of an episode of a saved series (`CONTENT_VIDEO_SERIES`), inline field → `NOTE_ADD`; keydown never reaches YouTube's shortcuts; Ctrl+Enter saves, Esc cancels |
 | `pageInjections.js` | Sidebar link and "Add to Series" button. YouTube keeps several playlist headers in the DOM (hidden/cached), so the button is placed only in the **visible** one (`findVisible`) and stray copies are removed on every pass; its label follows `STATE_UPDATED` live |
-| `youtubeDom.js` | **All YouTube selectors** — update here after a YouTube redesign |
+| `youtubeDom.js` | **All YouTube selectors** — update here after a YouTube redesign. `findVideo()` prefers `#movie_player video`: YouTube keeps a thumbnail hover-preview player with the same classes in the DOM |
 | `toast.js` | Small page notices |
+
+### Styles (`content.css`)
+
+Injected sheets lose ties against YouTube's own CSS, and container rules like `#top-level-buttons-computed > *` outrank a lone class. Controls placed inside YouTube's layout are therefore styled through their id (`#yt-series-add-btn`, `#yt-series-notebar`), set `font-family` explicitly (buttons do not inherit fonts) and use namespaced `--yt-series-*` tokens switched by YouTube's `html[dark]` attribute.
 
 The content script may call only the routes marked C in [02-message-protocol.md](02-message-protocol.md). It never receives the library: the broadcast carries only saved ids, and `CONTENT_SERIES_PROGRESS` returns per-episode flags for the one playlist on screen. `EPISODE_WATCH` responses carry the milestone, shown as a page toast.
 

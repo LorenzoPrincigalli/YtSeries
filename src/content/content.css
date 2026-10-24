@@ -1,7 +1,35 @@
 /* Styles injected into youtube.com (declared in manifest content_scripts.css).
-   Every selector is namespaced (#yt-series-*, .yt-series-*) so nothing leaks
-   into YouTube's own UI. Sidebar text inherits YouTube's own colour (its
-   --yt-spec-* variables are not defined at that point of the tree). */
+   Every selector and custom property is namespaced (#yt-series-*,
+   .yt-series-*, --yt-series-*) so nothing leaks into YouTube's own UI.
+   Sidebar text inherits YouTube's own colour (its --yt-spec-* variables are
+   not defined at that point of the tree), so the rest of our UI uses its own
+   tokens, switched by YouTube's dark-theme attribute on <html>.
+   Injected sheets lose ties against YouTube's, and rules such as
+   "#top-level-buttons-computed > *" outrank a lone class: controls placed
+   inside YouTube's layout are therefore styled through their id. Buttons do
+   not inherit fonts, so each one sets the family explicitly. */
+
+:root {
+  --yt-series-font: Roboto, Arial, sans-serif;
+  --yt-series-text: #0f0f0f;
+  --yt-series-text-muted: #606060;
+  --yt-series-tonal: rgba(0, 0, 0, 0.05);
+  --yt-series-tonal-hover: rgba(0, 0, 0, 0.1);
+  --yt-series-border: rgba(0, 0, 0, 0.2);
+  --yt-series-field-bg: #fff;
+  --yt-series-focus: #065fd4;
+  --yt-series-accent: #cc0000; /* white text needs ≥ 4.5:1; #ff0000 is only 4.0:1 */
+  --yt-series-accent-hover: #a80000;
+}
+html[dark] {
+  --yt-series-text: #f1f1f1;
+  --yt-series-text-muted: #aaa;
+  --yt-series-tonal: rgba(255, 255, 255, 0.1);
+  --yt-series-tonal-hover: rgba(255, 255, 255, 0.2);
+  --yt-series-border: rgba(255, 255, 255, 0.2);
+  --yt-series-field-bg: #121212;
+  --yt-series-focus: #3ea6ff;
+}
 
 /* ── Sidebar link ─────────────────────────────────────────────────────── */
 #yt-series-section-title {
@@ -38,27 +66,54 @@
 #yt-series-link .yt-series-icon img { width: 24px; height: 24px; }
 #yt-series-link .yt-series-label { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 
-/* ── "Add to Series" button on playlist pages ─────────────────────────── */
-.yt-series-add-btn {
-  display: flex;
-  flex-shrink: 0;
+/* ── "Add to Series" button: playlist page header, watch-page playlist panel ── */
+#yt-series-add-btn.yt-series-add-btn {
+  box-sizing: border-box;
+  display: inline-flex;
+  flex: 0 1 auto;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
   height: 36px;
   margin: 8px 8px 8px 0; /* keeps a gap from YouTube's neighbouring buttons */
   padding: 0 16px;
   border: none;
   border-radius: 18px;
-  background: #f1f1f1;
+  background: #f1f1f1; /* the playlist header sits on a dark, blurred backdrop in both themes */
   color: #0f0f0f;
+  font-family: var(--yt-series-font);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 500;
+  line-height: 36px;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   cursor: pointer;
+  transition: background 0.15s;
 }
-.yt-series-add-btn.is-saved { background: #e8e8e8; }
-.yt-series-add-btn:disabled { cursor: progress; opacity: 0.7; }
-.yt-series-add-btn:focus-visible { outline: 2px solid #3ea6ff; outline-offset: 2px; }
+#yt-series-add-btn.yt-series-add-btn:hover { background: #d9d9d9; }
+#yt-series-add-btn.yt-series-add-btn.is-saved { background: #e8e8e8; }
+#yt-series-add-btn.yt-series-add-btn:disabled { cursor: progress; opacity: 0.7; }
+#yt-series-add-btn.yt-series-add-btn:focus-visible { outline: 2px solid #3ea6ff; outline-offset: 2px; }
+
+/* Watch page: a compact, theme-aware pill among the panel's icon buttons. */
+#playlist-action-menu #yt-series-add-btn {
+  align-self: center;
+  height: 32px;
+  margin: 0 0 0 8px;
+  padding: 0 12px;
+  border-radius: 16px;
+  background: var(--yt-series-tonal);
+  color: var(--yt-series-text);
+  font-size: 13px;
+  line-height: 32px;
+}
+#playlist-action-menu #yt-series-add-btn:hover,
+#playlist-action-menu #yt-series-add-btn.is-saved:hover { background: var(--yt-series-tonal-hover); }
+#playlist-action-menu #yt-series-add-btn.is-saved { background: var(--yt-series-tonal); color: var(--yt-series-text); }
+#playlist-action-menu #yt-series-add-btn:focus-visible { outline-color: var(--yt-series-focus); }
 
 /* ── Toast ────────────────────────────────────────────────────────────── */
 .yt-series-toast {
@@ -101,7 +156,10 @@
 
 .yt-series-next-content {
   position: relative;
-  min-width: 280px;
+  box-sizing: border-box;
+  width: 320px;
+  max-width: calc(100vw - 48px);
+  font-family: var(--yt-series-font);
   padding: 16px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
@@ -125,9 +183,11 @@
   line-height: 1;
   cursor: pointer;
 }
+.yt-series-next-close svg { display: block; width: 14px; height: 14px; }
 .yt-series-next-close:hover,
 .yt-series-next-close:focus-visible { background: rgba(255, 255, 255, 0.14); color: #fff; outline: none; }
 .yt-series-next-info { margin-bottom: 12px; padding-right: 24px; }
+.yt-series-next-info:last-child { margin-bottom: 0; }
 .yt-series-next-label {
   margin-bottom: 4px;
   color: #ff4e45; /* 4.6:1 on the near-black card (pure #ff0000 is 4.0:1) */
@@ -157,15 +217,25 @@
   border-radius: 8px;
   background: #cc0000; /* white text needs ≥ 4.5:1; #ff0000 is only 4.0:1 */
   color: #fff;
+  font-family: var(--yt-series-font);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s, transform 0.1s;
 }
+.yt-series-next-btn + .yt-series-next-btn { margin-top: 8px; }
 .yt-series-next-btn:hover { background: #a80000; }
+.yt-series-next-btn-secondary { background: rgba(255, 255, 255, 0.14); }
+.yt-series-next-btn-secondary:hover { background: rgba(255, 255, 255, 0.24); }
+.yt-series-next-btn:disabled { cursor: progress; opacity: 0.7; }
+.yt-series-next-text {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 14px;
+  line-height: 1.4;
+}
 .yt-series-next-btn:active { transform: scale(0.98); }
 .yt-series-next-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
-.yt-series-next-icon { font-size: 16px; }
+.yt-series-next-icon { flex-shrink: 0; width: 18px; height: 18px; }
 
 @media (prefers-reduced-motion: reduce) {
   .yt-series-next-overlay { animation: none; }
@@ -174,58 +244,86 @@
 }
 
 /* ── Episode notes bar (watch page, under the title) ──────────────────── */
-.yt-series-notebar {
-  margin: 8px 0 4px;
-  color: inherit;
-  font-family: Roboto, Arial, sans-serif;
+#yt-series-notebar.yt-series-notebar {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  margin: 12px 0 4px;
+  color: var(--yt-series-text);
+  font-family: var(--yt-series-font);
+  font-size: 14px;
+  line-height: 20px;
 }
-.yt-series-note-btn,
-.yt-series-note-save,
-.yt-series-note-cancel {
-  height: 32px;
-  padding: 0 14px;
+#yt-series-notebar .yt-series-note-btn,
+#yt-series-notebar .yt-series-note-save,
+#yt-series-notebar .yt-series-note-cancel {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  margin: 0;
+  padding: 0 16px;
   border: none;
-  border-radius: 16px;
-  background: color-mix(in srgb, currentColor 10%, transparent);
-  color: inherit;
+  border-radius: 18px;
+  background: var(--yt-series-tonal);
+  color: var(--yt-series-text);
+  font-family: var(--yt-series-font);
   font-size: 14px;
   font-weight: 500;
+  line-height: 36px;
+  white-space: nowrap;
   cursor: pointer;
+  transition: background 0.15s;
 }
-.yt-series-note-btn:hover,
-.yt-series-note-cancel:hover { background: color-mix(in srgb, currentColor 18%, transparent); }
-.yt-series-note-save { background: #cc0000; color: #fff; }
-.yt-series-note-btn:focus-visible,
-.yt-series-note-save:focus-visible,
-.yt-series-note-cancel:focus-visible,
-.yt-series-note-input:focus-visible { outline: 2px solid #3ea6ff; outline-offset: 2px; }
-.yt-series-note-form {
+#yt-series-notebar .yt-series-note-btn:hover,
+#yt-series-notebar .yt-series-note-cancel:hover { background: var(--yt-series-tonal-hover); }
+#yt-series-notebar .yt-series-note-save { background: var(--yt-series-accent); color: #fff; }
+#yt-series-notebar .yt-series-note-save:hover { background: var(--yt-series-accent-hover); }
+#yt-series-notebar .yt-series-note-icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+}
+#yt-series-notebar .yt-series-note-btn:focus-visible,
+#yt-series-notebar .yt-series-note-save:focus-visible,
+#yt-series-notebar .yt-series-note-cancel:focus-visible,
+#yt-series-notebar .yt-series-note-input:focus-visible { outline: 2px solid var(--yt-series-focus); outline-offset: 2px; }
+#yt-series-notebar .yt-series-note-form {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
   gap: 8px;
+  margin: 0;
 }
-.yt-series-note-time {
-  padding: 6px 10px;
-  font-family: Roboto, Arial, sans-serif;
-  border-radius: 12px;
-  background: color-mix(in srgb, currentColor 10%, transparent);
+#yt-series-notebar .yt-series-note-time {
+  box-sizing: border-box;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 18px;
+  background: var(--yt-series-tonal);
   font-size: 13px;
   font-weight: 700;
+  line-height: 36px;
   font-variant-numeric: tabular-nums;
 }
-.yt-series-note-input {
+#yt-series-notebar .yt-series-note-input {
+  box-sizing: border-box;
   flex: 1 1 320px;
-  min-height: 56px;
-  padding: 8px 10px;
-  border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+  min-height: 60px;
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--yt-series-border);
   border-radius: 8px;
-  background: transparent;
-  color: inherit;
-  font: inherit;
+  background: var(--yt-series-field-bg);
+  color: var(--yt-series-text);
+  font-family: var(--yt-series-font);
   font-size: 14px;
+  line-height: 20px;
   resize: vertical;
 }
+#yt-series-notebar .yt-series-note-input::placeholder { color: var(--yt-series-text-muted); }
 
 /* ── Series progress on playlist pages and the watch-page panel ───────── */
 .yt-series-progress-summary {
@@ -249,6 +347,13 @@
   font-weight: 700;
 }
 .yt-series-progress-text { font-weight: 500; }
+.yt-series-progress-ended {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 700;
+}
+.yt-series-progress-ended svg { width: 16px; height: 16px; }
 .yt-series-progress-track {
   flex: 1 1 120px;
   max-width: 240px;
@@ -268,6 +373,9 @@
   top: 4px;
   left: 4px;
   z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   padding: 2px 6px;
   border-radius: 4px;
   background: rgba(0, 0, 0, 0.8);
@@ -293,4 +401,5 @@
   height: 100%;
   background: #cc0000;
 }
+.yt-series-item-badge svg { width: 12px; height: 12px; }
 [data-yt-series-excluded="true"] { opacity: 0.45; }

@@ -1,5 +1,21 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- Ended series: "Mark as ended" in the detail (synced), "Ended" badge, no release forecast and no auto-refresh for them; the detail suggests it after 90 days without uploads
+- On YouTube, finishing the last episode shows "All episodes watched" with "the series has ended" or "you're caught up" and a "Mark as ended" button; the playlist summary shows "Ended"
+
+### Changed
+- "Exclude" is now "Skip episode" ("Salta episodio")
+- No emoji in the interface: SVG icons for notes, play, refresh, warnings and the watched badge
+- Firestore rules: optional `ended`/`endedAt` (redeploy the rules)
+- `npm run build:watch` re-copies changed HTML/CSS into `dist/`
+
+### Fixed
+- The next-episode card disappeared when the episode ended (the browser fires "pause" first) and could bind to YouTube's hover-preview player instead of the episode
+- Note bar and "Add to Series" button on the watch page: explicit fonts, light/dark theme colours and enough specificity over YouTube's own rules
+
 ## [1.3.0] - 2026-10-23
 
 ### Added

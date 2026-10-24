@@ -86,7 +86,7 @@ const appRoutes = {
       for (const video of series.videos) {
         videos[video.id] = { w: Boolean(video.watched), p: Math.round(video.progress || 0), r: Math.floor(video.resumeTime || 0), x: Boolean(video.excluded) }
       }
-      return { success: true, saved: true, total: countedVideos(series).length, watchedCount: watchedCount(series), timeLeft: timeLeft(series), videos }
+      return { success: true, saved: true, total: countedVideos(series).length, watchedCount: watchedCount(series), timeLeft: timeLeft(series), ended: Boolean(series.ended), videos }
     }
   },
   [EVENTS.SYNC_STATUS]: { mode: 'read', handler: ctx => ({ success: true, syncStatus: ctx.sync.status() }) },

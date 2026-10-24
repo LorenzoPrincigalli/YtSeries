@@ -103,6 +103,7 @@
   --text-on-surface-media: #000000;
   --badge-new-bg: #b33600;
   --badge-done-bg: #157a33;
+  --badge-ended-bg: #3d3d3d;
 
   /* Transition */
   --transition: 0.2s ease;

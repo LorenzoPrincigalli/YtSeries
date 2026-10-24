@@ -44,12 +44,14 @@ Storage keys are defined in `src/shared/constants.js` → `STORAGE_KEYS`.
 | `newEpisodesCount` | number | Set on refresh when new items appear |
 | `latestNewVideoId` | string/null | First episode discovered in the latest refresh; target for the grouped notification |
 | `completed` | boolean | User toggle |
+| `ended` | boolean | The creator will publish no more episodes (not the same as `completed`). Skipped by auto-refresh, no release forecast, "Ended" badge; suggested in the detail after 90 days without uploads (`dormantMonths`) |
 | `collection` | string | Optional user-defined collection, max 40 characters |
 | `collectionCover` | string | Optional HTTPS thumbnail selected from collection content; empty uses automatic mosaic; shared across members |
 | `addedAt`, `lastRefreshedAt` | number | Timestamps |
 | `localUpdatedAt` | number | Monotonic timestamp of the latest local library mutation |
 | `syncUpdatedAt`, `remoteUpdateTime` | number, string | Last merged logical timestamp and Firestore optimistic-concurrency version |
 | `completedUpdatedAt` | number | Timestamp of the completion toggle, independent of episode progress |
+| `endedUpdatedAt` | number | Timestamp of the ended toggle; synced as `ended`/`endedAt` (only once toggled), newer side wins |
 | `collectionUpdatedAt` | number | Timestamp of the collection assignment for sync conflict resolution |
 | `notes` | object | `{ [noteId]: { v: videoId, t: seconds, x: text ≤ 1000, a: updatedAt, d?: true } }`; deletions are tombstones (`d`, empty `x`) so they sync; ≤ 300 active, ≤ 400 entries (oldest tombstones pruned). Synced in the series document, merged per note (newer `a` wins, a same-time deletion wins) |
 
@@ -112,6 +114,7 @@ The product is **donation-only — all features enabled**. In memory, `license.i
 | `deleteSeries(playlistId)` | Remove |
 | `markEpisodeWatched(playlistId, videoId)` | Set watched + watchedAt |
 | `toggleSeriesComplete(playlistId)` | Flip completed |
+| `setSeriesEnded(playlistId, ended)` | Set ended; returns false when nothing changed |
 | `setSeriesCollection(playlistId, collection)` | Set or clear a user collection |
 | `updateSettings(partial)` | Merge settings |
 | `isPro()` / `canAddSeries()` | Always allow all features and unlimited library size |

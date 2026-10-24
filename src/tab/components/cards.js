@@ -50,7 +50,9 @@ export function seriesCard(series, onOpen, index = 0) {
     ? h('span', { class: 'card-badge card-badge-new' }, t('new_badge', { n: series.newEpisodesCount }))
     : complete && series.videos.length > 0
       ? h('span', { class: 'card-badge card-badge-complete' }, t('done'))
-      : null
+      : series.ended
+        ? h('span', { class: 'card-badge card-badge-ended', title: t('series_ended_desc') }, t('series_ended'))
+        : null
 
   const card = h('div', { class: 'series-card card-reveal', style: { '--i': index }, dataset: { id: series.playlistId }, onClick: open },
     h('div', { class: 'card-thumbnail' },
@@ -187,7 +189,7 @@ export function heroCarousel(seriesList, onContinue, onOpen) {
         h('div', { class: 'hero-progress', role: 'progressbar', 'aria-label': t('watched'), 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': String(Math.round(heroProgress(series))) },
           h('div', { class: 'hero-progress-bar', style: progressStyle(heroProgress(series)) })),
         h('div', { class: 'hero-btn-group' },
-          h('button', { type: 'button', class: 'hero-btn hero-btn-play', onClick: event => { event.stopPropagation(); onContinue(series) } }, `▶ ${label}`)))))
+          h('button', { type: 'button', class: 'hero-btn hero-btn-play', onClick: event => { event.stopPropagation(); onContinue(series) } }, svg('play'), label)))))
     dots.push(h('button', {
       type: 'button',
       class: ['hero-dot', i === 0 && 'active'],
@@ -211,14 +213,14 @@ export function heroCarousel(seriesList, onContinue, onOpen) {
 export function followButton(channelId, followed, onFollow) {
   return h('button', {
     type: 'button',
-    class: 'btn-secondary channel-follow-btn',
+    class: 'btn-secondary btn-with-icon channel-follow-btn',
     disabled: followed,
     onClick: async event => {
       const button = /** @type {HTMLButtonElement} */ (event.currentTarget)
       button.disabled = true
       if (!await onFollow(channelId) && button.isConnected) button.disabled = false
     }
-  }, followed ? `✓ ${t('following_channel')}` : t('follow_channel'))
+  }, followed ? [svg('check'), t('following_channel')] : t('follow_channel'))
 }
 
 /**

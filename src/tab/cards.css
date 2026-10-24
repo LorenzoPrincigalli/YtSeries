@@ -225,6 +225,11 @@
   color: var(--text-on-media);
 }
 
+.card-badge-ended {
+  background: var(--badge-ended-bg);
+  color: var(--text-on-media);
+}
+
 .card-info {
   display: flex;
   flex-direction: column;

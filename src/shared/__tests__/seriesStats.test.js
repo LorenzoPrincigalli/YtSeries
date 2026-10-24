@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   countedVideos, watchedCount, progressRatio, nextCountedEpisode, timeLeft, seriesPace, finishEstimate,
-  milestoneCrossed, streak, weekProgress, startOfWeek, releaseForecast, suggestedExclusions
+  milestoneCrossed, streak, weekProgress, startOfWeek, releaseForecast, suggestedExclusions, dormantMonths
 } from '../seriesStats.js'
 
 const DAY = 86_400_000
@@ -158,6 +158,25 @@ describe('releaseForecast', () => {
   it('skips missing or invalid dates', () => {
     const videos = [...weekly(5), v('x', { publishedAt: 'not a date' }), v('y')]
     expect(releaseForecast(s(videos), NOW)?.cadenceDays).toBeCloseTo(7)
+  })
+
+  it('expects nothing from an ended series', () => {
+    expect(releaseForecast(s(weekly(6), { ended: true }), NOW)).toBeNull()
+  })
+})
+
+describe('dormantMonths', () => {
+  const at = daysAgo => v(`d${daysAgo}`, { publishedAt: new Date(NOW - daysAgo * DAY).toISOString() })
+
+  it('counts whole months since the latest upload once the series has gone quiet', () => {
+    expect(dormantMonths(s([at(400), at(200), at(130)]), NOW)).toBe(4)
+  })
+
+  it('stays silent for recent, regular or already ended series', () => {
+    expect(dormantMonths(s([at(300), at(60)]), NOW)).toBeNull()
+    expect(dormantMonths(s([at(300), at(130)], { ended: true }), NOW)).toBeNull()
+    expect(dormantMonths(s([]), NOW)).toBeNull()
+    expect(dormantMonths(s([v('undated')]), NOW)).toBeNull()
   })
 })
 

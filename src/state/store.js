@@ -215,6 +215,7 @@ class Store {
     const at = this._touch(restored)
     restored.completedUpdatedAt = at
     restored.collectionUpdatedAt = at
+    if (restored.ended || restored.endedUpdatedAt) restored.endedUpdatedAt = at
     for (const video of restored.videos) video.progressUpdatedAt = at
     restored.lastEpisodeIndex = resumeIndex(restored)
     this._state.series[series.playlistId] = restored
@@ -230,6 +231,15 @@ class Store {
     if (!series) return
     series.completed = !series.completed
     series.completedUpdatedAt = this._touch(series)
+  }
+
+  /** Ended: the creator will publish no more episodes (not the same as completed). */
+  setSeriesEnded(playlistId, ended) {
+    const series = this._state.series[playlistId]
+    if (!series || Boolean(series.ended) === ended) return false
+    series.ended = ended
+    series.endedUpdatedAt = this._touch(series)
+    return true
   }
 
   setSeriesCollection(playlistId, collection) {

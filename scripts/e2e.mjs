@@ -113,6 +113,8 @@ async function settingsSection(section) {
   await page.click(`.settings-tab[data-section="${section}"]`)
 }
 async function axe(label, selector) {
+  // Contrast measured mid-transition (e.g. a tab losing its active colour) is a false positive.
+  await page.waitForFunction(() => document.getAnimations().every(a => a.playState !== 'running' || a.effect?.getComputedTiming().endTime === Infinity), null, { timeout: 3000 }).catch(() => {})
   await page.evaluate(axeSource)
   const violations = await page.evaluate(async scope => {
     const { violations } = await window.axe.run(scope ? document.querySelector(scope) : document, { resultTypes: ['violations'] })
@@ -558,7 +560,7 @@ await step('trailer suggestion excludes trailers; time left is shown', async () 
   await page.click('.detail-suggestion .btn-primary')
   await page.waitForSelector('.episode-card.episode-excluded')
   assert(await page.locator('.detail-suggestion').count() === 0, 'suggestion still shown after excluding')
-  assert(/2 episodes · 0\/2 Watched.*1 excluded/.test(await page.textContent('.detail-meta-row')), `meta: ${await page.textContent('.detail-meta-row')}`)
+  assert(/2 episodes · 0\/2 Watched.*1 skipped/.test(await page.textContent('.detail-meta-row')), `meta: ${await page.textContent('.detail-meta-row')}`)
   assert(/7 min left/.test(await page.textContent('.detail-pace-row')), `pace: ${await page.textContent('.detail-pace-row')}`)
   const trailer = (await state()).series.PLtrailer001.videos[0]
   assert(trailer.excluded === true, 'trailer not excluded in the library')

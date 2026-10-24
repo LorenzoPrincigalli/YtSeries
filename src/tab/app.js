@@ -4,6 +4,7 @@ import { EVENTS } from '../shared/events.js'
 import { t } from '../shared/i18n.js'
 import { logger } from '../shared/logger.js'
 import { byId, h, mount } from '../shared/dom.js'
+import { svg } from '../shared/icons.js'
 import { getState, getUi, setServer, setUi, subscribe } from './core/store.js'
 import { safeRender, installGlobalErrorHandlers } from './core/errorBoundary.js'
 import { initModalTriggers } from './ui/modal.js'
@@ -50,7 +51,7 @@ const shallowEqual = (a, b) => Object.keys(a).every(key => a[key] === b[key])
 
 function renderLoadError() {
   mount(/** @type {HTMLElement} */ (byId('mainContent')), h('div', { class: 'empty-state', role: 'alert' },
-    h('div', { class: 'empty-state-icon', 'aria-hidden': 'true' }, '⚠️'),
+    h('div', { class: 'empty-state-icon', 'aria-hidden': 'true' }, svg('warning')),
     h('h2', { class: 'empty-state-title' }, t('something_wrong')),
     h('p', { class: 'empty-state-desc' }, t('load_failed_msg')),
     h('button', { type: 'button', class: 'btn-primary', onClick: () => boot() }, t('retry'))))

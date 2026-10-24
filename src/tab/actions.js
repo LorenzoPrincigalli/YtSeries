@@ -87,6 +87,11 @@ export function toggleComplete(playlistId) {
   return command(EVENTS.SERIES_COMPLETE_TOGGLE, { playlistId }, 'something_wrong')
 }
 
+/** Ended: the creator will publish no more episodes. @param {string} playlistId @param {boolean} ended */
+export function setSeriesEnded(playlistId, ended) {
+  return command(EVENTS.SERIES_ENDED_SET, { playlistId, ended }, 'something_wrong')
+}
+
 /** @param {string} playlistId @param {string} collection */
 export function setSeriesCollection(playlistId, collection) {
   return command(EVENTS.SERIES_COLLECTION_SET, { playlistId, collection }, 'collection_save_error')

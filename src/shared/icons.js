@@ -14,7 +14,10 @@ const ICONS = {
   trash: { viewBox: '0 0 24 24', attrs: STROKE, paths: ['M5 7h14m-9 0V5h4v2m-7 0 1 13h8l1-13m-6 3v7m4-7v7'] },
   check: { viewBox: '0 0 16 16', attrs: { ...STROKE, 'stroke-width': '2.2' }, paths: ['M3.5 8.5l3 3 6-7'] },
   refresh: { viewBox: '0 0 24 24', attrs: STROKE, paths: ['M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7'] },
-  share: { viewBox: '0 0 24 24', attrs: STROKE, paths: ['M12 15V4m0 0L8 8m4-4 4 4', 'M5 12v6.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V12'] }
+  share: { viewBox: '0 0 24 24', attrs: STROKE, paths: ['M12 15V4m0 0L8 8m4-4 4 4', 'M5 12v6.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V12'] },
+  note: { viewBox: '0 0 24 24', attrs: STROKE, paths: ['M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z', 'M13.5 6.5l4 4'] },
+  warning: { viewBox: '0 0 24 24', attrs: STROKE, paths: ['M12 4 2.8 19.5h18.4z', 'M12 10v4.5m0 2.5v.01'] },
+  flag: { viewBox: '0 0 24 24', attrs: STROKE, paths: ['M5 21V4', 'M5 4h12l-2.5 4L17 12H5'] }
 }
 
 /**

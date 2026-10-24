@@ -1,15 +1,18 @@
 // @ts-check
-// "📝 Note at 12:34" under the player when the video is an episode of a saved
+// "Note at 12:34" under the player when the video is an episode of a saved
 // series: an inline field that saves a timestamped note through the service
 // worker. Stamped with the owning script instance, like pageInjections.js.
 import { EVENTS } from '../shared/events.js'
 import { t } from '../shared/i18n.js'
 import { h } from '../shared/dom.js'
+import { svg } from '../shared/icons.js'
 import { formatDuration } from '../shared/seriesStats.js'
 import { SELECTORS, findVisible, findVideo } from './youtubeDom.js'
 import { showToast } from './toast.js'
 
 export const NOTE_BAR_CLASS = 'yt-series-notebar'
+// The id gives content.css enough specificity over YouTube's own rules.
+const NOTE_BAR_ID = 'yt-series-notebar'
 
 const currentTime = () => Math.floor(findVideo()?.currentTime || 0)
 
@@ -66,14 +69,15 @@ export class NoteButton {
     const bar = this.ownBar()
     if (bar && bar.dataset.videoId === this.videoId && bar.previousElementSibling === anchor) return
     bar?.remove()
-    anchor.after(this.renderButton(h('div', { class: NOTE_BAR_CLASS, dataset: { owner: this.instance, videoId: this.videoId } })))
+    anchor.after(this.renderButton(h('div', { id: NOTE_BAR_ID, class: NOTE_BAR_CLASS, dataset: { owner: this.instance, videoId: this.videoId } })))
   }
 
   /** @param {HTMLElement} bar */
   renderButton(bar) {
-    const button = h('button', { type: 'button', class: 'yt-series-note-btn' }, t('content_note_button', { time: formatDuration(currentTime()) }))
+    const label = h('span', null, t('content_note_button', { time: formatDuration(currentTime()) }))
+    const button = h('button', { type: 'button', class: 'yt-series-note-btn' }, svg('note', { class: 'yt-series-note-icon' }), label)
     // The label follows the player when the user is about to click.
-    const relabel = () => { button.textContent = t('content_note_button', { time: formatDuration(currentTime()) }) }
+    const relabel = () => { label.textContent = t('content_note_button', { time: formatDuration(currentTime()) }) }
     button.addEventListener('mouseenter', relabel)
     button.addEventListener('focus', relabel)
     button.addEventListener('click', () => this.openForm(bar))

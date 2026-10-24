@@ -6,6 +6,7 @@ Istruzioni e riferimenti rapidi per AI coding agents che lavorano su questo prog
 ## Regole fondamentali
 - **Tutte le mutazioni di stato** passano dal background service worker (`src/background/index.js`).
 - UI e content scripts **non scrivono mai direttamente** su `chrome.storage`.
+- **Niente emoji** nel progetto (UI, stringhe i18n, HTML): usa le icone SVG di `src/shared/icons.js`. Lo verifica `src/shared/__tests__/no-emoji.test.js`.
 - Segui la struttura e i flussi documentati in `docs/knowledge/` (vedi mappa sotto).
 
 ## Architettura e flussi

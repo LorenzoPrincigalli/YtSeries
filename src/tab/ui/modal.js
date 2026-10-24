@@ -1,6 +1,7 @@
 // @ts-check
 import { t } from '../../shared/i18n.js'
 import { h } from '../../shared/dom.js'
+import { svg } from '../../shared/icons.js'
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
@@ -95,7 +96,7 @@ export function confirmDialog(message, { confirmLabel = t('confirm'), danger = f
     const finish = result => { dialog.close(); resolve(result) }
     dialog.append(
       h('div', { class: 'modal-body modal-confirm-body' },
-        h('div', { class: 'modal-confirm-icon', 'aria-hidden': 'true' }, '⚠️'),
+        h('div', { class: 'modal-confirm-icon', 'aria-hidden': 'true' }, svg('warning')),
         h('p', { class: 'modal-confirm-msg', id: messageId }, message)),
       h('div', { class: 'modal-footer centered-footer' },
         h('button', { type: 'button', class: 'btn-secondary', onClick: () => finish(false) }, t('cancel')),

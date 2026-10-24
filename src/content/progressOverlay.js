@@ -9,6 +9,7 @@
 import { EVENTS } from '../shared/events.js'
 import { t } from '../shared/i18n.js'
 import { h } from '../shared/dom.js'
+import { svg } from '../shared/icons.js'
 import { formatDuration, formatLength } from '../shared/seriesStats.js'
 import { SELECTORS, currentPageIds, findVisible } from './youtubeDom.js'
 
@@ -82,8 +83,8 @@ export class ProgressOverlay {
     if (location.pathname !== '/playlist') return
     const container = findVisible(SELECTORS.playlistHeader)
     if (!container) return
-    const { watchedCount, total, timeLeft } = this.data
-    const key = `${watchedCount}/${total}/${timeLeft}`
+    const { watchedCount, total, timeLeft, ended } = this.data
+    const key = `${watchedCount}/${total}/${timeLeft}/${ended ? 1 : 0}`
     const existing = /** @type {HTMLElement | null} */ (document.querySelector(`.${SUMMARY_CLASS}`))
     if (existing?.dataset.owner === this.instance && existing.dataset.key === key && container.contains(existing)) return
     existing?.remove()
@@ -93,6 +94,7 @@ export class ProgressOverlay {
     container.append(h('div', { class: SUMMARY_CLASS, dataset: { owner: this.instance, key } },
       h('span', { class: 'yt-series-progress-label' }, 'YT Series'),
       h('span', { class: 'yt-series-progress-text' }, parts.join(' · ')),
+      ended && h('span', { class: 'yt-series-progress-ended', title: t('series_ended_desc') }, svg('flag'), t('series_ended')),
       h('span', { class: 'yt-series-progress-track', role: 'progressbar', 'aria-label': 'YT Series', 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': String(percent) },
         h('span', { class: 'yt-series-progress-fill', style: { width: `${percent}%` } }))))
   }
@@ -111,7 +113,7 @@ export class ProgressOverlay {
     if (state.x) { el.dataset.ytSeriesExcluded = 'true'; return }
     const thumb = item.querySelector(SELECTORS.itemThumbnail)
     if (!thumb) return
-    if (state.w) thumb.append(h('span', { class: BADGE_CLASS, dataset: { owner: this.instance } }, `✓ ${t('watched')}`))
+    if (state.w) thumb.append(h('span', { class: BADGE_CLASS, dataset: { owner: this.instance } }, svg('check'), t('watched')))
     else if (state.p > 0) {
       thumb.append(h('span', { class: BAR_CLASS, dataset: { owner: this.instance }, title: t('content_progress_partial', { percent: state.p, time: formatDuration(state.r || 0) }) },
         h('span', { style: { width: `${state.p}%` } })))

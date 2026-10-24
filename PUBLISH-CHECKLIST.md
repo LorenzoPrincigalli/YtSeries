@@ -43,6 +43,7 @@ Voluntary support via [Buy Me a Coffee](https://buymeacoffee.com/ytseriessun).
    npx firebase-tools deploy --only firestore:rules
    ```
    ✅ Done on 23 Oct 2026 (project `stunning-agency-497419-u5`, rules compiled and released).
+   ⚠️ **Redeploy needed**: the rules now also accept `ended`/`endedAt` (series marked as ended). Until redeployed, syncing a series the user marked as ended is rejected; other series are unaffected.
 5. **Chrome Web Store item** — ✅ exists: id `aelaadhbkhpgkpcmlcohnhnliaggbndp`; its public key is in `manifest.json` (`"key"`) and `EXTENSION_ID` is set. For reference, how it was created: Developer Dashboard → New item → upload `yt-series-1.2.0.zip`. The **extension ID** is assigned now, before review.
    - Package tab: copy the **public key** into `manifest.json` as `"key"` (keeps the same ID for unpacked development builds).
    - Store listing / Privacy practices: paste from `STORE-CWS-LISTING.md` (description, permission justifications, privacy policy URL, "no remote code").

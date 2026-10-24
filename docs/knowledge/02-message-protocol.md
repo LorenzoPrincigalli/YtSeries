@@ -35,7 +35,7 @@ C = callable from the content script.
 | `STATE_GET` | | — | `{ success, state, syncStatus }` |
 | `CONTENT_SETTINGS_GET` | only | — | `{ success, settings: { nextEpisodeOverlay, language } }` |
 | `CONTENT_VIDEO_SERIES` | only | `{ videoId, playlistId? }` | `{ success, saved }` (notes bar on YouTube) |
-| `CONTENT_SERIES_PROGRESS` | only | `{ playlistId }` | `{ success, saved, total, watchedCount, timeLeft, videos: { [id]: { w, p, r, x } } }` (one playlist only) |
+| `CONTENT_SERIES_PROGRESS` | only | `{ playlistId }` | `{ success, saved, total, watchedCount, timeLeft, ended, videos: { [id]: { w, p, r, x } } }` (one playlist only) |
 | `PLAYLIST_ADD` | ✓ | `{ url ≤ 2048 }` — playlist link, or channel link (`/channel/UC…`, `/@handle`) | `{ success, series }` |
 | `CHANNEL_FOLLOW` | | `{ channelId }` | `{ success, series }` (uploads playlist `UULF…`, fallback `UU…`) |
 | `PLAYLIST_EXISTS` | ✓ | `{ playlistId }` | `{ success, exists }` |
@@ -43,6 +43,7 @@ C = callable from the content script.
 | `SERIES_DELETE` | | `{ playlistId }` | `{ success, deletedSeries }` (backup taken first) |
 | `SERIES_RESTORE` | | `{ series }` (validated by `normalizeSeriesBackup`) | `{ success, state }` |
 | `SERIES_COMPLETE_TOGGLE` | | `{ playlistId }` | `{ success, state }` |
+| `SERIES_ENDED_SET` | ✓ | `{ playlistId, ended: boolean }` | `{ success, state }` ("ended": the creator will publish no more episodes; offered by the YouTube finale card) |
 | `SERIES_COLLECTION_SET` | | `{ playlistId, collection ≤ 40 }` | `{ success, state, skipped? }` |
 | `COLLECTION_CREATE` | | `{ name 1–40, ids? }` | `{ success, state }` |
 | `COLLECTION_EDIT` | | `{ name, nextName, cover }` | `{ success, state, moved, skipped: 0, undoToken: null }` |
@@ -55,7 +56,7 @@ C = callable from the content script.
 | `NOTE_ADD` | ✓ | `{ videoId, playlistId? (hint), time, text 1–1000 }` | `{ success, noteId, playlistId }` (no state: also called from YouTube) |
 | `NOTE_UPDATE` / `NOTE_DELETE` | | `{ playlistId, noteId, text }` / `{ playlistId, noteId }` | `{ success, state }` |
 | `EPISODE_PROGRESS` | ✓ | `{ videoId, playlistId?, progress 0–100, currentTime, duration }` | `{ success }` (persisted) |
-| `GET_NEXT_EPISODE` | ✓ | `{ videoId, playlistId }` | `{ success, nextEpisode }` |
+| `GET_NEXT_EPISODE` | ✓ | `{ videoId, playlistId }` | `{ success, nextEpisode, allWatched, ended }` (`allWatched` ignores the episode on screen) |
 | `SETTINGS_UPDATE` | | `{ theme?, language?, autoRefresh?, nextEpisodeOverlay?, weeklyGoal? (0–50) }` | `{ success, settings }` |
 | `SET_ICON_THEME` | | `{ suffix: '' \| '_light' }` | `{ success }` |
 | `OPEN_SERIES_TAB` | ✓ | — | `{ success }` |

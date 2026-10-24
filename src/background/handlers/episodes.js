@@ -2,7 +2,7 @@
 import { EVENTS } from '../../shared/events.js'
 import { AppError } from '../../shared/errors.js'
 import { s } from '../../shared/schema.js'
-import { progressRatio, milestoneCrossed } from '../../shared/seriesStats.js'
+import { progressRatio, milestoneCrossed, countedVideos } from '../../shared/seriesStats.js'
 import { commit } from '../context.js'
 
 /** @typedef {import('../context.js').BackgroundContext} Ctx */
@@ -77,7 +77,12 @@ const episodeRoutes = {
     contexts: ['extension', 'content'],
     mode: 'read',
     schema: s.object({ videoId: s.id(), playlistId: s.id() }),
-    handler: (ctx, { playlistId, videoId }) => ({ success: true, nextEpisode: ctx.store.getNextEpisode(playlistId, videoId) })
+    handler: (ctx, { playlistId, videoId }) => {
+      const series = ctx.store.getSeriesById(playlistId)
+      // allWatched ignores the episode on screen: its "watched" may still be in flight.
+      const allWatched = Boolean(series) && countedVideos(series).every(video => video.watched || video.id === videoId)
+      return { success: true, nextEpisode: ctx.store.getNextEpisode(playlistId, videoId), allWatched, ended: Boolean(series?.ended) }
+    }
   }
 }
 
