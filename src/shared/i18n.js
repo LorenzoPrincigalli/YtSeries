@@ -656,7 +656,7 @@ const STRINGS = {
     'search_playlists': 'Cerca playlist pubbliche su YouTube.',
     'search_playlist_placeholder': 'Cerca playlist...',
     'search_btn': 'Cerca',
-    'recommended': 'Altro dal tuo canale',
+    'recommended': 'Altro dai tuoi canali',
 
     // Settings sections
     'settings_overlay': 'Overlay',
